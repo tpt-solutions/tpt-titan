@@ -93,6 +93,142 @@ CREATE TABLE IF NOT EXISTS contacts (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ENCRYPTED TABLES FOR ZERO-KNOWLEDGE ARCHITECTURE
+
+-- Encrypted documents (spreadsheets, text files, etc.)
+CREATE TABLE IF NOT EXISTS encrypted_documents (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255),
+    content_type VARCHAR(50) NOT NULL, -- spreadsheet, document, form, etc.
+    encrypted_data BYTEA NOT NULL,
+    salt BYTEA NOT NULL,
+    algorithm VARCHAR(50) NOT NULL DEFAULT 'AES-256-GCM',
+    file_size BIGINT DEFAULT 0,
+    version INTEGER DEFAULT 1,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Encrypted forms
+CREATE TABLE IF NOT EXISTS encrypted_forms (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    encrypted_schema BYTEA NOT NULL, -- Form structure
+    salt BYTEA NOT NULL,
+    algorithm VARCHAR(50) NOT NULL DEFAULT 'AES-256-GCM',
+    response_count INTEGER DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'draft', -- draft, active, archived
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Encrypted form responses
+CREATE TABLE IF NOT EXISTS encrypted_form_responses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    form_id UUID NOT NULL REFERENCES encrypted_forms(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- Respondent user ID
+    encrypted_data BYTEA NOT NULL,
+    salt BYTEA NOT NULL,
+    algorithm VARCHAR(50) NOT NULL DEFAULT 'AES-256-GCM',
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Encrypted emails
+CREATE TABLE IF NOT EXISTS encrypted_emails (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    folder VARCHAR(50) DEFAULT 'inbox',
+    from_addr VARCHAR(255) NOT NULL,
+    to_addrs TEXT NOT NULL,
+    subject VARCHAR(500),
+    encrypted_body BYTEA NOT NULL,
+    salt BYTEA NOT NULL,
+    algorithm VARCHAR(50) NOT NULL DEFAULT 'AES-256-GCM',
+    is_read BOOLEAN DEFAULT FALSE,
+    is_encrypted BOOLEAN DEFAULT TRUE,
+    sent_at TIMESTAMP WITH TIME ZONE,
+    received_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Encrypted tasks
+CREATE TABLE IF NOT EXISTS encrypted_tasks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    encrypted_description BYTEA,
+    salt BYTEA NOT NULL,
+    algorithm VARCHAR(50) NOT NULL DEFAULT 'AES-256-GCM',
+    status VARCHAR(20) DEFAULT 'todo',
+    priority VARCHAR(10) DEFAULT 'medium',
+    due_date TIMESTAMP WITH TIME ZONE,
+    assigned_to UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Key backup information
+CREATE TABLE IF NOT EXISTS key_backups (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    backup_method VARCHAR(50) NOT NULL, -- shamir, hardware, recovery_codes
+    encrypted_data BYTEA NOT NULL, -- Encrypted backup data
+    salt BYTEA NOT NULL,
+    algorithm VARCHAR(50) NOT NULL DEFAULT 'AES-256-GCM',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Recovery shares for Shamir's secret sharing
+CREATE TABLE IF NOT EXISTS recovery_shares (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    share_index INTEGER NOT NULL,
+    total_shares INTEGER NOT NULL,
+    threshold INTEGER NOT NULL,
+    encrypted_share BYTEA NOT NULL,
+    salt BYTEA NOT NULL,
+    algorithm VARCHAR(50) NOT NULL DEFAULT 'AES-256-GCM',
+    guardian_name VARCHAR(255), -- Who holds this share
+    guardian_email VARCHAR(255),
+    status VARCHAR(20) DEFAULT 'active', -- active, used, revoked
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Hardware security keys
+CREATE TABLE IF NOT EXISTS hardware_keys (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    device_id VARCHAR(255) NOT NULL UNIQUE,
+    device_type VARCHAR(50) NOT NULL, -- usb, yubikey, etc.
+    public_key BYTEA NOT NULL,
+    encrypted_key BYTEA NOT NULL,
+    salt BYTEA NOT NULL,
+    algorithm VARCHAR(50) NOT NULL DEFAULT 'AES-256-GCM',
+    face_template BYTEA, -- For biometric recovery
+    gps_location VARCHAR(255), -- Optional location lock
+    time_lock TIMESTAMP WITH TIME ZONE, -- Optional time-based access
+    status VARCHAR(20) DEFAULT 'active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_used TIMESTAMP WITH TIME ZONE
+);
+
+-- Recovery attempt logs
+CREATE TABLE IF NOT EXISTS recovery_attempts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    method VARCHAR(50) NOT NULL, -- shamir, hardware, recovery_codes
+    ip_address VARCHAR(45),
+    user_agent VARCHAR(500),
+    success BOOLEAN DEFAULT FALSE,
+    error_message TEXT,
+    attempted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);

@@ -5,6 +5,8 @@ go 1.21
 require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt/v5 v5.0.0
+	github.com/google/tink/go/aead v0.0.0-20230613061107-4b7c0842eec8
+	github.com/google/tink/go/keyset v0.0.0-20230613061107-4b7c0842eec8
 	github.com/google/uuid v1.3.0
 	github.com/joho/godotenv v1.4.0
 	github.com/lib/pq v1.10.9
