@@ -55,8 +55,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Rust (for Tauri)
-Cargo.lock
+# Rust (for Tauri) - Keep Cargo.lock for reproducible builds
+# Cargo.lock should be committed for applications
 
 # Python (if needed)
 __pycache__/
@@ -68,7 +68,18 @@ __pycache__/
 *.bak
 *.backup
 
-# Secrets
+# Secrets and Keys
 secrets/
 *.key
 *.pem
+*.p12
+*.pfx
+
+# Go build artifacts (but keep go.mod and go.sum)
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
