@@ -1,12 +1,12 @@
 # TPT Titan Development Checklist
 
-This is the comprehensive TODO list for building TPT Titan, a complete open source alternative to Microsoft Office 365. All components are recreated from scratch under GPL v3.
+This is the comprehensive TODO list for building TPT Titan, a complete open source alternative to Microsoft Office 365. All components are recreated from scratch under AGPL v3.0 or later.
 
 ## Phase 1: Project Setup
 - [x] Create README.md
 - [x] Create TODO.md
 - [x] Set up Git repository
-- [x] Create LICENSE (GPL v3)
+- [x] Create LICENSE (AGPL v3.0 or later)
 - [x] Create .gitignore
 - [x] Set up GitHub repository with issues, PR templates
 - [x] Create basic project structure (backend/, frontend/, desktop/, etc.)
@@ -91,11 +91,11 @@ This is the comprehensive TODO list for building TPT Titan, a complete open sour
   - [x] Shamir's secret sharing for key recovery
   - [x] USB/face ID hardware recovery system
   - [x] Zero-knowledge backup architecture
-- [ ] Tasks/To-Do Application (Priority #5)
-  - [ ] Task creation and management
+- [x] Tasks/To-Do Application MVP (Priority #5) - COMPLETED
+  - [x] Task creation and management with Kanban board
   - [ ] Integration with forms and email
-  - [ ] Basic project tracking
-  - [ ] AI task suggestions and prioritization
+  - [x] Basic project tracking and organization
+  - [x] AI task suggestions and prioritization (insights)
 
 ## Phase 5: Core Components - Communication
 - [ ] Email Client
@@ -208,7 +208,7 @@ This is the comprehensive TODO list for building TPT Titan, a complete open sour
 - [ ] Long-term roadmap planning
 
 ## Notes
-- All code must be original, GPL v3 licensed
+- All code must be original, AGPL v3.0 or later licensed
 - Prioritize security and privacy
 - Ensure cross-platform compatibility
 - Focus on user experience and ease of use
