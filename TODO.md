@@ -5,14 +5,14 @@ This is the comprehensive TODO list for building TPT Titan, a complete open sour
 ## Phase 1: Project Setup
 - [x] Create README.md
 - [x] Create TODO.md
-- [ ] Set up Git repository
-- [ ] Create LICENSE (GPL v3)
-- [ ] Create .gitignore
-- [ ] Set up GitHub repository with issues, PR templates
-- [ ] Create basic project structure (backend/, frontend/, desktop/, etc.)
-- [ ] Set up CI/CD with GitHub Actions
-- [ ] Create contribution guidelines (CONTRIBUTING.md)
-- [ ] Create code of conduct (CODE_OF_CONDUCT.md)
+- [x] Set up Git repository
+- [x] Create LICENSE (GPL v3)
+- [x] Create .gitignore
+- [x] Set up GitHub repository with issues, PR templates
+- [x] Create basic project structure (backend/, frontend/, desktop/, etc.)
+- [x] Set up CI/CD with GitHub Actions
+- [x] Create contribution guidelines (CONTRIBUTING.md)
+- [x] Create code of conduct (CODE_OF_CONDUCT.md)
 
 ## Phase 2: Infrastructure & Architecture
 - [ ] Design modular architecture
