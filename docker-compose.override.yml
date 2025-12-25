@@ -1,0 +1,33 @@
+version: '3.8'
+
+# Override file for development - this file is ignored by Git
+# Copy this file and rename it to docker-compose.override.yml for development
+
+services:
+  # Development backend with hot reload
+  backend:
+    volumes:
+      - ./backend:/app
+    environment:
+      - GIN_MODE=debug
+    command: ["air", "-c", ".air.toml"]
+
+  # Development frontend with hot reload
+  frontend:
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev"]
+    ports:
+      - "5173:5173"  # Vite dev server port
+
+  # Database with persistent data for development
+  postgres:
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./scripts:/docker-entrypoint-initdb.d
+
+  # Redis with persistent data for development
+  redis:
+    volumes:
+      - ./data/redis:/data
