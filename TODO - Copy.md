@@ -50,36 +50,21 @@ This is the comprehensive TODO list for building TPT Titan, a complete open sour
 - [ ] Admin console
 
 ## Phase 4: Core Components - Office Suite (80/20 Focus)
-- [x] Spreadsheet MVP (Priority #1) - COMPLETED
-  - [x] Simplified grid interface with dual modes (Simple/Advanced)
-  - [x] Basic data entry and calculations
-  - [x] AI formula checking and suggestions (basic implementation)
-  - [ ] Mathematical notation integration (equations in cells)
+- [ ] Spreadsheet MVP (Priority #1)
+  - [ ] Simplified grid interface with dual modes (Simple/Advanced)
+  - [ ] Basic data entry and calculations
+  - [ ] AI formula checking and suggestions
   - [ ] Smart data visualization (auto charts)
   - [ ] Real-time collaboration with version control
   - [ ] Data import/export (CSV, Excel compatibility)
 - [ ] Forms & Templates (Priority #2)
   - [ ] Visual drag-and-drop form builder
-  - [ ] MS Access-style database features
-    - [ ] Visual query builder (drag-and-drop)
-    - [ ] Relationship management between forms
-    - [ ] Report generation from form data
-    - [ ] Advanced filtering and sorting
   - [ ] Digital signatures with legal compliance
-  - [ ] Template library (business forms, surveys, contracts)
+  - [ ] Template library (business forms, surveys)
   - [ ] Form responses integration with spreadsheets
   - [ ] Email distribution and response tracking
-  - [ ] Workflow automation (approval chains, notifications)
 - [ ] Text Editor (Priority #3)
   - [ ] Rich text editing with AI writing assistance
-  - [ ] Notion-style block editing system
-  - [ ] Markdown integration (dual view: WYSIWYG + Markdown)
-  - [ ] Natural Math notation system (better than LaTeX)
-    - [ ] Natural language math input ("integral of x squared dx")
-    - [ ] Visual equation builder (drag-and-drop)
-    - [ ] Handwriting recognition for equations
-    - [ ] AI-powered equation optimization
-    - [ ] Export to LaTeX, MathML, SVG
   - [ ] Basic formatting and document structure
   - [ ] File save/load with version history
   - [ ] Export to PDF/docx
