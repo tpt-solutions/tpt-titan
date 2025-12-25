@@ -34,10 +34,10 @@ This is the comprehensive TODO list for building TPT Titan, a complete open sour
   - [ ] Design schema for users, files, emails, etc.
   - [ ] Set up migrations
   - [ ] Implement ORM/models
-- [ ] Docker setup
-  - [ ] Create Dockerfiles for each service
-  - [ ] Set up docker-compose.yml
-  - [ ] Configure networking and volumes
+- [x] Docker setup
+  - [x] Create Dockerfiles for each service
+  - [x] Set up docker-compose.yml
+  - [x] Configure networking and volumes
 
 ## Phase 3: Authentication & User Management
 - [ ] Implement user registration/login
