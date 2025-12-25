@@ -21,11 +21,11 @@ This is the comprehensive TODO list for building TPT Titan, a complete open sour
   - [x] Set up basic server structure
   - [x] Implement basic API endpoints
   - [x] Set up database connections (PostgreSQL)
-- [ ] Set up Svelte frontend
-  - [ ] Initialize Svelte project
-  - [ ] Set up basic UI structure
-  - [ ] Implement routing
-  - [ ] Connect to backend API
+- [x] Set up Svelte frontend
+  - [x] Initialize Svelte project
+  - [x] Set up basic UI structure
+  - [x] Implement routing
+  - [x] Connect to backend API
 - [ ] Set up Tauri desktop app
   - [ ] Initialize Tauri project
   - [ ] Integrate Svelte frontend
@@ -49,28 +49,30 @@ This is the comprehensive TODO list for building TPT Titan, a complete open sour
 - [ ] 2FA/MFA authentication
 - [ ] Admin console
 
-## Phase 4: Core Components - Office Suite
-- [ ] Text Editor
-  - [ ] Basic text editing interface
-  - [ ] Rich text formatting (bold, italic, etc.)
-  - [ ] File save/load functionality
-  - [ ] Collaboration features (real-time editing)
+## Phase 4: Core Components - Office Suite (80/20 Focus)
+- [ ] Spreadsheet MVP (Priority #1)
+  - [ ] Simplified grid interface with dual modes (Simple/Advanced)
+  - [ ] Basic data entry and calculations
+  - [ ] AI formula checking and suggestions
+  - [ ] Smart data visualization (auto charts)
+  - [ ] Real-time collaboration with version control
+  - [ ] Data import/export (CSV, Excel compatibility)
+- [ ] Forms & Templates (Priority #2)
+  - [ ] Visual drag-and-drop form builder
+  - [ ] Digital signatures with legal compliance
+  - [ ] Template library (business forms, surveys)
+  - [ ] Form responses integration with spreadsheets
+  - [ ] Email distribution and response tracking
+- [ ] Text Editor (Priority #3)
+  - [ ] Rich text editing with AI writing assistance
+  - [ ] Basic formatting and document structure
+  - [ ] File save/load with version history
   - [ ] Export to PDF/docx
-- [ ] Spreadsheet
-  - [ ] Grid interface
-  - [ ] Basic formulas and functions
-  - [ ] Charts and graphs
-  - [ ] Data import/export
-  - [ ] Collaboration
-- [ ] Presentation Tool
-  - [ ] Slide creation interface
-  - [ ] Basic animations and transitions
-  - [ ] Export to PDF/pptx
-  - [ ] Presenter mode
-  - [ ] Notes application
-  - [ ] Tasks/To-Do application
-  - [ ] Forms builder
-  - [ ] Whiteboard
+- [ ] Tasks/To-Do Application (Priority #4)
+  - [ ] Task creation and management
+  - [ ] Integration with forms and email
+  - [ ] Basic project tracking
+  - [ ] AI task suggestions and prioritization
 
 ## Phase 5: Core Components - Communication
 - [ ] Email Client
