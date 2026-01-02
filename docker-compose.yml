@@ -1,43 +1,11 @@
 version: '3.8'
 
+# TPT Titan with SQLite (default configuration)
+# Uses SQLite for simplicity - no external database required
+# To use PostgreSQL, see docker-compose.override.yml
+
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: tpt_titan
-      POSTGRES_USER: tpt_user
-      POSTGRES_PASSWORD: tpt_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
-    networks:
-      - tpt_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tpt_user -d tpt_titan"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Redis Cache (Optional)
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - tpt_network
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-
-  # Backend API
+  # Backend API (Go/Gin)
   backend:
     build:
       context: ./backend
@@ -45,20 +13,14 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=tpt_user
-      - DB_PASSWORD=tpt_password
-      - DB_NAME=tpt_titan
-      - DB_SSLMODE=disable
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - DB_TYPE=sqlite
+      - DB_PATH=/app/data/tpt_titan.db
       - JWT_SECRET=development-secret-key-change-in-production
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - SERVER_PORT=8080
+      - SERVER_HOST=0.0.0.0
+    volumes:
+      - ./data:/app/data
+      - ./scripts:/app/scripts
     networks:
       - tpt_network
     restart: unless-stopped
@@ -69,13 +31,15 @@ services:
       retries: 3
       start_period: 40s
 
-  # Frontend
+  # Frontend (Svelte)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    environment:
+      - API_BASE_URL=http://backend:8080
     depends_on:
       backend:
         condition: service_healthy
@@ -83,15 +47,11 @@ services:
       - tpt_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
-
-volumes:
-  postgres_data:
-  redis_data:
 
 networks:
   tpt_network:

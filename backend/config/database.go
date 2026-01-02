@@ -3,9 +3,12 @@ package config
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"tpt-titan/backend/models"
 
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -15,14 +18,41 @@ var DB *gorm.DB
 
 // ConnectDatabase initializes the database connection
 func ConnectDatabase(cfg *DatabaseConfig) error {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode)
+	var db *gorm.DB
+	var err error
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
+	switch cfg.Type {
+	case "sqlite":
+		// Ensure the directory exists for SQLite database
+		dir := filepath.Dir(cfg.Path)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("failed to create database directory: %w", err)
+		}
+
+		db, err = gorm.Open(sqlite.Open(cfg.Path), &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Info),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to connect to SQLite database: %w", err)
+		}
+
+		log.Printf("SQLite database connected successfully at %s", cfg.Path)
+
+	case "postgres":
+		dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
+			cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode)
+
+		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Info),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to connect to PostgreSQL database: %w", err)
+		}
+
+		log.Println("PostgreSQL database connected successfully")
+
+	default:
+		return fmt.Errorf("unsupported database type: %s (supported: sqlite, postgres)", cfg.Type)
 	}
 
 	// Test the connection
@@ -34,8 +64,6 @@ func ConnectDatabase(cfg *DatabaseConfig) error {
 	if err := sqlDB.Ping(); err != nil {
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
-
-	log.Println("Database connected successfully")
 
 	// Store the connection globally
 	DB = db
@@ -55,13 +83,36 @@ func migrateDatabase(db *gorm.DB) error {
 	// Add all models here
 	if err := db.AutoMigrate(
 		&models.User{},
-		// Add other models as they are created
+		&models.EncryptedDocument{},
+		&models.EncryptedForm{},
+		&models.EncryptedFormResponse{},
+		&models.EncryptedEmail{},
+		&models.EncryptedTask{},
+		&models.KeyBackup{},
+		&models.RecoveryShare{},
+		&models.HardwareKey{},
+		&models.RecoveryAttempt{},
+		&models.AIModel{},
+		&models.AITask{},
+		&models.AIRequest{},
+		&models.AIUsage{},
+		&models.AIUpgradeCheck{},
 	); err != nil {
 		return fmt.Errorf("failed to migrate: %w", err)
 	}
 
+	// Initialize system AI models if they don't exist
+	if err := initializeSystemAIModels(db); err != nil {
+		log.Printf("Warning: Failed to initialize system AI models: %v", err)
+	}
+
 	log.Println("Database migrations completed")
 	return nil
+}
+
+// GetDatabase returns the current database instance
+func GetDatabase() *gorm.DB {
+	return DB
 }
 
 // CloseDatabase closes the database connection
@@ -72,6 +123,24 @@ func CloseDatabase() error {
 			return err
 		}
 		return sqlDB.Close()
+	}
+	return nil
+}
+
+// initializeSystemAIModels sets up the default AI models
+func initializeSystemAIModels(db *gorm.DB) error {
+	for _, model := range models.DefaultAIModels {
+		// Check if model already exists
+		var count int64
+		db.Model(&models.AIModel{}).Where("model_id = ? AND is_system = ?", model.ModelID, true).Count(&count)
+
+		if count == 0 {
+			if err := db.Create(&model).Error; err != nil {
+				log.Printf("Failed to create system model %s: %v", model.Name, err)
+				continue
+			}
+			log.Printf("Created system AI model: %s", model.Name)
+		}
 	}
 	return nil
 }

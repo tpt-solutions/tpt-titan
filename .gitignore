@@ -4,12 +4,13 @@ vendor/
 target/
 dist/
 build/
-*.log
 
 # Environment variables
 .env
 .env.local
 .env.production
+.env.development
+.env.test
 
 # IDE files
 .vscode/
@@ -20,26 +21,47 @@ build/
 
 # OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # Temporary files
 *.tmp
 *.temp
+.cache/
+.tmp/
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
+data/
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Logs
 logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Coverage
+# Coverage and testing
 coverage/
+.nyc_output/
+*.lcov
+.coverage
+.pytest_cache/
+.tox/
 
 # Docker
 .docker/
+docker-compose.override.yml
 
 # Go
 *.exe
@@ -49,11 +71,15 @@ coverage/
 *.dylib
 *.test
 *.out
+go.work
+go.work.sum
 
 # Node.js
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # Rust (for Tauri) - Keep Cargo.lock for reproducible builds
 # Cargo.lock should be committed for applications
@@ -63,10 +89,18 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
 # Backup files
 *.bak
 *.backup
+*.orig
+*.rej
 
 # Secrets and Keys
 secrets/
@@ -74,12 +108,22 @@ secrets/
 *.pem
 *.p12
 *.pfx
+*.crt
+*.cer
 
-# Go build artifacts (but keep go.mod and go.sum)
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
-*.out
+# Build artifacts
+*.min.js
+*.min.css
+*.map
+
+# Package managers
+.yarn/
+.pnpm/
+.pnpm-debug.log*
+
+# Editor directories and files
+!.vscode/extensions.json
+.history/
+
+# Local development
+.local

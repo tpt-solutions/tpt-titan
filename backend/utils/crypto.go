@@ -10,10 +10,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/google/tink/go/aead"
-	"github.com/google/tink/go/keyset"
 	"golang.org/x/crypto/argon2"
-	"golang.org/x/crypto/scrypt"
 )
 
 // KeyManager handles user encryption keys with zero-knowledge architecture

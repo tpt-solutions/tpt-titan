@@ -1,0 +1,23 @@
+{
+  "name": "tpt-titan-desktop",
+  "version": "0.1.0",
+  "description": "TPT Titan Desktop Application",
+  "main": "src-tauri/src/main.rs",
+  "scripts": {
+    "dev": "cd ../frontend && npm run dev",
+    "build": "cd ../frontend && npm run build",
+    "tauri": "tauri",
+    "tauri-dev": "tauri dev",
+    "tauri-build": "tauri build"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@tauri-apps/cli": "^1.5.9"
+  },
+  "author": "TPT Titan Team",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/tpt-titan.git"
+  }
+}

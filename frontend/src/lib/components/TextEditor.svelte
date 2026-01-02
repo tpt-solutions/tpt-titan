@@ -1,7 +1,10 @@
 <script>
 	import { onMount, createEventDispatcher } from 'svelte';
+	import { jsPDF } from 'jspdf';
+	import { createDocument, updateDocument, getDocuments, getDocument, getDocumentVersions, restoreDocumentVersion, deleteDocument } from '../api.js';
 
 	export let editorMode = 'blocks'; // 'blocks', 'markdown', 'richtext'
+	export let documentId = null; // For loading existing documents
 
 	const dispatch = createEventDispatcher();
 
@@ -10,6 +13,21 @@
 	let blocks = [];
 	let selectedBlockIndex = 0;
 	let isComposing = false;
+
+	// Document management
+	let currentDocument = null;
+	let documentTitle = 'Untitled Document';
+	let isSaving = false;
+	let isLoading = false;
+	let saveStatus = '';
+	let documentList = [];
+	let showDocumentList = false;
+	let showVersionHistory = false;
+	let versionHistory = [];
+	let hasUnsavedChanges = false;
+
+	// Auto-save timer
+	let autoSaveTimer = null;
 
 	// Available block types
 	const blockTypes = {
@@ -177,7 +195,384 @@
 		};
 		return styles[blockType] || styles.text;
 	}
+
+	// Document management functions
+	async function saveDocument() {
+		if (isSaving) return;
+
+		isSaving = true;
+		saveStatus = 'Saving...';
+
+		try {
+			const documentData = {
+				title: documentTitle,
+				content_type: 'text',
+				content: {
+					mode: editorMode,
+					blocks: blocks,
+					markdown: markdownContent
+				}
+			};
+
+			let result;
+			if (currentDocument) {
+				result = await updateDocument(currentDocument.id, documentData);
+			} else {
+				result = await createDocument(documentData);
+				currentDocument = result;
+			}
+
+			saveStatus = 'Saved';
+			hasUnsavedChanges = false;
+
+			setTimeout(() => {
+				saveStatus = '';
+			}, 2000);
+
+		} catch (error) {
+			saveStatus = 'Save failed';
+			console.error('Save error:', error);
+		} finally {
+			isSaving = false;
+		}
+	}
+
+	async function loadDocumentList() {
+		try {
+			const response = await getDocuments();
+			documentList = response.documents.filter(doc => doc.content_type === 'text');
+			showDocumentList = true;
+		} catch (error) {
+			console.error('Failed to load documents:', error);
+		}
+	}
+
+	async function loadDocument(doc) {
+		isLoading = true;
+		try {
+			const response = await getDocument(doc.id);
+			currentDocument = doc;
+			documentTitle = doc.title;
+
+			// Load content based on editor mode
+			if (response.content && typeof response.content === 'object') {
+				if (response.content.blocks) {
+					blocks = response.content.blocks;
+				}
+				if (response.content.markdown) {
+					markdownContent = response.content.markdown;
+				}
+				if (response.content.mode) {
+					editorMode = response.content.mode;
+				}
+			}
+
+			showDocumentList = false;
+			hasUnsavedChanges = false;
+		} catch (error) {
+			console.error('Failed to load document:', error);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	async function loadVersionHistory() {
+		if (!currentDocument) return;
+
+		try {
+			const response = await getDocumentVersions(currentDocument.id);
+			versionHistory = response.versions;
+			showVersionHistory = true;
+		} catch (error) {
+			console.error('Failed to load version history:', error);
+		}
+	}
+
+	async function restoreVersion(version) {
+		if (!currentDocument) return;
+
+		try {
+			await restoreDocumentVersion(currentDocument.id, version.version);
+			await loadDocument(currentDocument); // Reload the document
+			showVersionHistory = false;
+		} catch (error) {
+			console.error('Failed to restore version:', error);
+		}
+	}
+
+	function createNewDocument() {
+		currentDocument = null;
+		documentTitle = 'Untitled Document';
+		blocks = [{
+			id: 1,
+			type: 'heading1',
+			content: 'New Document',
+			properties: {}
+		}];
+		markdownContent = '';
+		hasUnsavedChanges = false;
+		showDocumentList = false;
+		showVersionHistory = false;
+	}
+
+	function markAsChanged() {
+		hasUnsavedChanges = true;
+		if (autoSaveTimer) {
+			clearTimeout(autoSaveTimer);
+		}
+		autoSaveTimer = setTimeout(() => {
+			if (hasUnsavedChanges) {
+				saveDocument();
+			}
+		}, 30000); // Auto-save after 30 seconds of inactivity
+	}
+
+	// Override existing functions to mark changes
+	const originalUpdateBlockContent = updateBlockContent;
+	updateBlockContent = (blockIndex, content) => {
+		originalUpdateBlockContent(blockIndex, content);
+		markAsChanged();
+	};
+
+	const originalAddBlock = addBlock;
+	addBlock = (afterIndex) => {
+		originalAddBlock(afterIndex);
+		markAsChanged();
+	};
+
+	const originalDeleteBlock = deleteBlock;
+	deleteBlock = (blockIndex) => {
+		originalDeleteBlock(blockIndex);
+		markAsChanged();
+	};
+
+	// Export to PDF
+	function exportToPDF() {
+		const doc = new jsPDF();
+
+		// Set title
+		doc.setFontSize(20);
+		doc.text(documentTitle || 'Untitled Document', 20, 30);
+
+		let yPosition = 50;
+
+		// Export blocks
+		blocks.forEach(block => {
+			doc.setFontSize(getFontSize(block.type));
+
+			// Handle different block types
+			let content = block.content;
+			if (block.type === 'math') {
+				content = renderBlockContent(block);
+			}
+
+			// Split long text into lines
+			const lines = doc.splitTextToSize(content, 170);
+
+			// Add lines to PDF
+			lines.forEach(line => {
+				if (yPosition > 270) { // New page if near bottom
+					doc.addPage();
+					yPosition = 30;
+				}
+				doc.text(line, 20, yPosition);
+				yPosition += getLineHeight(block.type);
+			});
+
+			// Add extra space after block
+			yPosition += 10;
+		});
+
+		// Save the PDF
+		doc.save(`${documentTitle || 'document'}.pdf`);
+	}
+
+	function getFontSize(blockType) {
+		const sizes = {
+			heading1: 18,
+			heading2: 16,
+			heading3: 14,
+			text: 12,
+			list: 12,
+			quote: 12,
+			code: 10,
+			math: 12,
+			table: 12,
+			image: 12
+		};
+		return sizes[blockType] || 12;
+	}
+
+	function getLineHeight(blockType) {
+		const heights = {
+			heading1: 8,
+			heading2: 7,
+			heading3: 6,
+			text: 6,
+			list: 6,
+			quote: 6,
+			code: 5,
+			math: 6,
+			table: 6,
+			image: 6
+		};
+		return heights[blockType] || 6;
+	}
+
+	// Svelte action for auto-resizing textarea
+	function autoResize(node) {
+		const resize = () => {
+			node.style.height = 'auto';
+			node.style.height = node.scrollHeight + 'px';
+		};
+
+		node.addEventListener('input', resize);
+		node.addEventListener('focus', resize);
+
+		// Initial resize
+		setTimeout(resize, 0);
+
+		return {
+			destroy() {
+				node.removeEventListener('input', resize);
+				node.removeEventListener('focus', resize);
+			}
+		};
+	}
 </script>
+
+<!-- Document Management Toolbar -->
+<div class="bg-white border-b border-gray-200 px-8 py-4">
+	<div class="max-w-4xl mx-auto flex items-center justify-between">
+		<div class="flex items-center space-x-4">
+			<input
+				bind:value={documentTitle}
+				placeholder="Document title..."
+				class="text-xl font-semibold bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1"
+				on:input={markAsChanged}
+			/>
+			{#if hasUnsavedChanges}
+				<span class="text-sm text-orange-600">•</span>
+			{/if}
+			<span class="text-sm text-gray-500">{saveStatus}</span>
+		</div>
+
+		<div class="flex items-center space-x-2">
+			<button
+				class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+				on:click={saveDocument}
+				disabled={isSaving}
+			>
+				{isSaving ? 'Saving...' : 'Save'}
+			</button>
+
+			<button
+				class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+				on:click={exportToPDF}
+			>
+				Export PDF
+			</button>
+
+			<button
+				class="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700"
+				on:click={createNewDocument}
+			>
+				New
+			</button>
+
+			<button
+				class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+				on:click={loadDocumentList}
+			>
+				Open
+			</button>
+
+			{#if currentDocument}
+				<button
+					class="px-3 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700"
+					on:click={loadVersionHistory}
+				>
+					History
+				</button>
+			{/if}
+		</div>
+	</div>
+</div>
+
+<!-- Document List Modal -->
+{#if showDocumentList}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+		<div class="bg-white rounded-lg p-6 w-full max-w-md max-h-96 overflow-y-auto">
+			<h3 class="text-lg font-semibold mb-4">Open Document</h3>
+			{#if documentList.length === 0}
+				<p class="text-gray-500">No documents found.</p>
+			{:else}
+				<div class="space-y-2">
+					{#each documentList as doc}
+						<button
+							class="w-full text-left p-3 border border-gray-200 rounded hover:bg-gray-50"
+							on:click={() => loadDocument(doc)}
+							disabled={isLoading}
+						>
+							<div class="font-medium">{doc.title}</div>
+							<div class="text-sm text-gray-500">
+								v{doc.version} • {new Date(doc.updated_at).toLocaleDateString()}
+							</div>
+						</button>
+					{/each}
+				</div>
+			{/if}
+			<div class="mt-4 flex justify-end">
+				<button
+					class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+					on:click={() => showDocumentList = false}
+				>
+					Close
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Version History Modal -->
+{#if showVersionHistory}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+		<div class="bg-white rounded-lg p-6 w-full max-w-lg max-h-96 overflow-y-auto">
+			<h3 class="text-lg font-semibold mb-4">Version History</h3>
+			<div class="space-y-2">
+				{#each versionHistory as version}
+					<div class="flex items-center justify-between p-3 border border-gray-200 rounded">
+						<div>
+							<div class="font-medium">Version {version.version}</div>
+							<div class="text-sm text-gray-500">
+								{new Date(version.created_at).toLocaleString()}
+								{#if version.is_active}
+									<span class="ml-2 text-green-600">(Current)</span>
+								{/if}
+							</div>
+						</div>
+						{#if !version.is_active}
+							<button
+								class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+								on:click={() => restoreVersion(version)}
+							>
+								Restore
+							</button>
+						{/if}
+					</div>
+				{/each}
+			</div>
+			<div class="mt-4 flex justify-end">
+				<button
+					class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+					on:click={() => showVersionHistory = false}
+				>
+					Close
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <div class="h-full overflow-y-auto p-8 bg-white">
 	<div class="max-w-4xl mx-auto">

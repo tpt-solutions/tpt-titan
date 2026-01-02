@@ -1,0 +1,285 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            target: x86_64-unknown-linux-gnu
+          - os: linux
+            arch: arm64
+            target: aarch64-unknown-linux-gnu
+          - os: windows
+            arch: amd64
+            target: x86_64-pc-windows-msvc
+          - os: macos
+            arch: amd64
+            target: x86_64-apple-darwin
+          - os: macos
+            arch: arm64
+            target: aarch64-apple-darwin
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Set up Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        target: ${{ matrix.target }}
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.npm
+          ~/.cargo
+          ~/go/pkg
+        key: ${{ runner.os }}-${{ hashFiles('**/package-lock.json', '**/go.sum', '**/Cargo.lock') }}
+
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+
+    - name: Install Go dependencies
+      run: |
+        cd backend
+        go mod download
+
+    - name: Build backend
+      run: |
+        cd backend
+        GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -ldflags="-s -w" -o ../bin/tpt-titan-${{ matrix.os }}-${{ matrix.arch }} ./main.go
+
+    - name: Build desktop app
+      if: matrix.os != 'linux' || matrix.arch != 'arm64'
+      run: |
+        cd desktop
+        npm ci
+        npm run build
+        npx tauri build --target ${{ matrix.target }}
+
+    - name: Create release archive
+      run: |
+        mkdir -p release
+        cp bin/tpt-titan-${{ matrix.os }}-${{ matrix.arch }} release/
+        cp -r frontend/dist release/static
+        cp -r scripts release/
+        cp docker-compose.yml release/
+        cp docker-compose.override.yml release/
+        cp .env.example release/
+
+        # Create desktop app archive if it exists
+        if [ -d "desktop/src-tauri/target/${{ matrix.target }}/release/bundle" ]; then
+          cp -r desktop/src-tauri/target/${{ matrix.target }}/release/bundle release/desktop
+        fi
+
+        cd release
+        if [ "${{ matrix.os }}" = "windows" ]; then
+          7z a -tzip ../tpt-titan-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip *
+        else
+          tar -czf ../tpt-titan-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz *
+        fi
+
+    - name: Upload release asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./tpt-titan-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}.${{ matrix.os == 'windows' && 'zip' || 'tar.gz' }}
+        asset_name: tpt-titan-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}.${{ matrix.os == 'windows' && 'zip' || 'tar.gz' }}
+        asset_content_type: application/${{ matrix.os == 'windows' && 'zip' || 'gzip' }}
+
+  create-release:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Create GitHub release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: |
+          ## Changes
+
+          ### Backend
+          - Enhanced plugin system with sandboxing
+          - Improved PGP encryption and email security
+          - Advanced calendar sharing and notifications
+          - Complete GDPR compliance implementation
+
+          ### Frontend
+          - Improved UI/UX across all components
+          - Better accessibility and responsive design
+
+          ### Desktop
+          - Cross-platform compatibility improvements
+          - Performance optimizations
+
+          ## Downloads
+
+          Choose the appropriate download for your system:
+
+          ### Linux
+          - [x86_64](https://github.com/tpt-titan/tpt-titan/releases/download/${{ github.ref_name }}/tpt-titan-${{ github.ref_name }}-linux-amd64.tar.gz)
+          - [ARM64](https://github.com/tpt-titan/tpt-titan/releases/download/${{ github.ref_name }}/tpt-titan-${{ github.ref_name }}-linux-arm64.tar.gz)
+
+          ### macOS
+          - [Intel](https://github.com/tpt-titan/tpt-titan/releases/download/${{ github.ref_name }}/tpt-titan-${{ github.ref_name }}-macos-amd64.tar.gz)
+          - [Apple Silicon](https://github.com/tpt-titan/tpt-titan/releases/download/${{ github.ref_name }}/tpt-titan-${{ github.ref_name }}-macos-arm64.tar.gz)
+
+          ### Windows
+          - [x86_64](https://github.com/tpt-titan/tpt-titan/releases/download/${{ github.ref_name }}/tpt-titan-${{ github.ref_name }}-windows-amd64.zip)
+
+          ## Installation
+
+          ### Using Docker (Recommended)
+          ```bash
+          wget https://github.com/tpt-titan/tpt-titan/releases/download/${{ github.ref_name }}/docker-compose.yml
+          docker-compose up -d
+          ```
+
+          ### Manual Installation
+          ```bash
+          curl -fsSL https://raw.githubusercontent.com/tpt-titan/tpt-titan/${{ github.ref_name }}/scripts/install.sh | bash
+          ```
+
+          For detailed installation instructions, see the [documentation](https://docs.tpt-titan.com/installation).
+        draft: false
+        prerelease: false
+
+  update-package-managers:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Update Homebrew formula
+      run: |
+        # Update Homebrew formula for macOS
+        curl -X POST \
+          -H "Authorization: token ${{ secrets.HOMEBREW_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/tpt-titan/homebrew-tpt-titan/dispatches \
+          -d '{"event_type": "update-formula", "client_payload": {"version": "${{ github.ref_name }}"}}'
+
+    - name: Update AUR package
+      run: |
+        # Trigger AUR package update
+        curl -X POST \
+          -H "Authorization: token ${{ secrets.AUR_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/tpt-titan/aur-tpt-titan/dispatches \
+          -d '{"event_type": "update-pkgbuild", "client_payload": {"version": "${{ github.ref_name }}"}}'
+
+    - name: Update Snap package
+      run: |
+        # Trigger Snap store update
+        curl -X POST \
+          -H "Authorization: token ${{ secrets.SNAP_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/tpt-titan/snap-tpt-titan/dispatches \
+          -d '{"event_type": "update-snap", "client_payload": {"version": "${{ github.ref_name }}"}}'
+
+    - name: Update Chocolatey package
+      run: |
+        # Trigger Chocolatey package update
+        curl -X POST \
+          -H "Authorization: token ${{ secrets.CHOCO_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/tpt-titan/choco-tpt-titan/dispatches \
+          -d '{"event_type": "update-package", "client_payload": {"version": "${{ github.ref_name }}"}}'
+
+  update-documentation:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout docs repository
+      uses: actions/checkout@v3
+      with:
+        repository: tpt-titan/docs
+        path: docs-repo
+        token: ${{ secrets.DOCS_TOKEN }}
+
+    - name: Update version documentation
+      run: |
+        cd docs-repo
+        # Update version numbers in documentation
+        sed -i 's/version: .*/version: ${{ github.ref_name }}/g' mkdocs.yml
+        sed -i 's/latest_version: .*/latest_version: ${{ github.ref_name }}/g' docs/installation.md
+
+    - name: Commit and push changes
+      run: |
+        cd docs-repo
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add .
+        git commit -m "Update documentation for ${{ github.ref_name }}"
+        git push
+
+  notify-community:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Send Discord notification
+      run: |
+        curl -X POST \
+          ${{ secrets.DISCORD_WEBHOOK }} \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "embeds": [{
+              "title": "🚀 New TPT Titan Release!",
+              "description": "Version ${{ github.ref_name }} is now available!",
+              "color": 3066993,
+              "fields": [
+                {
+                  "name": "Download",
+                  "value": "[GitHub Releases](https://github.com/tpt-titan/tpt-titan/releases/${{ github.ref_name }})",
+                  "inline": true
+                },
+                {
+                  "name": "Documentation",
+                  "value": "[Installation Guide](https://docs.tpt-titan.com/installation)",
+                  "inline": true
+                }
+              ]
+            }]
+          }'
+
+    - name: Send Matrix notification
+      run: |
+        curl -X POST \
+          ${{ secrets.MATRIX_WEBHOOK }} \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "text": "🚀 New TPT Titan release ${{ github.ref_name }} is available! Download: https://github.com/tpt-titan/tpt-titan/releases/${{ github.ref_name }}",
+            "format": "org.matrix.custom.html",
+            "formatted_body": "<h2>🚀 New TPT Titan Release!</h2><p>Version ${{ github.ref_name }} is now available!</p><p><a href=\"https://github.com/tpt-titan/tpt-titan/releases/${{ github.ref_name }}\">Download here</a></p>"
+          }'

@@ -106,6 +106,94 @@
 		return value;
 	}
 
+	// Svelte action for focusing input
+	function focusInput(node) {
+		node.focus();
+	}
+
+	// Export data to CSV
+	function exportToCSV() {
+		let csv = '';
+		for (let row = 0; row < data.length; row++) {
+			for (let col = 0; col < data[row].length; col++) {
+				if (col > 0) csv += ',';
+				let cellValue = data[row][col];
+				// Escape quotes and wrap in quotes if necessary
+				if (cellValue.includes(',') || cellValue.includes('"') || cellValue.includes('\n')) {
+					cellValue = '"' + cellValue.replace(/"/g, '""') + '"';
+				}
+				csv += cellValue;
+			}
+			csv += '\n';
+		}
+
+		const blob = new Blob([csv], { type: 'text/csv' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = 'spreadsheet.csv';
+		a.click();
+		URL.revokeObjectURL(url);
+	}
+
+	// Import data from CSV
+	function importFromCSV(event) {
+		const file = event.target.files[0];
+		if (!file) return;
+
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			const csv = e.target.result;
+			const rows = csv.split('\n').filter(row => row.trim() !== '');
+			const newData = [];
+
+			for (let i = 0; i < Math.min(rows.length, 100); i++) {
+				const cols = parseCSVRow(rows[i]);
+				newData.push(cols.slice(0, 26));
+			}
+
+			// Pad to 100 rows and 26 columns
+			while (newData.length < 100) {
+				newData.push(Array(26).fill(''));
+			}
+			for (let row of newData) {
+				while (row.length < 26) {
+					row.push('');
+				}
+			}
+
+			data = newData;
+			selectedCell = { row: 0, col: 0 };
+		};
+		reader.readAsText(file);
+	}
+
+	// Parse a single CSV row, handling quotes
+	function parseCSVRow(row) {
+		const result = [];
+		let current = '';
+		let inQuotes = false;
+
+		for (let i = 0; i < row.length; i++) {
+			const char = row[i];
+			if (char === '"') {
+				if (inQuotes && row[i + 1] === '"') {
+					current += '"';
+					i++; // Skip next quote
+				} else {
+					inQuotes = !inQuotes;
+				}
+			} else if (char === ',' && !inQuotes) {
+				result.push(current);
+				current = '';
+			} else {
+				current += char;
+			}
+		}
+		result.push(current);
+		return result;
+	}
+
 	onMount(() => {
 		// Initialize with some sample data
 		data[0][0] = 'Product';
@@ -128,6 +216,25 @@
 <svelte:window on:keydown={handleKeyDown} />
 
 <div class="flex flex-col h-full">
+	<!-- Toolbar -->
+	<div class="flex items-center px-4 py-2 border-b border-gray-200 bg-gray-50">
+		<button
+			class="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 mr-2"
+			on:click={exportToCSV}
+		>
+			Export CSV
+		</button>
+		<label class="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 cursor-pointer mr-2">
+			Import CSV
+			<input
+				type="file"
+				accept=".csv"
+				on:change={importFromCSV}
+				class="hidden"
+			/>
+		</label>
+	</div>
+
 	<!-- Formula bar -->
 	<div class="flex items-center px-4 py-2 border-b border-gray-200 bg-white">
 		<span class="text-sm font-medium text-gray-600 mr-2 w-16">
@@ -221,10 +328,3 @@
 		</div>
 	</div>
 {/if}
-
-<style>
-	/* Custom focus directive */
-	function focusInput(node) {
-		node.focus();
-	}
-</style>

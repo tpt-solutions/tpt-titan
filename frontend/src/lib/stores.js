@@ -22,6 +22,22 @@ export const settings = writable({
 	dateFormat: 'MM/DD/YYYY',
 });
 
+// Contacts store
+export const contacts = writable([]);
+
+// Calendar stores
+export const calendars = writable([]);
+export const events = writable([]);
+export const currentView = writable('month'); // month, week, day
+export const currentDate = writable(new Date());
+
+// Email stores
+export const emailAccounts = writable([]);
+export const emails = writable([]);
+export const selectedEmail = writable(null);
+export const currentFolder = writable('inbox');
+export const emailSearchQuery = writable('');
+
 // Initialize stores from localStorage if available
 if (typeof window !== 'undefined') {
 	// Load user from localStorage

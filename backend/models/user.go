@@ -9,17 +9,23 @@ import (
 
 // User represents a user account in the system
 type User struct {
-	ID        uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	Email     string    `json:"email" gorm:"uniqueIndex;not null" validate:"required,email"`
-	Username  string    `json:"username" gorm:"uniqueIndex;not null" validate:"required,min=3,max=50"`
-	Password  string    `json:"-" gorm:"not null" validate:"required,min=8"`
-	FirstName string    `json:"first_name" validate:"max=50"`
-	LastName  string    `json:"last_name" validate:"max=50"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	LastLogin *time.Time `json:"last_login"`
-	IsActive  bool      `json:"is_active" gorm:"default:true"`
-	IsAdmin   bool      `json:"is_admin" gorm:"default:false"`
+	ID                  uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+	Email               string     `json:"email" gorm:"uniqueIndex;not null" validate:"required,email"`
+	Username            string     `json:"username" gorm:"uniqueIndex;not null" validate:"required,min=3,max=50"`
+	PasswordHash        string     `json:"-" gorm:"column:password;not null"`
+	FirstName           string     `json:"first_name" validate:"max=50"`
+	LastName            string     `json:"last_name" validate:"max=50"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
+	LastLoginAt         *time.Time `json:"last_login_at"`
+	IsActive            bool       `json:"is_active" gorm:"default:true"`
+	IsAdmin             bool       `json:"is_admin" gorm:"default:false"`
+	IsVerified          bool       `json:"is_verified" gorm:"default:false"`
+	EmailVerifiedAt     *time.Time `json:"email_verified_at"`
+	TwoFactorEnabled    bool       `json:"two_factor_enabled" gorm:"default:false"`
+	TwoFactorSecret     string     `json:"-" gorm:"column:two_factor_secret"`
+	FailedLoginAttempts int        `json:"-" gorm:"default:0"`
+	LockedUntil         *time.Time `json:"-"`
 }
 
 // BeforeCreate will set a UUID rather than numeric ID
@@ -32,31 +38,31 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 
 // UserResponse represents the user data returned to clients (without password)
 type UserResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Email     string    `json:"email"`
-	Username  string    `json:"username"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	LastLogin *time.Time `json:"last_login"`
-	IsActive  bool      `json:"is_active"`
-	IsAdmin   bool      `json:"is_admin"`
+	ID          uuid.UUID  `json:"id"`
+	Email       string     `json:"email"`
+	Username    string     `json:"username"`
+	FirstName   string     `json:"first_name"`
+	LastName    string     `json:"last_name"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	LastLoginAt *time.Time `json:"last_login_at"`
+	IsActive    bool       `json:"is_active"`
+	IsAdmin     bool       `json:"is_admin"`
 }
 
 // ToResponse converts User to UserResponse
 func (u *User) ToResponse() UserResponse {
 	return UserResponse{
-		ID:        u.ID,
-		Email:     u.Email,
-		Username:  u.Username,
-		FirstName: u.FirstName,
-		LastName:  u.LastName,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
-		LastLogin: u.LastLogin,
-		IsActive:  u.IsActive,
-		IsAdmin:   u.IsAdmin,
+		ID:          u.ID,
+		Email:       u.Email,
+		Username:    u.Username,
+		FirstName:   u.FirstName,
+		LastName:    u.LastName,
+		CreatedAt:   u.CreatedAt,
+		UpdatedAt:   u.UpdatedAt,
+		LastLoginAt: u.LastLoginAt,
+		IsActive:    u.IsActive,
+		IsAdmin:     u.IsAdmin,
 	}
 }
 

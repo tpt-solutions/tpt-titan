@@ -14,6 +14,7 @@ type Config struct {
 	JWT      JWTConfig
 	Redis    RedisConfig
 	Email    EmailConfig
+	AI       AIConfig
 }
 
 type ServerConfig struct {
@@ -23,11 +24,13 @@ type ServerConfig struct {
 }
 
 type DatabaseConfig struct {
+	Type     string // "sqlite" or "postgres"
 	Host     string
 	Port     string
 	User     string
 	Password string
 	DBName   string
+	Path     string // SQLite database file path
 	SSLMode  string
 }
 
@@ -50,6 +53,15 @@ type EmailConfig struct {
 	Password string
 }
 
+type AIConfig struct {
+	OllamaHost      string
+	OllamaPort      string
+	OpenRouterKey   string
+	DefaultModels   []string
+	EnableLocalAI   bool
+	EnableOnlineAI  bool
+}
+
 func Load() *Config {
 	// Load .env file if it exists
 	if err := godotenv.Load(); err != nil {
@@ -63,11 +75,13 @@ func Load() *Config {
 			Mode: getEnv("GIN_MODE", "debug"),
 		},
 		Database: DatabaseConfig{
+			Type:     getEnv("DB_TYPE", "sqlite"), // Default to SQLite
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getEnv("DB_PORT", "5432"),
 			User:     getEnv("DB_USER", "tpt_user"),
 			Password: getEnv("DB_PASSWORD", "tpt_password"),
 			DBName:   getEnv("DB_NAME", "tpt_titan"),
+			Path:     getEnv("DB_PATH", "./data/tpt-titan.db"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 		JWT: JWTConfig{
@@ -86,6 +100,14 @@ func Load() *Config {
 			Username: getEnv("SMTP_USERNAME", ""),
 			Password: getEnv("SMTP_PASSWORD", ""),
 		},
+		AI: AIConfig{
+			OllamaHost:     getEnv("OLLAMA_HOST", "localhost"),
+			OllamaPort:     getEnv("OLLAMA_PORT", "11434"),
+			OpenRouterKey:  getEnv("OPENROUTER_API_KEY", ""),
+			DefaultModels:  []string{"llama3.2:3b", "phi3:3.8b", "deepseek-coder:6.7b"},
+			EnableLocalAI:  getEnvAsBool("ENABLE_LOCAL_AI", true),
+			EnableOnlineAI: getEnvAsBool("ENABLE_ONLINE_AI", false),
+		},
 	}
 }
 
@@ -100,6 +122,15 @@ func getEnvAsInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
+		}
+	}
+	return defaultValue
+}
+
+func getEnvAsBool(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
 		}
 	}
 	return defaultValue

@@ -93,6 +93,319 @@ CREATE TABLE IF NOT EXISTS contacts (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create calendars table
+CREATE TABLE IF NOT EXISTS calendars (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    color VARCHAR(7) DEFAULT '#3B82F6', -- Hex color code
+    is_default BOOLEAN DEFAULT FALSE,
+    is_shared BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create events table
+CREATE TABLE IF NOT EXISTS events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    calendar_id UUID REFERENCES calendars(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    location VARCHAR(255),
+    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    is_all_day BOOLEAN DEFAULT FALSE,
+    recurrence_rule TEXT, -- RRULE for recurring events
+    recurrence_id UUID REFERENCES events(id), -- For recurring event instances
+    reminder_minutes INTEGER DEFAULT 15, -- Minutes before event to remind
+    is_completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create event_attendees table
+CREATE TABLE IF NOT EXISTS event_attendees (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+    contact_id UUID REFERENCES contacts(id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'pending', -- pending, accepted, declined, tentative
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create chat_rooms table
+CREATE TABLE IF NOT EXISTS chat_rooms (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255),
+    description TEXT,
+    room_type VARCHAR(20) DEFAULT 'direct', -- direct, group, channel
+    owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    is_private BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create chat_participants table
+CREATE TABLE IF NOT EXISTS chat_participants (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    room_id UUID REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    role VARCHAR(20) DEFAULT 'member', -- owner, admin, member
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_read_at TIMESTAMP WITH TIME ZONE,
+    UNIQUE(room_id, user_id)
+);
+
+-- Create chat_messages table
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    room_id UUID REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    message_type VARCHAR(20) DEFAULT 'text', -- text, file, image, system
+    file_url TEXT,
+    file_name VARCHAR(255),
+    file_size BIGINT,
+    reply_to_id UUID REFERENCES chat_messages(id),
+    edited_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create message_reactions table
+CREATE TABLE IF NOT EXISTS message_reactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    message_id UUID REFERENCES chat_messages(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    reaction VARCHAR(50) NOT NULL, -- emoji or reaction type
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(message_id, user_id, reaction)
+);
+
+-- Create user_status table for online/presence
+CREATE TABLE IF NOT EXISTS user_status (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+    status VARCHAR(20) DEFAULT 'offline', -- online, away, busy, offline
+    custom_status TEXT,
+    last_seen TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- FILE SYNCHRONIZATION TABLES
+
+-- Create sync_devices table
+CREATE TABLE IF NOT EXISTS sync_devices (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    device_id VARCHAR(255) NOT NULL UNIQUE,
+    device_name VARCHAR(255) NOT NULL,
+    device_type VARCHAR(50) DEFAULT 'desktop', -- desktop, mobile, web
+    public_key BYTEA,
+    last_seen TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_online BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, device_id)
+);
+
+-- Create sync_folders table
+CREATE TABLE IF NOT EXISTS sync_folders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    local_path TEXT NOT NULL,
+    remote_path TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    sync_mode VARCHAR(20) DEFAULT 'bidirectional', -- bidirectional, upload-only, download-only
+    last_sync TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create file_versions table
+CREATE TABLE IF NOT EXISTS file_versions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    file_id UUID REFERENCES files(id) ON DELETE CASCADE,
+    version INTEGER NOT NULL,
+    size BIGINT NOT NULL,
+    hash VARCHAR(64) NOT NULL, -- SHA-256 hash
+    chunk_hashes TEXT[], -- Array of chunk hashes for Merkle tree
+    device_id VARCHAR(255) REFERENCES sync_devices(device_id),
+    modified_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(file_id, version)
+);
+
+-- Create file_chunks table
+CREATE TABLE IF NOT EXISTS file_chunks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    version_id UUID REFERENCES file_versions(id) ON DELETE CASCADE,
+    chunk_index INTEGER NOT NULL,
+    size INTEGER NOT NULL,
+    hash VARCHAR(64) NOT NULL,
+    data BYTEA NOT NULL, -- Encrypted chunk data
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(version_id, chunk_index)
+);
+
+-- Create sync_conflicts table
+CREATE TABLE IF NOT EXISTS sync_conflicts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    file_id UUID REFERENCES files(id) ON DELETE CASCADE,
+    device_id VARCHAR(255) REFERENCES sync_devices(device_id),
+    local_version INTEGER NOT NULL,
+    remote_version INTEGER NOT NULL,
+    conflict_type VARCHAR(50) NOT NULL, -- concurrent_edit, delete_conflict, etc.
+    resolution VARCHAR(50), -- keep_local, keep_remote, merge, rename
+    resolved_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create sync_queue table
+CREATE TABLE IF NOT EXISTS sync_queue (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    file_id UUID REFERENCES files(id) ON DELETE CASCADE,
+    device_id VARCHAR(255) REFERENCES sync_devices(device_id),
+    operation VARCHAR(20) NOT NULL, -- create, update, delete, rename
+    priority INTEGER DEFAULT 3, -- 1=low, 5=high
+    status VARCHAR(20) DEFAULT 'pending', -- pending, processing, completed, failed
+    retry_count INTEGER DEFAULT 0,
+    error_msg TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Create bandwidth_limits table
+CREATE TABLE IF NOT EXISTS bandwidth_limits (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    device_id VARCHAR(255) REFERENCES sync_devices(device_id),
+    max_upload BIGINT DEFAULT 0, -- bytes per second, 0 = unlimited
+    max_download BIGINT DEFAULT 0, -- bytes per second, 0 = unlimited
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, device_id)
+);
+
+-- VIDEO CONFERENCING TABLES
+
+-- Create meetings table
+CREATE TABLE IF NOT EXISTS meetings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    host_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    room_id VARCHAR(20) NOT NULL UNIQUE, -- Short unique identifier
+    meeting_type VARCHAR(20) DEFAULT 'instant', -- instant, scheduled, recurring
+    start_time TIMESTAMP WITH TIME ZONE,
+    end_time TIMESTAMP WITH TIME ZONE,
+    time_zone VARCHAR(50) DEFAULT 'UTC',
+    is_active BOOLEAN DEFAULT FALSE,
+    is_recording BOOLEAN DEFAULT FALSE,
+    recording_path TEXT,
+    max_participants INTEGER DEFAULT 100,
+    require_auth BOOLEAN DEFAULT TRUE,
+    password_hash VARCHAR(255), -- For password-protected meetings
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create participants table
+CREATE TABLE IF NOT EXISTS participants (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    meeting_id UUID REFERENCES meetings(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL, -- Null for guests
+    email VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    role VARCHAR(20) DEFAULT 'participant', -- host, cohost, participant, observer
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    left_at TIMESTAMP WITH TIME ZONE,
+    is_muted BOOLEAN DEFAULT FALSE,
+    is_video_on BOOLEAN DEFAULT TRUE,
+    is_screen_share BOOLEAN DEFAULT FALSE,
+    ip_address VARCHAR(45), -- Support IPv6
+    user_agent TEXT,
+    UNIQUE(meeting_id, user_id)
+);
+
+-- Create webrtc_connections table
+CREATE TABLE IF NOT EXISTS webrtc_connections (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    meeting_id UUID REFERENCES meetings(id) ON DELETE CASCADE,
+    participant_id UUID REFERENCES participants(id) ON DELETE CASCADE,
+    connection_type VARCHAR(20) NOT NULL, -- offer, answer, ice
+    sdp TEXT, -- Session Description Protocol
+    ice_candidates TEXT[], -- Array of ICE candidates
+    target_participant UUID REFERENCES participants(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP + INTERVAL '1 hour'
+);
+
+-- Create meeting_chat_messages table
+CREATE TABLE IF NOT EXISTS meeting_chat_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    meeting_id UUID REFERENCES meetings(id) ON DELETE CASCADE,
+    participant_id UUID REFERENCES participants(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    message_type VARCHAR(20) DEFAULT 'text', -- text, system, file
+    file_url TEXT,
+    file_name VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create meeting_recordings table
+CREATE TABLE IF NOT EXISTS meeting_recordings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    meeting_id UUID REFERENCES meetings(id) ON DELETE CASCADE,
+    file_path TEXT NOT NULL,
+    file_size BIGINT NOT NULL,
+    duration INTEGER NOT NULL, -- seconds
+    format VARCHAR(10) DEFAULT 'mp4', -- mp4, webm, etc.
+    quality VARCHAR(10) DEFAULT '720p', -- 720p, 1080p, etc.
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Create screen_shares table
+CREATE TABLE IF NOT EXISTS screen_shares (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    meeting_id UUID REFERENCES meetings(id) ON DELETE CASCADE,
+    participant_id UUID REFERENCES participants(id) ON DELETE CASCADE,
+    stream_id VARCHAR(255) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    started_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    ended_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Create meeting_settings table
+CREATE TABLE IF NOT EXISTS meeting_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+    enable_waiting_room BOOLEAN DEFAULT TRUE,
+    allow_guests BOOLEAN DEFAULT TRUE,
+    enable_recording BOOLEAN DEFAULT FALSE,
+    enable_chat BOOLEAN DEFAULT TRUE,
+    mute_on_join BOOLEAN DEFAULT FALSE,
+    video_on_join BOOLEAN DEFAULT TRUE,
+    max_participants INTEGER DEFAULT 100,
+    meeting_timeout INTEGER DEFAULT 60, -- minutes
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create meeting_invites table
+CREATE TABLE IF NOT EXISTS meeting_invites (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    meeting_id UUID REFERENCES meetings(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL,
+    name VARCHAR(255),
+    token VARCHAR(255) NOT NULL UNIQUE,
+    status VARCHAR(20) DEFAULT 'pending', -- pending, accepted, declined
+    sent_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    responded_at TIMESTAMP WITH TIME ZONE
+);
+
 -- ENCRYPTED TABLES FOR ZERO-KNOWLEDGE ARCHITECTURE
 
 -- Encrypted documents (spreadsheets, text files, etc.)
