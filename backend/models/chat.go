@@ -63,6 +63,41 @@ type UserStatus struct {
 	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
 }
 
+// VoiceNote represents an audio note recorded by a user
+type VoiceNote struct {
+	ID          uuid.UUID  `json:"id" db:"id"`
+	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
+	Title       string     `json:"title" db:"title"`
+	Content     string     `json:"content" db:"content"` // Auto-transcribed text
+	AudioData   []byte     `json:"-" db:"audio_data"`    // Encrypted audio data
+	AudioFormat string     `json:"audio_format" db:"audio_format"`
+	Duration    int        `json:"duration" db:"duration"` // Duration in seconds
+	FileSize    int64      `json:"file_size" db:"file_size"`
+	Tags        []string   `json:"tags" db:"tags"` // JSON array of tags
+	IsFavorite  bool       `json:"is_favorite" db:"is_favorite"`
+	IsPublic    bool       `json:"is_public" db:"is_public"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// VoiceAnnotation represents a voice annotation attached to content
+type VoiceAnnotation struct {
+	ID          uuid.UUID  `json:"id" db:"id"`
+	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
+	ContentType string     `json:"content_type" db:"content_type"` // document, task, email, calendar, contact
+	ContentID   uuid.UUID  `json:"content_id" db:"content_id"`     // ID of the content being annotated
+	Title       string     `json:"title" db:"title"`
+	Content     string     `json:"content" db:"content"` // Auto-transcribed text
+	AudioData   []byte     `json:"-" db:"audio_data"`    // Encrypted audio data
+	AudioFormat string     `json:"audio_format" db:"audio_format"`
+	Duration    int        `json:"duration" db:"duration"` // Duration in seconds
+	FileSize    int64      `json:"file_size" db:"file_size"`
+	Position    *string    `json:"position,omitempty" db:"position"` // JSON position data for highlighting
+	IsPublic    bool       `json:"is_public" db:"is_public"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+}
+
 // ChatRoomRequest represents the request payload for creating/updating chat rooms
 type ChatRoomRequest struct {
 	Name        string     `json:"name,omitempty"`
@@ -139,16 +174,19 @@ type MessageReactionResponse struct {
 type WSMessageType string
 
 const (
-	WSMessageSent      WSMessageType = "message_sent"
-	WSMessageEdited    WSMessageType = "message_edited"
-	WSMessageDeleted   WSMessageType = "message_deleted"
-	WSReactionAdded    WSMessageType = "reaction_added"
-	WSReactionRemoved  WSMessageType = "reaction_removed"
-	WSUserJoined       WSMessageType = "user_joined"
-	WSUserLeft         WSMessageType = "user_left"
-	WSUserStatus       WSMessageType = "user_status"
-	WSTypingStart      WSMessageType = "typing_start"
-	WSTypingStop       WSMessageType = "typing_stop"
+	WSMessageSent           WSMessageType = "message_sent"
+	WSMessageEdited         WSMessageType = "message_edited"
+	WSMessageDeleted        WSMessageType = "message_deleted"
+	WSReactionAdded         WSMessageType = "reaction_added"
+	WSReactionRemoved       WSMessageType = "reaction_removed"
+	WSUserJoined            WSMessageType = "user_joined"
+	WSUserLeft              WSMessageType = "user_left"
+	WSUserStatus            WSMessageType = "user_status"
+	WSTypingStart           WSMessageType = "typing_start"
+	WSTypingStop            WSMessageType = "typing_stop"
+	WSDocumentProcessing    WSMessageType = "document_processing"
+	WSDocumentProcessed     WSMessageType = "document_processed"
+	WSDocumentFailed        WSMessageType = "document_failed"
 )
 
 // WebSocketMessage represents a message sent over WebSocket

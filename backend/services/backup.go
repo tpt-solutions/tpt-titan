@@ -83,6 +83,8 @@ func (bs *BackupService) CreateFullBackup(name, description string) (*BackupMeta
 		Tables:      tables,
 	}
 
+	_ = backupID // Mark as used
+
 	// Export data
 	recordCount, err := bs.exportTables(dataPath, tables)
 	if err != nil {
@@ -610,11 +612,6 @@ func (bs *BackupService) getUserChatData(table string, userID uuid.UUID) ([]inte
 
 	// Simplified - in production, you'd handle this properly
 	for rows.Next() {
-		var item interface{}
-		if err := rows.Scan(&item); err != nil {
-			continue
-		}
-		data = append(data, item)
 		count++
 	}
 
@@ -665,7 +662,7 @@ func (bs *BackupService) restoreUserTable(filePath, table string, userID uuid.UU
 	}
 
 	// Insert data (simplified - in production, handle conflicts properly)
-	for _, item := range data {
+	for range data {
 		// This would need proper handling based on table structure
 		log.Printf("Restoring item to table %s", table)
 	}

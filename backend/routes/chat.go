@@ -12,6 +12,10 @@ import (
 )
 
 var chatService *services.ChatService
+var wsHub *Hub
+
+// WebSocketHub is a type alias for the Hub from the main package
+type WebSocketHub = Hub
 
 // InitChatService initializes the chat service (called from main)
 func InitChatService(db *sql.DB) {
@@ -21,6 +25,13 @@ func InitChatService(db *sql.DB) {
 // GetChatService returns the chat service instance
 func GetChatService() *services.ChatService {
 	return chatService
+}
+
+// InitWebSocketHub initializes the WebSocket hub
+func InitWebSocketHub(chatSvc *services.ChatService) *WebSocketHub {
+	wsHub = NewHub(chatSvc)
+	go wsHub.Run()
+	return wsHub
 }
 
 // GetChatRooms returns all chat rooms for the authenticated user

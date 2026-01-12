@@ -7,8 +7,197 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "btree_gist";
 
 -- =============================================================================
--- CORE SYSTEM TABLES
+-- SPREADSHEET SYSTEM
 -- =============================================================================
+
+-- Spreadsheets
+CREATE TABLE spreadsheets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(500) NOT NULL,
+    description TEXT,
+    is_public BOOLEAN DEFAULT false,
+    public_token VARCHAR(255) UNIQUE,
+    version INTEGER DEFAULT 1,
+    last_version_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_auto_save BOOLEAN DEFAULT true,
+    auto_save_interval INTEGER DEFAULT 300, -- seconds
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_accessed_at TIMESTAMP WITH TIME ZONE,
+
+    -- Metadata
+    row_count INTEGER DEFAULT 100,
+    col_count INTEGER DEFAULT 26,
+    default_format JSONB, -- Default cell formatting
+    protected_ranges JSONB, -- Protected cell ranges
+
+    -- Search and indexing
+    search_vector TSVECTOR
+);
+
+-- Spreadsheet cells (sparse storage - only non-empty cells)
+CREATE TABLE spreadsheet_cells (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    spreadsheet_id UUID NOT NULL REFERENCES spreadsheets(id) ON DELETE CASCADE,
+    cell_reference VARCHAR(10) NOT NULL, -- e.g., "A1", "B2"
+    row_index INTEGER NOT NULL,
+    col_index INTEGER NOT NULL,
+    value TEXT, -- Cell value (can be text, number, formula)
+    formula TEXT, -- Original formula if applicable
+    data_type VARCHAR(20) DEFAULT 'string', -- 'string', 'number', 'boolean', 'date', 'error'
+    format JSONB, -- Cell formatting (bold, color, etc.)
+    validation_rules JSONB, -- Data validation rules
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE(spreadsheet_id, cell_reference)
+);
+
+-- Spreadsheet formulas (for dependency tracking)
+CREATE TABLE spreadsheet_formulas (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    spreadsheet_id UUID NOT NULL REFERENCES spreadsheets(id) ON DELETE CASCADE,
+    cell_reference VARCHAR(10) NOT NULL,
+    formula TEXT NOT NULL,
+    depends_on TEXT[], -- Array of cell references this formula depends on
+    last_calculated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    calculation_error TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE(spreadsheet_id, cell_reference)
+);
+
+-- Spreadsheet versions (for undo/redo and version history)
+CREATE TABLE spreadsheet_versions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    spreadsheet_id UUID NOT NULL REFERENCES spreadsheets(id) ON DELETE CASCADE,
+    version INTEGER NOT NULL,
+    name VARCHAR(255), -- Optional version name (e.g., "Before major changes")
+    description TEXT,
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    changes JSONB, -- Summary of changes in this version
+    is_auto_save BOOLEAN DEFAULT false,
+    is_daily_backup BOOLEAN DEFAULT false,
+
+    UNIQUE(spreadsheet_id, version)
+);
+
+-- Spreadsheet cell versions (for each version)
+CREATE TABLE spreadsheet_cell_versions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    version_id UUID NOT NULL REFERENCES spreadsheet_versions(id) ON DELETE CASCADE,
+    cell_reference VARCHAR(10) NOT NULL,
+    value TEXT,
+    formula TEXT,
+    data_type VARCHAR(20),
+    format JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Spreadsheet shares
+CREATE TABLE spreadsheet_shares (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    spreadsheet_id UUID NOT NULL REFERENCES spreadsheets(id) ON DELETE CASCADE,
+    shared_by UUID NOT NULL REFERENCES users(id),
+    shared_with_type VARCHAR(20) NOT NULL, -- 'user', 'group', 'public'
+    shared_with_id UUID, -- user ID
+    permission_level VARCHAR(20) NOT NULL, -- 'view', 'comment', 'edit'
+    can_share BOOLEAN DEFAULT false,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CHECK (shared_with_type IN ('user', 'group', 'public'))
+);
+
+-- Spreadsheet comments
+CREATE TABLE spreadsheet_comments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    spreadsheet_id UUID NOT NULL REFERENCES spreadsheets(id) ON DELETE CASCADE,
+    cell_reference VARCHAR(10),
+    user_id UUID NOT NULL REFERENCES users(id),
+    content TEXT NOT NULL,
+    resolved BOOLEAN DEFAULT false,
+    resolved_by UUID REFERENCES users(id),
+    resolved_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Spreadsheet charts
+CREATE TABLE spreadsheet_charts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    spreadsheet_id UUID NOT NULL REFERENCES spreadsheets(id) ON DELETE CASCADE,
+    name VARCHAR(255),
+    chart_type VARCHAR(50) NOT NULL, -- 'bar', 'line', 'pie', 'scatter', 'area'
+    data_range VARCHAR(100) NOT NULL, -- Cell range for data
+    title VARCHAR(500),
+    x_axis_label VARCHAR(255),
+    y_axis_label VARCHAR(255),
+    config JSONB, -- Chart-specific configuration
+    position_x INTEGER, -- Position on spreadsheet
+    position_y INTEGER,
+    width INTEGER DEFAULT 400,
+    height INTEGER DEFAULT 300,
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Spreadsheet pivot tables
+CREATE TABLE spreadsheet_pivot_tables (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    spreadsheet_id UUID NOT NULL REFERENCES spreadsheets(id) ON DELETE CASCADE,
+    name VARCHAR(255),
+    data_range VARCHAR(100) NOT NULL,
+    row_fields TEXT[], -- Fields for rows
+    column_fields TEXT[], -- Fields for columns
+    value_fields TEXT[], -- Fields for values with aggregation
+    filter_fields TEXT[], -- Fields for filters
+    config JSONB, -- Pivot-specific configuration
+    position_x INTEGER,
+    position_y INTEGER,
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Spreadsheet data validations
+CREATE TABLE spreadsheet_validations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    spreadsheet_id UUID NOT NULL REFERENCES spreadsheets(id) ON DELETE CASCADE,
+    cell_range VARCHAR(100) NOT NULL, -- Range this validation applies to
+    validation_type VARCHAR(50) NOT NULL, -- 'list', 'number', 'date', 'text_length', 'custom'
+    operator VARCHAR(20), -- 'equal', 'not_equal', 'greater_than', etc.
+    formula1 TEXT, -- First validation value/formula
+    formula2 TEXT, -- Second validation value/formula (for between)
+    error_message TEXT,
+    error_title VARCHAR(255),
+    input_message TEXT,
+    input_title VARCHAR(255),
+    show_error BOOLEAN DEFAULT true,
+    show_input BOOLEAN DEFAULT true,
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Spreadsheet conditional formatting
+CREATE TABLE spreadsheet_conditional_formats (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    spreadsheet_id UUID NOT NULL REFERENCES spreadsheets(id) ON DELETE CASCADE,
+    name VARCHAR(255),
+    cell_range VARCHAR(100) NOT NULL,
+    rule_type VARCHAR(50) NOT NULL, -- 'cell_value', 'text_contains', 'date_occurring', 'duplicate_values'
+    operator VARCHAR(20), -- 'equal', 'not_equal', 'greater_than', etc.
+    formula1 TEXT,
+    formula2 TEXT,
+    format JSONB, -- Formatting to apply (colors, fonts, etc.)
+    priority INTEGER DEFAULT 0, -- Rule priority (higher numbers take precedence)
+    stop_if_true BOOLEAN DEFAULT false,
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Users table (core authentication and user management)
 CREATE TABLE users (
@@ -862,6 +1051,248 @@ CREATE TABLE ai_usage (
     UNIQUE(user_id, period_start)
 );
 
+-- Document AI analysis results
+CREATE TABLE document_analyses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    file_name VARCHAR(500),
+    file_type VARCHAR(50), -- 'pdf', 'image', 'doc', etc.
+    text_content TEXT, -- Full extracted text content
+    confidence DECIMAL(3,2) DEFAULT 0.00, -- Overall confidence score (0.00-1.00)
+    fields JSONB, -- Extracted structured fields as JSON
+    tables JSONB, -- Extracted tables as JSON array
+    entities JSONB, -- Named entities found in document
+    pages INTEGER DEFAULT 1, -- Number of pages processed
+    language VARCHAR(10) DEFAULT 'en', -- Detected language
+    processing_time_ms INTEGER DEFAULT 0, -- Processing time in milliseconds
+    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'processing', 'completed', 'failed'
+    error TEXT, -- Error message if failed
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Speech models (TTS/STT configurations)
+CREATE TABLE speech_models (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    provider VARCHAR(50) NOT NULL, -- 'local', 'elevenlabs', 'openai', 'assemblyai', 'deepgram'
+    model_id VARCHAR(255) NOT NULL,
+    type VARCHAR(20) NOT NULL, -- 'tts' or 'stt'
+    language VARCHAR(10) DEFAULT 'en',
+    voice VARCHAR(100), -- For TTS models
+    quality VARCHAR(20) DEFAULT 'standard', -- 'low', 'standard', 'high'
+    is_active BOOLEAN DEFAULT true,
+    is_system BOOLEAN DEFAULT false,
+    user_id UUID REFERENCES users(id),
+    api_key TEXT, -- Encrypted API key
+    endpoint VARCHAR(500),
+    config JSONB, -- Provider-specific configuration
+    priority INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE(user_id, name, provider, model_id)
+);
+
+-- Speech processing requests
+CREATE TABLE speech_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    model_id UUID NOT NULL REFERENCES speech_models(id),
+    request_type VARCHAR(20) NOT NULL, -- 'tts' or 'stt'
+    input_text TEXT, -- For TTS requests
+    input_audio BYTEA, -- For STT requests (encrypted)
+    output_text TEXT, -- For STT results
+    output_audio BYTEA, -- For TTS results (encrypted)
+    status VARCHAR(20) DEFAULT 'processing', -- 'processing', 'completed', 'failed'
+    error TEXT,
+    processing_time_ms INTEGER DEFAULT 0,
+    audio_format VARCHAR(20) DEFAULT 'mp3', -- 'mp3', 'wav', 'ogg'
+    language VARCHAR(10) DEFAULT 'en',
+    voice VARCHAR(100),
+    speed DECIMAL(3,2) DEFAULT 1.00,
+    pitch DECIMAL(3,2) DEFAULT 1.00,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- User speech settings and preferences
+CREATE TABLE speech_settings (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    enable_tts BOOLEAN DEFAULT true,
+    enable_stt BOOLEAN DEFAULT true,
+    default_tts_model UUID REFERENCES speech_models(id),
+    default_stt_model UUID REFERENCES speech_models(id),
+    default_voice VARCHAR(100) DEFAULT 'alloy',
+    default_language VARCHAR(10) DEFAULT 'en',
+    tts_speed DECIMAL(3,2) DEFAULT 1.00,
+    tts_volume DECIMAL(3,2) DEFAULT 1.00,
+    stt_language VARCHAR(10) DEFAULT 'en',
+    auto_play_tts BOOLEAN DEFAULT false,
+    show_stt_transcript BOOLEAN DEFAULT true,
+    keyboard_shortcut VARCHAR(50) DEFAULT 'ctrl+shift+s',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- AI Settings for user preferences and API keys
+CREATE TABLE ai_settings (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    enable_ai_features BOOLEAN DEFAULT true,
+    enable_ocr BOOLEAN DEFAULT true,
+    enable_speech BOOLEAN DEFAULT true,
+    enable_workflows BOOLEAN DEFAULT true,
+    enable_local_ai BOOLEAN DEFAULT true,
+    enable_cloud_ai BOOLEAN DEFAULT false,
+    default_provider VARCHAR(50) DEFAULT 'ollama',
+    max_concurrent_requests INTEGER DEFAULT 3,
+    request_timeout INTEGER DEFAULT 30,
+    hardware_acceleration BOOLEAN DEFAULT true,
+    low_power_mode BOOLEAN DEFAULT false,
+
+    -- Encrypted API keys
+    openai_key BYTEA,
+    elevenlabs_key BYTEA,
+    replicate_key BYTEA,
+    assemblyai_key BYTEA,
+    deepgram_key BYTEA,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- AI Usage Statistics
+CREATE TABLE ai_usage_stats (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    provider VARCHAR(50) NOT NULL,
+    service VARCHAR(50) NOT NULL, -- "tts", "stt", "ocr", "chat", etc.
+    tokens INTEGER DEFAULT 0,
+    requests INTEGER DEFAULT 0,
+    cost DECIMAL(10,6) DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (user_id, date, provider, service)
+);
+
+-- Graceful Degradation Settings
+CREATE TABLE graceful_degradation (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    offline_mode BOOLEAN DEFAULT false,
+    fallback_to_local BOOLEAN DEFAULT true,
+    reduce_quality BOOLEAN DEFAULT false,
+    disable_advanced BOOLEAN DEFAULT false,
+    show_degraded_notice BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Workflows for automation
+CREATE TABLE workflows (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    is_template BOOLEAN DEFAULT false,
+    category VARCHAR(100),
+    trigger_type VARCHAR(50) NOT NULL,
+    schedule VARCHAR(500),
+    canvas_data JSONB,
+    version INTEGER DEFAULT 1,
+    last_run_at TIMESTAMP WITH TIME ZONE,
+    run_count INTEGER DEFAULT 0,
+    success_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Workflow nodes
+CREATE TABLE workflow_nodes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
+    node_id VARCHAR(100) NOT NULL,
+    node_type VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    config JSONB,
+    position_x INTEGER DEFAULT 0,
+    position_y INTEGER DEFAULT 0,
+    width INTEGER DEFAULT 200,
+    height INTEGER DEFAULT 100,
+    is_enabled BOOLEAN DEFAULT true,
+    last_run_at TIMESTAMP WITH TIME ZONE,
+    run_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Workflow connections
+CREATE TABLE workflow_connections (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
+    from_node_id VARCHAR(100) NOT NULL,
+    to_node_id VARCHAR(100) NOT NULL,
+    from_port VARCHAR(50) DEFAULT 'output',
+    to_port VARCHAR(50) DEFAULT 'input',
+    label VARCHAR(255),
+    is_enabled BOOLEAN DEFAULT true,
+    condition TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Workflow executions
+CREATE TABLE workflow_executions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id),
+    status VARCHAR(20) DEFAULT 'running',
+    trigger_type VARCHAR(50),
+    trigger_data JSONB,
+    current_node_id VARCHAR(100),
+    node_states JSONB,
+    output_data JSONB,
+    error_message TEXT,
+    started_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    duration INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Workflow templates
+CREATE TABLE workflow_templates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(100) NOT NULL,
+    icon VARCHAR(100),
+    color VARCHAR(7) DEFAULT '#007bff',
+    template_data JSONB NOT NULL,
+    is_system BOOLEAN DEFAULT false,
+    is_public BOOLEAN DEFAULT true,
+    use_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Integration connectors
+CREATE TABLE integration_connectors (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    app_name VARCHAR(100) NOT NULL,
+    connector_type VARCHAR(50) NOT NULL,
+    config_schema JSONB,
+    icon VARCHAR(100),
+    color VARCHAR(7) DEFAULT '#007bff',
+    is_active BOOLEAN DEFAULT true,
+    is_system BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- AI model upgrades
 CREATE TABLE ai_upgrades (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -871,6 +1302,55 @@ CREATE TABLE ai_upgrades (
     upgrade_type VARCHAR(50), -- 'automatic', 'manual', 'forced'
     reason TEXT,
     applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =============================================================================
+-- VOICE NOTES AND ANNOTATIONS
+-- =============================================================================
+
+-- Voice notes (standalone audio recordings with transcription)
+CREATE TABLE voice_notes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(500) NOT NULL,
+    content TEXT, -- Auto-transcribed text content
+    audio_data BYTEA NOT NULL, -- Encrypted audio data
+    audio_format VARCHAR(20) DEFAULT 'wav', -- 'wav', 'mp3', 'ogg', etc.
+    duration INTEGER NOT NULL, -- Duration in seconds
+    file_size BIGINT NOT NULL,
+    tags TEXT[], -- Array of tags for organization
+    is_favorite BOOLEAN DEFAULT false,
+    is_public BOOLEAN DEFAULT false,
+    salt VARCHAR(255) NOT NULL, -- Encryption salt
+    algorithm VARCHAR(50) DEFAULT 'AES-256-GCM',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    -- Search
+    search_vector TSVECTOR
+);
+
+-- Voice annotations (voice recordings attached to content)
+CREATE TABLE voice_annotations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content_type VARCHAR(50) NOT NULL, -- 'document', 'task', 'email', 'calendar', 'contact'
+    content_id UUID NOT NULL, -- ID of the content being annotated
+    title VARCHAR(255) NOT NULL,
+    content TEXT, -- Auto-transcribed text content
+    audio_data BYTEA NOT NULL, -- Encrypted audio data
+    audio_format VARCHAR(20) DEFAULT 'wav',
+    duration INTEGER NOT NULL, -- Duration in seconds
+    file_size BIGINT NOT NULL,
+    position TEXT, -- JSON position data for highlighting/positioning
+    is_public BOOLEAN DEFAULT false,
+    salt VARCHAR(255) NOT NULL, -- Encryption salt
+    algorithm VARCHAR(50) DEFAULT 'AES-256-GCM',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    -- Search
+    search_vector TSVECTOR
 );
 
 -- =============================================================================
@@ -1049,6 +1529,39 @@ CREATE INDEX idx_form_responses_form_id ON form_responses(form_id);
 CREATE INDEX idx_ai_requests_user_id ON ai_requests(user_id);
 CREATE INDEX idx_ai_requests_created_at ON ai_requests(created_at);
 CREATE INDEX idx_ai_usage_user_id ON ai_usage(user_id);
+CREATE INDEX idx_document_analyses_user_id ON document_analyses(user_id);
+CREATE INDEX idx_document_analyses_document_id ON document_analyses(document_id);
+CREATE INDEX idx_document_analyses_status ON document_analyses(status);
+CREATE INDEX idx_document_analyses_created_at ON document_analyses(created_at);
+CREATE INDEX idx_speech_models_user_id ON speech_models(user_id);
+CREATE INDEX idx_speech_models_provider ON speech_models(provider);
+CREATE INDEX idx_speech_models_type ON speech_models(type);
+CREATE INDEX idx_speech_requests_user_id ON speech_requests(user_id);
+CREATE INDEX idx_speech_requests_model_id ON speech_requests(model_id);
+CREATE INDEX idx_speech_requests_status ON speech_requests(status);
+CREATE INDEX idx_speech_requests_created_at ON speech_requests(created_at);
+CREATE INDEX idx_workflows_user_id ON workflows(user_id);
+CREATE INDEX idx_workflows_category ON workflows(category);
+CREATE INDEX idx_workflows_is_active ON workflows(is_active);
+CREATE INDEX idx_workflow_nodes_workflow_id ON workflow_nodes(workflow_id);
+CREATE INDEX idx_workflow_connections_workflow_id ON workflow_connections(workflow_id);
+CREATE INDEX idx_workflow_executions_workflow_id ON workflow_executions(workflow_id);
+CREATE INDEX idx_workflow_executions_user_id ON workflow_executions(user_id);
+CREATE INDEX idx_workflow_executions_status ON workflow_executions(status);
+CREATE INDEX idx_workflow_templates_category ON workflow_templates(category);
+CREATE INDEX idx_integration_connectors_app_name ON integration_connectors(app_name);
+CREATE INDEX idx_integration_connectors_connector_type ON integration_connectors(connector_type);
+
+-- Voice indexes
+CREATE INDEX idx_voice_notes_user_id ON voice_notes(user_id);
+CREATE INDEX idx_voice_notes_created_at ON voice_notes(created_at DESC);
+CREATE INDEX idx_voice_notes_is_favorite ON voice_notes(is_favorite);
+CREATE INDEX idx_voice_notes_search_vector ON voice_notes USING GIN(search_vector);
+CREATE INDEX idx_voice_annotations_user_id ON voice_annotations(user_id);
+CREATE INDEX idx_voice_annotations_content_type ON voice_annotations(content_type);
+CREATE INDEX idx_voice_annotations_content_id ON voice_annotations(content_id);
+CREATE INDEX idx_voice_annotations_created_at ON voice_annotations(created_at DESC);
+CREATE INDEX idx_voice_annotations_search_vector ON voice_annotations USING GIN(search_vector);
 
 -- Security indexes
 CREATE INDEX idx_audit_log_timestamp ON audit_log(timestamp DESC);
@@ -1127,6 +1640,19 @@ INSERT INTO ai_models (name, provider, model_name, capabilities, context_window,
 ('Ollama Llama 2 7B', 'ollama', 'llama2:7b', ARRAY['text', 'chat'], 4096, true, 10),
 ('Ollama Code Llama', 'ollama', 'codellama:7b', ARRAY['code', 'text'], 4096, true, 9),
 ('Ollama Mistral', 'ollama', 'mistral:7b', ARRAY['text', 'chat'], 8192, true, 8);
+
+-- Insert default speech models
+INSERT INTO speech_models (name, provider, model_id, type, language, voice, quality, is_system, is_active, priority) VALUES
+('System TTS (English)', 'local', 'system-en', 'tts', 'en', NULL, 'standard', true, true, 10),
+('System TTS (Spanish)', 'local', 'system-es', 'tts', 'es', NULL, 'standard', true, true, 9),
+('System STT (English)', 'local', 'system-stt-en', 'stt', 'en', NULL, 'standard', true, true, 10),
+('ElevenLabs - Rachel', 'elevenlabs', '21m00Tcm4TlvDq8ikWAM', 'tts', 'en', 'Rachel', 'high', true, true, 8),
+('ElevenLabs - Drew', 'elevenlabs', '29vD33N1CtxCmqQRPOHJ', 'tts', 'en', 'Drew', 'high', true, true, 8),
+('OpenAI - Alloy', 'openai', 'tts-1', 'tts', 'en', 'alloy', 'standard', true, true, 7),
+('OpenAI - Echo', 'openai', 'tts-1', 'tts', 'en', 'echo', 'standard', true, true, 7),
+('OpenAI Whisper', 'openai', 'whisper-1', 'stt', 'en', NULL, 'standard', true, true, 9),
+('AssemblyAI Premium', 'assemblyai', 'premium', 'stt', 'en', NULL, 'high', true, true, 8),
+('Deepgram Nova', 'deepgram', 'nova', 'stt', 'en', NULL, 'standard', true, true, 8);
 
 -- =============================================================================
 -- TRIGGERS FOR AUTOMATED MAINTENANCE

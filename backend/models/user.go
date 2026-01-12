@@ -26,6 +26,10 @@ type User struct {
 	TwoFactorSecret     string     `json:"-" gorm:"column:two_factor_secret"`
 	FailedLoginAttempts int        `json:"-" gorm:"default:0"`
 	LockedUntil         *time.Time `json:"-"`
+	AvatarURL           string     `json:"avatar_url"`
+	Bio                 string     `json:"bio" gorm:"type:text"`
+	Timezone            string     `json:"timezone" gorm:"default:'UTC'"`
+	Language            string     `json:"language" gorm:"default:'en'"`
 }
 
 // BeforeCreate will set a UUID rather than numeric ID

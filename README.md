@@ -1,13 +1,35 @@
 # TPT Titan
 
-TPT Titan is a complete open source alternative to Microsoft Office 365, recreated entirely from scratch under GNU AGPL v3.0. It provides a comprehensive, self-hosted productivity suite designed for privacy-conscious users and organizations who want full control over their data.
+TPT Titan is a complete open source productivity suite designed specifically for **small businesses (1-7 employees)** who need professional tools but want to **avoid expensive subscriptions** and maintain **complete data privacy**. Built with offline-first architecture, it runs entirely on your local machine with zero internet dependency for core functionality.
+
+## 🎯 Perfect for SMEs
+
+- ✅ **Free & Open Source** - No subscriptions, no hidden costs
+- ✅ **Offline-First** - Works completely without internet
+- ✅ **Data Privacy** - Your data stays on your computer
+- ✅ **Professional Features** - Excel-class spreadsheet, Word-class editor
+- ✅ **Zero Vendor Lock-in** - Full data export and control
 
 ## Features
 
-### Office Suite
-- **Text Editor**: Rich text editing with AI writing assistance, Notion-style block editing, Markdown support, natural math notation, handwriting recognition, and export to PDF/DOCX/LaTeX/MathML/SVG
-- **Spreadsheet**: Advanced grid interface with mathematical functions (50+ formulas), AI formula suggestions, real-time collaboration, data visualization (charts), Excel import/export, and version control
-- **Forms & Templates**: Visual drag-and-drop form builder (12+ field types), MS Access-style database features, visual query builder, relationship management, report generation, workflow automation, digital signatures, and email distribution
+### ✅ **Implemented & Ready**
+- **Text Editor**: Professional rich text editor with formatting, find/replace, templates, and PDF export
+- **Spreadsheet**: Excel-class spreadsheet with 50+ formulas, data visualization, and import/export
+- **Forms Builder**: Visual drag-and-drop form creation with 12+ field types, conditional logic, and templates
+- **Task Management**: Kanban board with drag-and-drop, project tracking, and team collaboration
+- **Desktop App**: Cross-platform desktop application (Windows/Mac/Linux) with offline-first architecture
+
+### 🔄 **Backend Integration In Progress**
+- **End-to-End Encryption**: AES-256-GCM encryption system with zero-knowledge architecture
+- **Local Database**: SQLite integration for offline data storage
+- **API Integration**: RESTful APIs connecting frontend components to encrypted backend
+
+### 🚀 **Upcoming Features**
+- **AI Integration**: Local AI models for writing assistance and data analysis
+- **Real-time Collaboration**: Multi-user editing with conflict resolution
+- **Email Client**: IMAP/SMTP with PGP encryption
+- **Calendar & Contacts**: Personal information management
+- **Plugin System**: Extensible architecture for custom features
 
 ### Communication & Collaboration
 - **Email Client**: Full IMAP/SMTP support with PGP encryption, attachments, search, folders, and contact integration
@@ -144,30 +166,68 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) to understand our communit
 - **Community Forum**: Join discussions and get help
 - **Discord**: Real-time chat with the community
 
+## Business Model
+
+TPT Titan uses a **sustainable dual-license model** designed for long-term viability:
+
+### **Free for End Users (AGPL v3)**
+- **Individual Users & SMEs**: Completely free under AGPL v3
+- **Community Access**: Full source code, modifications must stay open source
+- **No Restrictions**: Use, modify, distribute freely for personal/business use
+
+### **Commercial Licensing**
+- **Enterprise Companies**: Can license for internal modifications without sharing changes
+- **No Resale Rights**: Cannot redistribute modified versions commercially
+- **Reasonable Pricing**: Contact for commercial license terms
+- **Support Revenue**: Optional premium support packages
+
+### **Why This Works**
+- **Zero Competition**: Most AGPL projects struggle with monetization
+- **Sustainable**: Revenue from companies, free for individuals
+- **Community-First**: Open source benefits everyone
+- **No User Lock-in**: Free forever for SMEs
+
 ## License
 
-This project is licensed under the GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+**Core Software**: GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
-The AGPL ensures that modifications to the software remain open source and available to the community, maintaining freedom for all users.
+**Commercial Use**: Contact us for commercial licensing terms that allow internal modifications without open source obligations.
 
-## Roadmap
+The AGPL ensures that modifications for personal use remain open source, while commercial licensing provides flexibility for businesses.
 
-TPT Titan is actively developed with regular releases. See [TODO.md](TODO.md) for the current development status and upcoming features.
+## Current Development Status
 
-### Recent Major Releases
-- ✅ End-to-end encryption system
-- ✅ Complete office suite (text editor, spreadsheet, forms)
-- ✅ Email client with PGP encryption
-- ✅ Real-time collaboration features
-- ✅ Plugin system and extensibility
-- ✅ GDPR compliance implementation
-- ✅ Cross-platform desktop applications
+### ✅ **Phase 1: Core Components Complete**
+- **Text Editor**: Professional rich text editor with full formatting, find/replace, and PDF export
+- **Spreadsheet**: Excel-class spreadsheet with 50+ formulas, charts, and import/export
+- **Forms Builder**: Visual form creation with 12+ field types, conditional logic, templates
+- **Task Management**: Kanban board with drag-and-drop functionality
+- **Desktop App**: Cross-platform Tauri application framework ready
 
-### Upcoming
-- Mobile applications
-- Advanced AI integrations
-- Enhanced collaboration features
-- Performance optimizations
+### 🔄 **Phase 2: Backend Integration (In Progress)**
+- **Encryption Integration**: Connect AES-256-GCM crypto system to document storage
+- **SQLite Database**: Implement local data persistence for all components
+- **API Connections**: Wire frontend components to encrypted backend
+- **Data Portability**: Export/import functionality for user data
+
+### 🚀 **Phase 3: Production Release (Next)**
+- **Desktop App Bundling**: Package Go backend with Tauri for seamless offline experience
+- **User Onboarding**: Setup wizards and initial configuration
+- **Documentation**: User guides and video tutorials
+- **Community Launch**: GitHub release with desktop binaries
+
+### 📅 **Phase 4: Advanced Features (Future)**
+- **AI Integration**: Local AI models for writing assistance and data analysis
+- **Real-time Collaboration**: Multi-user editing with conflict resolution
+- **Email Client**: IMAP/SMTP with PGP encryption
+- **Calendar & Contacts**: Personal information management
+- **Plugin System**: Extensible architecture for custom features
+
+### 🎯 **Immediate Priorities**
+1. **Encryption Integration**: Make documents save/load with proper encryption
+2. **Desktop App Release**: Package as downloadable application
+3. **User Testing**: Get feedback from SME users
+4. **Community Building**: Grow user base and contributor community
 
 ## Security
 

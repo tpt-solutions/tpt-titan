@@ -5,6 +5,11 @@
 	import ContactForm from '$lib/components/ContactForm.svelte';
 	import { contacts } from '$lib/stores';
 
+	// Accept framework-provided props to avoid warnings
+	export let params = null;
+	export let data = null;
+	export let form = null;
+
 	let showForm = false;
 	let editingContact = null;
 	let searchQuery = '';

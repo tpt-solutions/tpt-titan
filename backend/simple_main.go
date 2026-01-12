@@ -152,6 +152,61 @@ func main() {
 				},
 			})
 		})
+
+		// Forms routes
+		api.GET("/forms", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+				"forms": []gin.H{
+					{
+						"id": "550e8400-e29b-41d4-a716-446655440000",
+						"name": "Customer Feedback Survey",
+						"description": "Collect customer satisfaction data",
+						"status": "active",
+						"created_at": "2024-01-15T10:00:00Z",
+						"fields": []gin.H{
+							{
+								"id": "550e8400-e29b-41d4-a716-446655440001",
+								"type": "text",
+								"label": "Name",
+								"required": true,
+								"order": 1,
+							},
+							{
+								"id": "550e8400-e29b-41d4-a716-446655440002",
+								"type": "email",
+								"label": "Email",
+								"required": true,
+								"order": 2,
+							},
+						},
+					},
+					{
+						"id": "550e8400-e29b-41d4-a716-446655440003",
+						"name": "Event Registration",
+						"description": "Register attendees for company events",
+						"status": "active",
+						"created_at": "2024-01-10T10:00:00Z",
+						"fields": []gin.H{
+							{
+								"id": "550e8400-e29b-41d4-a716-446655440004",
+								"type": "text",
+								"label": "Full Name",
+								"required": true,
+								"order": 1,
+							},
+							{
+								"id": "550e8400-e29b-41d4-a716-446655440005",
+								"type": "select",
+								"label": "Event Type",
+								"required": true,
+								"options": []string{"Conference", "Workshop", "Webinar"},
+								"order": 2,
+							},
+						},
+					},
+				},
+			})
+		})
 	}
 
 	// Start server

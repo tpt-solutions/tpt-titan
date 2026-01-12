@@ -5,6 +5,11 @@
 	import CalendarView from '$lib/components/CalendarView.svelte';
 	import EventForm from '$lib/components/EventForm.svelte';
 
+	// Accept framework-provided props to avoid warnings
+	export let params = null;
+	export let data = null;
+	export let form = null;
+
 	let showEventForm = false;
 	let editingEvent = null;
 	let selectedDate = null;

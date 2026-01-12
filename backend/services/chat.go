@@ -58,7 +58,7 @@ func (s *ChatService) GetChatRooms(userID uuid.UUID) ([]models.ChatRoomResponse,
 		response := room.ToResponse()
 
 		// Get participants
-		participants, err := s.getRoomParticipants(room.ID)
+		participants, err := s.GetRoomParticipants(room.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get participants for room %s: %w", room.ID, err)
 		}
@@ -125,7 +125,7 @@ func (s *ChatService) GetChatRoom(userID, roomID uuid.UUID) (*models.ChatRoomRes
 	response := room.ToResponse()
 
 	// Get participants
-	participants, err := s.getRoomParticipants(room.ID)
+	participants, err := s.GetRoomParticipants(room.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get participants: %w", err)
 	}

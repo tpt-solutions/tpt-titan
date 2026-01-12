@@ -3,6 +3,11 @@
 	import TaskForm from '$lib/components/TaskForm.svelte';
 	import { onMount } from 'svelte';
 
+	// Accept framework-provided props to avoid warnings
+	export let params = null;
+	export let data = null;
+	export let form = null;
+
 	let currentView = 'board'; // 'board' or 'form'
 	let selectedTask = null;
 	let tasks = [];

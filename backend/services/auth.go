@@ -131,8 +131,7 @@ func (as *AuthService) Register(req RegisterRequest) (*models.UserResponse, erro
 	}
 
 	// Assign default role
-	err = as.assignDefaultRole(userID)
-	if err != nil {
+	if err := as.assignDefaultRole(userID); err != nil {
 		log.Printf("Failed to assign default role to user %s: %v", userID, err)
 		// Don't fail registration for this
 	}
@@ -197,8 +196,7 @@ func (as *AuthService) Login(credentials UserCredentials) (*LoginResponse, error
 			return &LoginResponse{RequiresTOTP: true}, nil
 		}
 
-		valid := totp.Validate(credentials.TOTPCode, user.TwoFactorSecret)
-		if !valid {
+		if !totp.Validate(credentials.TOTPCode, user.TwoFactorSecret) {
 			as.incrementFailedLoginAttempts(user.ID)
 			return nil, fmt.Errorf("invalid TOTP code")
 		}
@@ -344,8 +342,7 @@ func (as *AuthService) VerifyAndEnableTOTP(userID uuid.UUID, code string) error 
 	}
 
 	// Verify the code
-	valid, err := totp.Validate(code, secret)
-	if err != nil || !valid {
+	if !totp.Validate(code, secret) {
 		return fmt.Errorf("invalid TOTP code")
 	}
 

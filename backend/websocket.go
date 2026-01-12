@@ -237,3 +237,19 @@ func (c *Client) writePump() {
 func (h *Hub) BroadcastMessage(message models.WebSocketMessage) {
 	h.broadcast <- message
 }
+
+// BroadcastToUser broadcasts a message to all connected clients of a specific user
+func (h *Hub) BroadcastToUser(userID uuid.UUID, message models.WebSocketMessage) {
+	message.UserID = userID
+	message.Timestamp = time.Now()
+
+	if clients, ok := h.clients[userID]; ok {
+		for client := range clients {
+			select {
+			case client.Send <- message:
+			default:
+				h.removeClient(client)
+			}
+		}
+	}
+}

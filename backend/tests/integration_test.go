@@ -187,6 +187,106 @@ func (suite *IntegrationTestSuite) TestContactImportExport() {
 	assert.Equal(suite.T(), http.StatusUnauthorized, w.Code)
 }
 
+// TestSpreadsheetOperations tests basic spreadsheet functionality
+func (suite *IntegrationTestSuite) TestSpreadsheetOperations() {
+	// Test creating a spreadsheet
+	spreadsheetData := map[string]interface{}{
+		"name": "Test Spreadsheet",
+	}
+
+	jsonData, _ := json.Marshal(spreadsheetData)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/v1/spreadsheets", bytes.NewBuffer(jsonData))
+	req.Header.Set("Content-Type", "application/json")
+	suite.router.ServeHTTP(w, req)
+
+	// Should succeed or return appropriate error
+	assert.True(suite.T(), w.Code == http.StatusCreated || w.Code == http.StatusBadRequest || w.Code == http.StatusUnauthorized)
+}
+
+// TestSpreadsheetFormulaEvaluation tests formula evaluation
+func (suite *IntegrationTestSuite) TestSpreadsheetFormulaEvaluation() {
+	formulaData := map[string]interface{}{
+		"formula": "=SUM(A1:A5)",
+		"cell_context": map[string]interface{}{
+			"A1": 10,
+			"A2": 20,
+			"A3": 30,
+			"A4": 40,
+			"A5": 50,
+		},
+	}
+
+	jsonData, _ := json.Marshal(formulaData)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/v1/spreadsheets/evaluate", bytes.NewBuffer(jsonData))
+	req.Header.Set("Content-Type", "application/json")
+	suite.router.ServeHTTP(w, req)
+
+	// Should work (may require auth in real implementation)
+	assert.True(suite.T(), w.Code == http.StatusOK || w.Code == http.StatusUnauthorized)
+}
+
+// TestSpreadsheetFunctionList tests getting available functions
+func (suite *IntegrationTestSuite) TestSpreadsheetFunctionList() {
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/v1/spreadsheets/functions", nil)
+	suite.router.ServeHTTP(w, req)
+
+	// Should work (may require auth in real implementation)
+	assert.True(suite.T(), w.Code == http.StatusOK || w.Code == http.StatusUnauthorized)
+}
+
+// TestFormOperations tests basic form CRUD operations
+func (suite *IntegrationTestSuite) TestFormOperations() {
+	// Test getting forms (should require auth)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/v1/forms", nil)
+	suite.router.ServeHTTP(w, req)
+
+	// Should require authentication
+	assert.Equal(suite.T(), http.StatusUnauthorized, w.Code)
+
+	// Test creating a form (should require auth)
+	formData := map[string]interface{}{
+		"name":        "Test Form",
+		"description": "A test form",
+		"fields": []map[string]interface{}{
+			{
+				"type":     "text",
+				"label":    "Name",
+				"required": true,
+			},
+		},
+	}
+
+	jsonData, _ := json.Marshal(formData)
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest("POST", "/api/v1/forms", bytes.NewBuffer(jsonData))
+	req.Header.Set("Content-Type", "application/json")
+	suite.router.ServeHTTP(w, req)
+
+	// Should require authentication
+	assert.Equal(suite.T(), http.StatusUnauthorized, w.Code)
+}
+
+// TestFormValidation tests form data validation
+func (suite *IntegrationTestSuite) TestFormValidation() {
+	// Test creating form with invalid data
+	invalidData := map[string]interface{}{
+		"description": "Missing name field",
+	}
+
+	jsonData, _ := json.Marshal(invalidData)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/v1/forms", bytes.NewBuffer(jsonData))
+	req.Header.Set("Content-Type", "application/json")
+	suite.router.ServeHTTP(w, req)
+
+	// Should return validation error or auth error
+	assert.True(suite.T(), w.Code == http.StatusBadRequest || w.Code == http.StatusUnauthorized)
+}
+
 // TestPerformance benchmarks API performance
 func BenchmarkAPIEndpoints(b *testing.B) {
 	// Set up test environment

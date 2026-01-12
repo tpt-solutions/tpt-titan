@@ -9,8 +9,8 @@
 	let formData = {
 		first_name: '',
 		last_name: '',
-		email: '',
-		phone: '',
+		emails: [{ type: 'work', value: '' }],
+		phones: [{ type: 'mobile', value: '' }],
 		company: '',
 		position: '',
 		notes: ''
@@ -24,8 +24,8 @@
 		formData = {
 			first_name: contact.first_name || '',
 			last_name: contact.last_name || '',
-			email: contact.email || '',
-			phone: contact.phone || '',
+			emails: contact.emails && contact.emails.length > 0 ? contact.emails : [{ type: 'work', value: '' }],
+			phones: contact.phones && contact.phones.length > 0 ? contact.phones : [{ type: 'mobile', value: '' }],
 			company: contact.company || '',
 			position: contact.position || '',
 			notes: contact.notes || ''
@@ -39,11 +39,34 @@
 			errors.name = 'At least first name or last name is required';
 		}
 
-		if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-			errors.email = 'Please enter a valid email address';
-		}
+		// Validate emails
+		formData.emails.forEach((email, index) => {
+			if (email.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+				errors[`email_${index}`] = 'Please enter a valid email address';
+			}
+		});
 
 		return Object.keys(errors).length === 0;
+	}
+
+	function addEmail() {
+		formData.emails = [...formData.emails, { type: 'personal', value: '' }];
+	}
+
+	function removeEmail(index) {
+		if (formData.emails.length > 1) {
+			formData.emails = formData.emails.filter((_, i) => i !== index);
+		}
+	}
+
+	function addPhone() {
+		formData.phones = [...formData.phones, { type: 'home', value: '' }];
+	}
+
+	function removePhone(index) {
+		if (formData.phones.length > 1) {
+			formData.phones = formData.phones.filter((_, i) => i !== index);
+		}
 	}
 
 	async function handleSubmit() {
@@ -85,8 +108,8 @@
 		formData = {
 			first_name: '',
 			last_name: '',
-			email: '',
-			phone: '',
+			emails: [{ type: 'work', value: '' }],
+			phones: [{ type: 'mobile', value: '' }],
 			company: '',
 			position: '',
 			notes: ''
@@ -164,35 +187,96 @@
 					<p class="text-sm text-red-600 dark:text-red-400">{errors.name}</p>
 				{/if}
 
-				<!-- Email -->
+				<!-- Emails -->
 				<div>
-					<label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-						Email
-					</label>
-					<input
-						id="email"
-						type="email"
-						bind:value={formData.email}
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-						placeholder="john.doe@example.com"
-					>
-					{#if errors.email}
-						<p class="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
-					{/if}
+					<div class="flex items-center justify-between mb-2">
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+							Email Addresses
+						</label>
+						<button
+							type="button"
+							on:click={addEmail}
+							class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+						>
+							+ Add Email
+						</button>
+					</div>
+					{#each formData.emails as email, index}
+						<div class="flex gap-2 mb-2">
+							<select
+								bind:value={email.type}
+								class="flex-shrink-0 w-20 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"
+							>
+								<option value="work">Work</option>
+								<option value="personal">Personal</option>
+								<option value="other">Other</option>
+							</select>
+							<input
+								type="email"
+								bind:value={email.value}
+								class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+								placeholder="john.doe@example.com"
+							>
+							{#if formData.emails.length > 1}
+								<button
+									type="button"
+									on:click={() => removeEmail(index)}
+									class="flex-shrink-0 px-2 py-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+									title="Remove email"
+								>
+									✕
+								</button>
+							{/if}
+						</div>
+						{#if errors[`email_${index}`]}
+							<p class="text-sm text-red-600 dark:text-red-400 mb-2">{errors[`email_${index}`]}</p>
+						{/if}
+					{/each}
 				</div>
 
-				<!-- Phone -->
+				<!-- Phones -->
 				<div>
-					<label for="phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-						Phone
-					</label>
-					<input
-						id="phone"
-						type="tel"
-						bind:value={formData.phone}
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-						placeholder="+1 (555) 123-4567"
-					>
+					<div class="flex items-center justify-between mb-2">
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+							Phone Numbers
+						</label>
+						<button
+							type="button"
+							on:click={addPhone}
+							class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+						>
+							+ Add Phone
+						</button>
+					</div>
+					{#each formData.phones as phone, index}
+						<div class="flex gap-2 mb-2">
+							<select
+								bind:value={phone.type}
+								class="flex-shrink-0 w-20 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"
+							>
+								<option value="mobile">Mobile</option>
+								<option value="work">Work</option>
+								<option value="home">Home</option>
+								<option value="other">Other</option>
+							</select>
+							<input
+								type="tel"
+								bind:value={phone.value}
+								class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+								placeholder="+1 (555) 123-4567"
+							>
+							{#if formData.phones.length > 1}
+								<button
+									type="button"
+									on:click={() => removePhone(index)}
+									class="flex-shrink-0 px-2 py-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+									title="Remove phone"
+								>
+									✕
+								</button>
+							{/if}
+						</div>
+					{/each}
 				</div>
 
 				<!-- Company and Position -->

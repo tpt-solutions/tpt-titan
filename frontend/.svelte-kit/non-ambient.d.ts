@@ -27,7 +27,7 @@ export {};
 
 declare module "$app/types" {
 	export interface AppTypes {
-		RouteId(): "/" | "/auth" | "/auth/login" | "/auth/register" | "/calendar" | "/contacts" | "/editor" | "/email" | "/forms" | "/spreadsheet" | "/tasks";
+		RouteId(): "/" | "/auth" | "/auth/login" | "/auth/register" | "/calendar" | "/contacts" | "/database" | "/editor" | "/email" | "/forms" | "/spreadsheet" | "/tasks";
 		RouteParams(): {
 			
 		};
@@ -38,14 +38,15 @@ declare module "$app/types" {
 			"/auth/register": Record<string, never>;
 			"/calendar": Record<string, never>;
 			"/contacts": Record<string, never>;
+			"/database": Record<string, never>;
 			"/editor": Record<string, never>;
 			"/email": Record<string, never>;
 			"/forms": Record<string, never>;
 			"/spreadsheet": Record<string, never>;
 			"/tasks": Record<string, never>
 		};
-		Pathname(): "/" | "/auth" | "/auth/" | "/auth/login" | "/auth/login/" | "/auth/register" | "/auth/register/" | "/calendar" | "/calendar/" | "/contacts" | "/contacts/" | "/editor" | "/editor/" | "/email" | "/email/" | "/forms" | "/forms/" | "/spreadsheet" | "/spreadsheet/" | "/tasks" | "/tasks/";
+		Pathname(): "/" | "/auth" | "/auth/" | "/auth/login" | "/auth/login/" | "/auth/register" | "/auth/register/" | "/calendar" | "/calendar/" | "/contacts" | "/contacts/" | "/database" | "/database/" | "/editor" | "/editor/" | "/email" | "/email/" | "/forms" | "/forms/" | "/spreadsheet" | "/spreadsheet/" | "/tasks" | "/tasks/";
 		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
-		Asset(): string & {};
+		Asset(): "/favicon.ico" | "/site.webmanifest" | string & {};
 	}
 }

@@ -1,7 +1,13 @@
 <script>
 	import FormBuilder from '$lib/components/FormBuilder.svelte';
 	import FormList from '$lib/components/FormList.svelte';
+	import { getForms } from '$lib/api.js';
 	import { onMount } from 'svelte';
+
+	// Accept framework-provided props to avoid warnings
+	export let params = null;
+	export let data = null;
+	export let form = null;
 
 	let currentView = 'list'; // 'list' or 'builder'
 	let selectedForm = null;
@@ -12,34 +18,45 @@
 		loadForms();
 	});
 
-	function loadForms() {
-		// Mock data for now - will connect to API later
-		forms = [
-			{
-				id: 1,
-				name: 'Customer Feedback Survey',
-				description: 'Collect customer satisfaction data',
-				responses: 24,
-				createdAt: new Date('2024-01-15'),
-				status: 'active'
-			},
-			{
-				id: 2,
-				name: 'Event Registration',
-				description: 'Register attendees for company events',
-				responses: 156,
-				createdAt: new Date('2024-01-10'),
-				status: 'active'
-			},
-			{
-				id: 3,
-				name: 'Job Application',
-				description: 'Standard job application form',
-				responses: 8,
-				createdAt: new Date('2024-01-05'),
-				status: 'draft'
-			}
-		];
+	async function loadForms() {
+		try {
+			const response = await getForms();
+			// Transform API response to match component expectations
+			forms = response.forms.map(form => ({
+				...form,
+				createdAt: new Date(form.created_at || form.createdAt),
+				responses: form.responses || 0 // Add responses count if not provided
+			}));
+		} catch (error) {
+			console.warn('Backend not available, using demo data:', error.message);
+			// Fallback to demo data when backend is not running
+			forms = [
+				{
+					id: 1,
+					name: 'Customer Feedback Survey',
+					description: 'Collect customer satisfaction data',
+					responses: 24,
+					createdAt: new Date('2024-01-15'),
+					status: 'active'
+				},
+				{
+					id: 2,
+					name: 'Event Registration',
+					description: 'Register attendees for company events',
+					responses: 156,
+					createdAt: new Date('2024-01-10'),
+					status: 'active'
+				},
+				{
+					id: 3,
+					name: 'Job Application',
+					description: 'Standard job application form',
+					responses: 8,
+					createdAt: new Date('2024-01-05'),
+					status: 'draft'
+				}
+			];
+		}
 	}
 
 	function createNewForm() {
@@ -78,6 +95,24 @@
 	function viewResponses(form) {
 		// TODO: Navigate to responses view
 		console.log('View responses for:', form);
+	}
+
+	function handleReorder(event) {
+		forms = event.detail.forms;
+		// TODO: Persist order to backend
+		console.log('Forms reordered:', forms);
+	}
+
+	function handleDatabaseRelations() {
+		alert('Database Relations feature coming soon! This will allow you to create relationships between forms.');
+	}
+
+	function handleAdvancedReports() {
+		alert('Advanced Reports feature coming soon! This will provide powerful reporting and analytics capabilities.');
+	}
+
+	function handleWorkflowDesigner() {
+		alert('Workflow Designer feature coming soon! This will enable automated approval chains and notifications.');
 	}
 </script>
 
@@ -120,6 +155,10 @@
 				on:edit={e => editForm(e.detail)}
 				on:delete={e => deleteForm(e.detail)}
 				on:viewResponses={e => viewResponses(e.detail)}
+				on:reorder={handleReorder}
+				on:openDatabaseRelations={handleDatabaseRelations}
+				on:openAdvancedReports={handleAdvancedReports}
+				on:openWorkflowDesigner={handleWorkflowDesigner}
 			/>
 		{:else}
 			<FormBuilder

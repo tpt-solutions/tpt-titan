@@ -15,6 +15,8 @@ type Config struct {
 	Redis    RedisConfig
 	Email    EmailConfig
 	AI       AIConfig
+	Speech   SpeechConfig
+	P2P      P2PConfig
 }
 
 type ServerConfig struct {
@@ -62,6 +64,42 @@ type AIConfig struct {
 	EnableOnlineAI  bool
 }
 
+type SpeechConfig struct {
+	ElevenLabsKey   string
+	OpenAIKey       string
+	ReplicateKey    string
+	PiperKey        string
+	AssemblyAIKey   string
+	DeepgramKey     string
+	EnableLocalTTS  bool
+	EnableLocalSTT  bool
+	EnableCloudTTS  bool
+	EnableCloudSTT  bool
+	DefaultVoice    string
+	DefaultLanguage string
+}
+
+type P2PConfig struct {
+	Enabled             bool   // Enable P2P mode
+	ServiceName         string // mDNS service name
+	ServiceType         string // mDNS service type
+	Port                int    // P2P listening port
+	DiscoveryTimeout    int    // Peer discovery timeout (seconds)
+	SyncInterval        int    // Sync interval (seconds)
+	MaxPeers            int    // Maximum number of peers to connect to
+	EnableEncryption    bool   // Encrypt P2P communications
+	EnableCompression   bool   // Compress data transfers
+	ConflictStrategy    string // "last_write_wins" or "manual_merge"
+
+	// Remote access configuration
+	AllowRemoteAccess   bool   // Allow remote connections via cloud relay
+	RemoteAccessMode    string // "automatic", "relay_only", "vpn_required"
+	CloudRelayEnabled   bool   // Use cloud relay for remote connections
+	RelayServerURL      string // Cloud relay server URL
+	AutoDetectTopology  bool   // Automatically choose P2P vs relay
+	PreferredTopology   string // "mesh", "star", "hybrid"
+}
+
 func Load() *Config {
 	// Load .env file if it exists
 	if err := godotenv.Load(); err != nil {
@@ -107,6 +145,38 @@ func Load() *Config {
 			DefaultModels:  []string{"llama3.2:3b", "phi3:3.8b", "deepseek-coder:6.7b"},
 			EnableLocalAI:  getEnvAsBool("ENABLE_LOCAL_AI", true),
 			EnableOnlineAI: getEnvAsBool("ENABLE_ONLINE_AI", false),
+		},
+		Speech: SpeechConfig{
+			ElevenLabsKey:   getEnv("ELEVENLABS_API_KEY", ""),
+			OpenAIKey:       getEnv("OPENAI_API_KEY", ""),
+			AssemblyAIKey:   getEnv("ASSEMBLYAI_API_KEY", ""),
+			DeepgramKey:     getEnv("DEEPGRAM_API_KEY", ""),
+			EnableLocalTTS:  getEnvAsBool("ENABLE_LOCAL_TTS", true),
+			EnableLocalSTT:  getEnvAsBool("ENABLE_LOCAL_STT", true),
+			EnableCloudTTS:  getEnvAsBool("ENABLE_CLOUD_TTS", false),
+			EnableCloudSTT:  getEnvAsBool("ENABLE_CLOUD_STT", false),
+			DefaultVoice:    getEnv("DEFAULT_VOICE", "alloy"),
+			DefaultLanguage: getEnv("DEFAULT_LANGUAGE", "en"),
+		},
+		P2P: P2PConfig{
+			Enabled:           getEnvAsBool("P2P_ENABLED", false),
+			ServiceName:       getEnv("P2P_SERVICE_NAME", "TPT Titan"),
+			ServiceType:       getEnv("P2P_SERVICE_TYPE", "_tpt-titan._tcp"),
+			Port:              getEnvAsInt("P2P_PORT", 8081),
+			DiscoveryTimeout:  getEnvAsInt("P2P_DISCOVERY_TIMEOUT", 30),
+			SyncInterval:      getEnvAsInt("P2P_SYNC_INTERVAL", 60),
+			MaxPeers:          getEnvAsInt("P2P_MAX_PEERS", 10),
+			EnableEncryption:  getEnvAsBool("P2P_ENCRYPTION", true),
+			EnableCompression: getEnvAsBool("P2P_COMPRESSION", true),
+			ConflictStrategy:  getEnv("P2P_CONFLICT_STRATEGY", "last_write_wins"),
+
+			// Remote access - enabled by default for ease of use
+			AllowRemoteAccess: getEnvAsBool("P2P_ALLOW_REMOTE", true),
+			RemoteAccessMode:  getEnv("P2P_REMOTE_MODE", "automatic"),
+			CloudRelayEnabled: getEnvAsBool("P2P_CLOUD_RELAY", true),
+			RelayServerURL:    getEnv("P2P_RELAY_URL", "https://relay.tpt-titan.com"),
+			AutoDetectTopology: getEnvAsBool("P2P_AUTO_TOPOLOGY", true),
+			PreferredTopology: getEnv("P2P_TOPOLOGY", "hybrid"),
 		},
 	}
 }

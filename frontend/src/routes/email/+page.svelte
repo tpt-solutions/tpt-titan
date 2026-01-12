@@ -6,6 +6,11 @@
 	import EmailComposer from '$lib/components/EmailComposer.svelte';
 	import { emailAccounts, emails, selectedEmail, currentFolder } from '$lib/stores';
 
+	// Accept framework-provided props to avoid warnings
+	export let params = null;
+	export let data = null;
+	export let form = null;
+
 	let showComposer = false;
 	let emailAccountsList = [];
 	let emailsList = [];

@@ -1,5 +1,6 @@
 <script>
 	import { emailSearchQuery } from '$lib/stores';
+	import SpeechService from '../services/speech.js';
 
 	export let emailsList = [];
 	export let currentFolderValue = 'inbox';
@@ -10,6 +11,16 @@
 	let searchQuery = '';
 	let filteredEmails = [];
 
+	// AI Features
+	let showAICategorization = false;
+	let aiCategorizing = false;
+	let emailCategories = {};
+	let showVoiceCompose = false;
+	let voiceComposing = false;
+	let voiceComposeText = '';
+	let availableSTTModels = [];
+	let selectedSTTModel = null;
+
 	emailSearchQuery.subscribe(value => {
 		searchQuery = value;
 		filterEmails();
@@ -19,6 +30,21 @@
 	$: if (emailsList) {
 		filterEmails();
 	}
+
+	// Initialize AI features
+	onMount(async () => {
+		try {
+			// Load available STT models for voice composition
+			availableSTTModels = await SpeechService.getAvailableModels('stt');
+
+			// Set default STT model
+			if (availableSTTModels.length > 0) {
+				selectedSTTModel = availableSTTModels[0];
+			}
+		} catch (error) {
+			console.error('Failed to initialize AI features for email:', error);
+		}
+	});
 
 	function filterEmails() {
 		if (!searchQuery.trim()) {
@@ -63,6 +89,140 @@
 	$: inboxCount = emailsList.filter(email => email.folder === 'inbox' && !email.is_read).length;
 	$: starredCount = emailsList.filter(email => email.is_starred).length;
 	$: sentCount = emailsList.filter(email => email.folder === 'sent').length;
+
+	// AI Functions
+	async function categorizeEmails() {
+		if (emailsList.length === 0) return;
+
+		aiCategorizing = true;
+		showAICategorization = true;
+
+		try {
+			const response = await fetch('/api/v1/emails/categorize', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${localStorage.getItem('token')}`
+				},
+				body: JSON.stringify({
+					email_ids: emailsList.map(email => email.id)
+				})
+			});
+
+			if (response.ok) {
+				const result = await response.json();
+				emailCategories = result.categories || {};
+			} else {
+				console.warn('Failed to categorize emails');
+			}
+		} catch (error) {
+			console.error('Error categorizing emails:', error);
+			alert('Failed to categorize emails. Please try again.');
+		} finally {
+			aiCategorizing = false;
+		}
+	}
+
+	async function convertEmailToTask(email) {
+		try {
+			const response = await fetch('/api/v1/emails/convert-to-task', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${localStorage.getItem('token')}`
+				},
+				body: JSON.stringify({
+					email_id: email.id
+				})
+			});
+
+			if (response.ok) {
+				const result = await response.json();
+				alert(`Task "${result.task.title}" has been created from this email.`);
+			} else {
+				console.warn('Failed to convert email to task');
+				alert('Failed to convert email to task. Please try again.');
+			}
+		} catch (error) {
+			console.error('Error converting email to task:', error);
+			alert('Failed to convert email to task. Please try again.');
+		}
+	}
+
+	async function startVoiceCompose() {
+		if (!selectedSTTModel || voiceComposing) return;
+
+		showVoiceCompose = true;
+		voiceComposing = true;
+
+		try {
+			SpeechService.startRecording(
+				async (audioBlob) => {
+					try {
+						let processedAudio = audioBlob;
+						if (audioBlob.type !== 'audio/wav') {
+							processedAudio = await SpeechService.convertToWav(audioBlob);
+						}
+
+						const result = await SpeechService.speechToText(
+							await processedAudio.arrayBuffer(),
+							selectedSTTModel.id,
+							{ language: 'en' }
+						);
+
+						if (result && result.output_text) {
+							voiceComposeText = result.output_text;
+						}
+					} catch (error) {
+						console.error('Voice compose error:', error);
+						alert('Failed to transcribe voice input: ' + error.message);
+					} finally {
+						voiceComposing = false;
+					}
+				},
+				(error) => {
+					console.error('Voice compose recording error:', error);
+					alert('Voice recording failed: ' + error.message);
+					voiceComposing = false;
+				}
+			);
+
+			// Auto-stop after 30 seconds for voice composition
+			setTimeout(() => {
+				if (voiceComposing) {
+					voiceComposing = false;
+				}
+			}, 30000);
+
+		} catch (error) {
+			console.error('Voice compose setup error:', error);
+			alert('Failed to start voice composition: ' + error.message);
+			voiceComposing = false;
+		}
+	}
+
+	function createEmailFromVoice() {
+		// This would open the email composer with the voice text
+		// For now, just copy to clipboard
+		if (voiceComposeText.trim()) {
+			navigator.clipboard.writeText(voiceComposeText);
+			alert('Voice text copied to clipboard. You can now paste it into the email composer.');
+			showVoiceCompose = false;
+			voiceComposeText = '';
+		}
+	}
+
+	function getCategoryColor(category) {
+		const colors = {
+			'work': 'bg-blue-100 text-blue-800',
+			'personal': 'bg-green-100 text-green-800',
+			'promotional': 'bg-yellow-100 text-yellow-800',
+			'social': 'bg-purple-100 text-purple-800',
+			'finance': 'bg-red-100 text-red-800',
+			'news': 'bg-indigo-100 text-indigo-800'
+		};
+		return colors[category] || 'bg-gray-100 text-gray-800';
+	}
 </script>
 
 <div class="flex flex-col h-full">
@@ -84,7 +244,7 @@
 		</div>
 	</div>
 
-	<!-- Folders -->
+	<!-- Folders and AI Tools -->
 	<div class="border-b border-gray-200 dark:border-gray-700">
 		<div class="p-2 space-y-1">
 			<button
@@ -137,7 +297,177 @@
 					</span>
 				{/if}
 			</button>
+
+			<!-- AI Tools Section -->
+			<div class="pt-2 border-t border-gray-200 dark:border-gray-600">
+				<div class="px-3 py-1">
+					<span class="text-xs text-gray-500 font-medium">AI TOOLS</span>
+				</div>
+
+				<button
+					on:click={categorizeEmails}
+					disabled={aiCategorizing}
+					class="w-full flex items-center px-3 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 disabled:opacity-50"
+				>
+					<div class="flex items-center space-x-2">
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+						</svg>
+						<span>{aiCategorizing ? 'Categorizing...' : 'Smart Categorize'}</span>
+					</div>
+				</button>
+
+				{#if availableSTTModels.length > 0}
+					<button
+						on:click={startVoiceCompose}
+						disabled={voiceComposing}
+						class="w-full flex items-center px-3 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 disabled:opacity-50"
+					>
+						<div class="flex items-center space-x-2">
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+							</svg>
+							<span>{voiceComposing ? 'Listening...' : 'Voice Compose'}</span>
+						</div>
+					</button>
+		{/if}
+	</div>
+</div>
+
+<!-- Voice Compose Modal -->
+{#if showVoiceCompose}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+		<div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
+			<div class="flex items-center justify-between mb-6">
+				<h3 class="text-xl font-semibold text-gray-900">🎤 Voice Email Composition</h3>
+				<button
+					class="text-gray-400 hover:text-gray-600 text-2xl"
+					on:click={() => { showVoiceCompose = false; voiceComposeText = ''; }}
+				>
+					×
+				</button>
+			</div>
+
+			<div class="space-y-4">
+				<div class="text-center">
+					{#if voiceComposing}
+						<div class="text-4xl mb-4 animate-pulse">🎙️</div>
+						<p class="text-gray-600">Listening... Speak your email content.</p>
+						<p class="text-sm text-gray-500 mt-2">Recording will stop automatically after 30 seconds.</p>
+					{:else}
+						<div class="text-4xl mb-4 text-green-500">✅</div>
+						<p class="text-gray-600">Voice recording completed!</p>
+					{/if}
+				</div>
+
+				{#if voiceComposeText}
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-2">Transcribed Text</label>
+						<textarea
+							bind:value={voiceComposeText}
+							rows="6"
+							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							placeholder="Your transcribed email text will appear here..."
+						></textarea>
+					</div>
+
+					<div class="flex justify-end space-x-3">
+						<button
+							on:click={() => { voiceComposeText = ''; startVoiceCompose(); }}
+							class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+						>
+							Record Again
+						</button>
+						<button
+							on:click={createEmailFromVoice}
+							class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+						>
+							Use This Text
+						</button>
+					</div>
+				{:else if !voiceComposing}
+					<div class="text-center py-4">
+						<p class="text-gray-500">No text was transcribed. Try recording again.</p>
+						<button
+							on:click={startVoiceCompose}
+							class="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+						>
+							Try Again
+						</button>
+					</div>
+				{/if}
+			</div>
 		</div>
+	</div>
+{/if}
+
+<!-- AI Categorization Results Modal -->
+{#if showAICategorization}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+		<div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-96 overflow-y-auto">
+			<div class="flex items-center justify-between mb-6">
+				<h3 class="text-xl font-semibold text-gray-900">🧠 AI Email Categorization</h3>
+				<button
+					class="text-gray-400 hover:text-gray-600 text-2xl"
+					on:click={() => { showAICategorization = false; emailCategories = {}; }}
+				>
+					×
+				</button>
+			</div>
+
+			{#if aiCategorizing}
+				<div class="text-center py-8">
+					<div class="text-4xl mb-4 animate-spin">🧠</div>
+					<p class="text-gray-600">Analyzing your emails and categorizing them...</p>
+				</div>
+			{:else if Object.keys(emailCategories).length === 0}
+				<div class="text-center py-8">
+					<p class="text-gray-600">No categorization results available.</p>
+				</div>
+			{:else}
+				<div class="space-y-6">
+					{#each Object.entries(emailCategories) as [category, emails]}
+						<div class="border border-gray-200 rounded-lg p-4">
+							<h4 class="font-medium text-gray-900 mb-3 capitalize flex items-center space-x-2">
+								<span class="px-2 py-1 rounded text-sm {getCategoryColor(category)}">
+									{category}
+								</span>
+								<span>({emails.length} emails)</span>
+							</h4>
+
+							<div class="space-y-2">
+								{#each emails as email}
+									<div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+										<div class="flex-1 min-w-0">
+											<h5 class="text-sm font-medium truncate">{email.subject || '(No subject)'}</h5>
+											<p class="text-xs text-gray-600 truncate">{email.sender_name || email.sender_email}</p>
+										</div>
+										<div class="flex items-center space-x-2">
+											<button
+												on:click={() => convertEmailToTask(email)}
+												class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+												title="Convert to task"
+											>
+												📋 Task
+											</button>
+											<button
+												on:click={() => handleEmailSelect(email)}
+												class="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
+												title="View email"
+											>
+												View
+											</button>
+										</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</div>
+	</div>
+{/if}
 	</div>
 
 	<!-- Email List -->

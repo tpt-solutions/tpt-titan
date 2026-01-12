@@ -1,13 +1,49 @@
 <script>
 	import Spreadsheet from '$lib/components/Spreadsheet.svelte';
+	import TemplateSelector from '$lib/components/TemplateSelector.svelte';
 	import { onMount } from 'svelte';
 
+	// Accept framework-provided props to avoid warnings
+	export let params = null;
+	export let data = null;
+	export let form = null;
+
 	let mode = 'simple'; // 'simple' or 'advanced'
+	let showTemplates = true; // Show template selector initially
+	let selectedTemplate = null;
+	let showAppMenu = false;
+	let appMenuElement = null;
 
 	onMount(() => {
 		// Initialize spreadsheet
 		console.log('Spreadsheet page loaded');
+
+		// Add click outside listener for app menu
+		document.addEventListener('click', handleClickOutside);
 	});
+
+	function handleClickOutside(event) {
+		if (showAppMenu && appMenuElement && !appMenuElement.contains(event.target) && !event.target.closest('.apps-button')) {
+			showAppMenu = false;
+		}
+	}
+
+	function handleTemplateSelect(event) {
+		selectedTemplate = event.detail.template;
+		showTemplates = false;
+		console.log('Template selected:', selectedTemplate.name);
+	}
+
+	function handleCreateBlank() {
+		selectedTemplate = null;
+		showTemplates = false;
+		console.log('Blank spreadsheet created');
+	}
+
+	function handleTemplatePreview(event) {
+		// Could show a preview modal here
+		console.log('Preview template:', event.detail.template);
+	}
 </script>
 
 <svelte:head>
@@ -35,7 +71,73 @@
 			</div>
 		</div>
 
+		<!-- Navigation Menu -->
 		<div class="flex items-center space-x-2">
+			<!-- App Navigation -->
+			<div class="relative">
+				<button
+					class="apps-button px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2"
+					on:click={() => showAppMenu = !showAppMenu}
+				>
+					<span>📱 Apps</span>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+					</svg>
+				</button>
+
+				<!-- App Menu Dropdown -->
+				{#if showAppMenu}
+					<div class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50" bind:this={appMenuElement}>
+						<div class="py-2">
+							<a href="/" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+								<span class="mr-3">🏠</span>
+								<span>Home</span>
+							</a>
+							<div class="border-t border-gray-100 my-1"></div>
+							<a href="/spreadsheet" class="flex items-center px-4 py-2 text-sm text-blue-600 bg-blue-50 transition-colors">
+								<span class="mr-3">📊</span>
+								<span>Spreadsheet</span>
+							</a>
+							<a href="/forms" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+								<span class="mr-3">📋</span>
+								<span>Forms</span>
+							</a>
+							<a href="/editor" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+								<span class="mr-3">📝</span>
+								<span>Text Editor</span>
+							</a>
+							<a href="/tasks" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+								<span class="mr-3">✅</span>
+								<span>Tasks</span>
+							</a>
+							<div class="border-t border-gray-100 my-1"></div>
+							<a href="/contacts" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+								<span class="mr-3">👥</span>
+								<span>Contacts</span>
+							</a>
+							<a href="/calendar" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+								<span class="mr-3">📅</span>
+								<span>Calendar</span>
+							</a>
+							<a href="/email" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+								<span class="mr-3">📧</span>
+								<span>Email</span>
+							</a>
+						</div>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Template Button -->
+			<button
+				class="px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors flex items-center space-x-2"
+				on:click={() => showTemplates = true}
+			>
+				<span>📋</span>
+				<span>Templates</span>
+			</button>
+
+			<!-- Save & Export -->
 			<button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
 				Save
 			</button>
@@ -71,6 +173,14 @@
 
 	<!-- Main Spreadsheet Area -->
 	<div class="flex-1 overflow-hidden">
-		<Spreadsheet {mode} />
+		<Spreadsheet {mode} {selectedTemplate} />
 	</div>
 </div>
+
+<!-- Template Selector -->
+<TemplateSelector
+	{showTemplates}
+	on:select={handleTemplateSelect}
+	on:blank={handleCreateBlank}
+	on:preview={handleTemplatePreview}
+/>

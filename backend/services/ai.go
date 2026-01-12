@@ -1,229 +1,40 @@
 package services
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"strings"
+	"time"
 	"tpt-titan/backend/config"
 	"tpt-titan/backend/models"
-	"time"
 
 	"github.com/google/uuid"
-	"github.com/ollama/ollama/api"
 )
 
-// HardwareInfo represents detected hardware capabilities
-type HardwareInfo struct {
-	RAMGB     int  `json:"ram_gb"`
-	HasGPU    bool `json:"has_gpu"`
-	CPUCores  int  `json:"cpu_cores"`
-	CPUSpeed  int  `json:"cpu_speed_mhz"` // CPU speed in MHz
-	DiskSpace int  `json:"disk_space_gb"` // Available disk space in GB
-}
-
-// RecommendedModels represents model recommendations for different hardware tiers
-type RecommendedModels struct {
-	HardwareTier string            `json:"hardware_tier"`
-	OCR          string            `json:"ocr_model"`
-	Writing      string            `json:"writing_model"`
-	Analysis     string            `json:"analysis_model"`
-	Reasoning    string            `json:"reasoning"`
-	AllModels    map[string]string `json:"all_models"`
-}
-
-// AIService handles AI model operations
+// AIService handles AI model operations and orchestration
 type AIService struct {
-	config *config.AIConfig
+	config          *config.AIConfig
+	hardwareService *HardwareService
+	modelService    *ModelService
+	ollamaService   *OllamaService
+	openRouterService *OpenRouterService
 }
 
 // NewAIService creates a new AI service instance
 func NewAIService(cfg *config.AIConfig) *AIService {
+	hardwareService := NewHardwareService()
+	ollamaService := NewOllamaService(cfg.OllamaHost, cfg.OllamaPort)
+	openRouterService := NewOpenRouterService(cfg.OpenRouterKey)
+	modelService := NewModelService(hardwareService, ollamaService, openRouterService)
+
 	return &AIService{
-		config: cfg,
+		config:            cfg,
+		hardwareService:   hardwareService,
+		modelService:      modelService,
+		ollamaService:     ollamaService,
+		openRouterService: openRouterService,
 	}
-}
-
-// AIModelInfo represents information about an AI model
-type AIModelInfo struct {
-	Name         string   `json:"name"`
-	Size         string   `json:"size"`
-	ModifiedAt   string   `json:"modified_at"`
-	Digest       string   `json:"digest"`
-	Capabilities []string `json:"capabilities"`
-}
-
-// OllamaClient manages Ollama API interactions
-type OllamaClient struct {
-	baseURL string
-	client  *http.Client
-}
-
-// NewOllamaClient creates a new Ollama client
-func NewOllamaClient(host, port string) *OllamaClient {
-	return &OllamaClient{
-		baseURL: fmt.Sprintf("http://%s:%s", host, port),
-		client: &http.Client{
-			Timeout: 5 * time.Minute, // Long timeout for AI processing
-		},
-	}
-}
-
-// ListModels gets available models from Ollama
-func (c *OllamaClient) ListModels() ([]AIModelInfo, error) {
-	resp, err := c.client.Get(c.baseURL + "/api/tags")
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to Ollama: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Ollama API error: %s", resp.Status)
-	}
-
-	var result struct {
-		Models []struct {
-			Name       string `json:"name"`
-			Size       int64  `json:"size"`
-			ModifiedAt string `json:"modified_at"`
-			Digest     string `json:"digest"`
-		} `json:"models"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode Ollama response: %w", err)
-	}
-
-	var models []AIModelInfo
-	for _, model := range result.Models {
-		models = append(models, AIModelInfo{
-			Name:         model.Name,
-			Size:         formatBytes(model.Size),
-			ModifiedAt:   model.ModifiedAt,
-			Digest:       model.Digest,
-			Capabilities: inferCapabilities(model.Name),
-		})
-	}
-
-	return models, nil
-}
-
-// PullModel downloads a model from Ollama
-func (c *OllamaClient) PullModel(modelName string) error {
-	req := map[string]string{"name": modelName}
-	jsonData, _ := json.Marshal(req)
-
-	resp, err := c.client.Post(c.baseURL+"/api/pull", "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return fmt.Errorf("failed to pull model: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed to pull model %s: %s", modelName, string(body))
-	}
-
-	return nil
-}
-
-// GenerateResponse generates a response using Ollama
-func (c *OllamaClient) GenerateResponse(modelName, prompt string) (string, error) {
-	stream := false
-	req := api.GenerateRequest{
-		Model:  modelName,
-		Prompt: prompt,
-		Stream: &stream,
-	}
-
-	jsonData, _ := json.Marshal(req)
-
-	resp, err := c.client.Post(c.baseURL+"/api/generate", "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", fmt.Errorf("failed to generate response: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("generation failed: %s", string(body))
-	}
-
-	var result api.GenerateResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return result.Response, nil
-}
-
-// OpenRouterClient manages OpenRouter API interactions
-type OpenRouterClient struct {
-	apiKey  string
-	client  *http.Client
-	baseURL string
-}
-
-// NewOpenRouterClient creates a new OpenRouter client
-func NewOpenRouterClient(apiKey string) *OpenRouterClient {
-	return &OpenRouterClient{
-		apiKey:  apiKey,
-		client:  &http.Client{Timeout: 5 * time.Minute},
-		baseURL: "https://openrouter.ai/api/v1",
-	}
-}
-
-// GenerateResponse generates a response using OpenRouter
-func (c *OpenRouterClient) GenerateResponse(modelName, prompt string) (string, error) {
-	req := map[string]interface{}{
-		"model": modelName,
-		"messages": []map[string]string{
-			{"role": "user", "content": prompt},
-		},
-	}
-
-	jsonData, _ := json.Marshal(req)
-
-	httpReq, err := http.NewRequest("POST", c.baseURL+"/chat/completions", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
-	}
-
-	httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.client.Do(httpReq)
-	if err != nil {
-		return "", fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("OpenRouter API error: %s", string(body))
-	}
-
-	var result struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if len(result.Choices) == 0 {
-		return "", fmt.Errorf("no response generated")
-	}
-
-	return result.Choices[0].Message.Content, nil
 }
 
 // InitializeSystemModels sets up the default AI models
@@ -286,8 +97,7 @@ func (s *AIService) processAIRequest(request *models.AIRequest) {
 			return
 		}
 
-		client := NewOllamaClient(s.config.OllamaHost, s.config.OllamaPort)
-		response, err = client.GenerateResponse(model.ModelID, request.Input)
+		response, err = s.ollamaService.GenerateResponse(model.ModelID, request.Input)
 
 	case "openrouter":
 		if !s.config.EnableOnlineAI {
@@ -296,8 +106,7 @@ func (s *AIService) processAIRequest(request *models.AIRequest) {
 			return
 		}
 
-		client := NewOpenRouterClient(s.config.OpenRouterKey)
-		response, err = client.GenerateResponse(model.ModelID, request.Input)
+		response, err = s.openRouterService.GenerateResponse(model.ModelID, request.Input)
 
 	default:
 		request.Status = "failed"
@@ -415,8 +224,7 @@ func (s *AIService) CheckForUpgrades(userID uuid.UUID) (*models.AIUpgradeCheck, 
 
 // checkOllamaUpgrades checks for Ollama model upgrades
 func (s *AIService) checkOllamaUpgrades(currentModels []models.AIModel, hardware *HardwareInfo) ([]models.UpgradeOption, error) {
-	client := NewOllamaClient(s.config.OllamaHost, s.config.OllamaPort)
-	availableModels, err := client.ListModels()
+	availableModels, err := s.ollamaService.ListModels()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list Ollama models: %w", err)
 	}
@@ -525,22 +333,7 @@ func (s *AIService) generateUpgradeReasoning(currentModel, newModel string) stri
 	return fmt.Sprintf("Model update to %s with improved training data", newModel)
 }
 
-// extractModelSize extracts model size from model name (simplified)
-func extractModelSize(modelName string) float64 {
-	// Extract size from model name like "qwen2.5:7b" or "llama3.2:3b"
-	// This is a simplified implementation
-	sizes := map[string]float64{
-		"1b": 1, "2b": 2, "3b": 3, "7b": 7, "8b": 8, "14b": 14, "30b": 30,
-	}
 
-	for suffix, size := range sizes {
-		if strings.Contains(strings.ToLower(modelName), suffix) {
-			return size
-		}
-	}
-
-	return 1.0 // Default fallback
-}
 
 // DetectHardware attempts to detect system hardware capabilities
 func (s *AIService) DetectHardware() (*HardwareInfo, error) {
@@ -668,67 +461,3 @@ func (s *AIService) SetupRecommendedModels(userID uuid.UUID, recommendations *Re
 }
 
 // Helper functions
-
-func formatBytes(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
-}
-
-// parseSizeToGB parses a size string (e.g., "4.1 GB") to GB as float64
-func parseSizeToGB(sizeStr string) float64 {
-	// Parse strings like "4.1 GB", "500 MB", etc.
-	var value float64
-	var unit string
-	fmt.Sscanf(sizeStr, "%f %s", &value, &unit)
-
-	// Convert to GB
-	switch unit {
-	case "KB":
-		return value / (1024 * 1024)
-	case "MB":
-		return value / 1024
-	case "GB":
-		return value
-	case "TB":
-		return value * 1024
-	default:
-		return 0
-	}
-}
-
-func inferCapabilities(modelName string) []string {
-	name := strings.ToLower(modelName)
-	capabilities := []string{}
-
-	// Infer capabilities based on model name
-	if strings.Contains(name, "vision") || strings.Contains(name, "llava") {
-		capabilities = append(capabilities, "vision", "ocr")
-	}
-
-	if strings.Contains(name, "coder") || strings.Contains(name, "code") {
-		capabilities = append(capabilities, "coding", "analysis")
-	}
-
-	if strings.Contains(name, "llama") || strings.Contains(name, "mistral") {
-		capabilities = append(capabilities, "writing", "analysis", "general")
-	}
-
-	if strings.Contains(name, "phi") || strings.Contains(name, "gemma") {
-		capabilities = append(capabilities, "writing", "tasks", "forms")
-	}
-
-	// Default capabilities if none inferred
-	if len(capabilities) == 0 {
-		capabilities = []string{"general"}
-	}
-
-	return capabilities
-}

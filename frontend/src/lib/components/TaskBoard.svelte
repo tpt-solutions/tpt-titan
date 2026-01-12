@@ -237,7 +237,10 @@
 				</svg>
 				<p class="text-sm">No tasks in {column.title.toLowerCase()}</p>
 			</div>
-		{/if}
+						{/if}
+					</div>
+				</div>
+			</div>
+		{/each}
 	</div>
-</div>
 </div>
