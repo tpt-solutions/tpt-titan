@@ -1,44 +1,76 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
-	import {
-		DndContext,
-		closestCenter,
-		KeyboardSensor,
-		PointerSensor,
-		useSensor,
-		useSensors
-	} from '@dnd-kit/core';
-	import {
-		SortableContext,
-		sortableKeyboardCoordinates,
-		verticalListSortingStrategy,
-		useSortable
-	} from '@dnd-kit/sortable';
-	import {
-		arrayMove
-	} from '@dnd-kit/sortable';
 
 	export let forms = [];
 
 	const dispatch = createEventDispatcher();
 
-	const sensors = useSensors(
-		useSensor(PointerSensor),
-		useSensor(KeyboardSensor, {
-			coordinateGetter: sortableKeyboardCoordinates,
-		})
-	);
+	let draggedItem = null;
+	let draggedIndex = -1;
 
-	function handleDragEnd(event) {
-		const { active, over } = event;
+	function handleDragStart(event, form, index) {
+		draggedItem = form;
+		draggedIndex = index;
+		event.dataTransfer.effectAllowed = 'move';
+		event.dataTransfer.setData('text/plain', form.id.toString());
 
-		if (active.id !== over.id) {
-			const oldIndex = forms.findIndex((form) => form.id === active.id);
-			const newIndex = forms.findIndex((form) => form.id === over.id);
+		// Add visual feedback
+		event.target.style.opacity = '0.5';
+	}
 
-			forms = arrayMove(forms, oldIndex, newIndex);
+	function handleDragOver(event) {
+		event.preventDefault();
+		event.dataTransfer.dropEffect = 'move';
+	}
+
+	function handleDragEnter(event, index) {
+		// Visual feedback for drop target
+		event.target.closest('.form-card').style.borderColor = '#3b82f6';
+	}
+
+	function handleDragLeave(event) {
+		// Remove visual feedback
+		event.target.closest('.form-card').style.borderColor = '#e5e7eb';
+	}
+
+	function handleDrop(event, dropIndex) {
+		event.preventDefault();
+
+		const draggedId = parseInt(event.dataTransfer.getData('text/plain'));
+		const draggedForm = forms.find(f => f.id === draggedId);
+
+		if (draggedForm && draggedIndex !== dropIndex) {
+			// Remove dragged item from current position
+			const newForms = forms.filter(f => f.id !== draggedId);
+
+			// Insert at new position
+			newForms.splice(dropIndex, 0, draggedForm);
+
+			forms = newForms;
 			dispatch('reorder', { forms });
 		}
+
+		// Reset visual feedback
+		document.querySelectorAll('.form-card').forEach(card => {
+			card.style.borderColor = '#e5e7eb';
+			if (card.style.opacity === '0.5') {
+				card.style.opacity = '1';
+			}
+		});
+
+		draggedItem = null;
+		draggedIndex = -1;
+	}
+
+	function handleDragEnd(event) {
+		// Reset visual feedback
+		document.querySelectorAll('.form-card').forEach(card => {
+			card.style.borderColor = '#e5e7eb';
+			card.style.opacity = '1';
+		});
+
+		draggedItem = null;
+		draggedIndex = -1;
 	}
 
 	function handleEdit(form) {
@@ -157,38 +189,35 @@
 			</button>
 		</div>
 	{:else}
-		<!-- Forms grid with drag and drop -->
-		<DndContext
-			collisionDetection={closestCenter}
-			on:dragend={handleDragEnd}
-			sensors={sensors}
-		>
-			<SortableContext
-				items={forms.map(f => f.id)}
-				strategy={verticalListSortingStrategy}
-			>
-				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-					{#each forms as form (form.id)}
-						{@const sortable = useSortable({ id: form.id })}
-						<div
-							use:sortable.action
-							{...sortable.listeners}
-							{...sortable.attributes}
-							class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-move"
-							style={sortable.transform ? `transform: translate3d(${sortable.transform.x}px, ${sortable.transform.y}px, 0)` : ''}
-						>
-							<!-- Drag handle -->
-							<div class="flex items-center justify-between mb-4">
-								<div class="flex items-center space-x-2">
-									<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
-									</svg>
-									<span class="text-xs text-gray-500">Drag to reorder</span>
-								</div>
-								<span class="px-2 py-1 text-xs font-medium rounded-full {getStatusColor(form.status)}">
-									{form.status}
-								</span>
-							</div>
+		<!-- Forms grid with native drag and drop -->
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+			{#each forms as form, index (form.id)}
+				<div
+					class="form-card bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-move"
+					draggable="true"
+					on:dragstart={(e) => handleDragStart(e, form, index)}
+					on:dragover={handleDragOver}
+					on:dragenter={(e) => handleDragEnter(e, index)}
+					on:dragleave={handleDragLeave}
+					on:drop={(e) => handleDrop(e, index)}
+					on:dragend={handleDragEnd}
+					role="button"
+					aria-label="Drag form '{form.name}' to reorder"
+					tabindex="0"
+					on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); /* Could trigger drag start */ } }}
+				>
+					<!-- Drag handle -->
+					<div class="flex items-center justify-between mb-4">
+						<div class="flex items-center space-x-2">
+							<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+							</svg>
+							<span class="text-xs text-gray-500">Drag to reorder</span>
+						</div>
+						<span class="px-2 py-1 text-xs font-medium rounded-full {getStatusColor(form.status)}">
+							{form.status}
+						</span>
+					</div>
 
 							<div class="flex items-start justify-between mb-4">
 								<div class="flex-1">
@@ -229,8 +258,6 @@
 						</div>
 					{/each}
 				</div>
-			</SortableContext>
-		</DndContext>
 
 		<!-- Stats summary -->
 		<div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">

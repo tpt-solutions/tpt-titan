@@ -1,10 +1,40 @@
 <script>
 	import '../app.css';
+	import Loading from '$lib/components/Loading.svelte';
+	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 
 	// Accept framework-provided props to avoid warnings
-	export let params = null;
-	export let data = null;
-	export let form = null;
+	export const params = null;
+	export const data = null;
+	export const form = null;
+
+	let isLoading = false;
+	let loadingMessage = 'Loading application...';
+
+	// Track route changes for loading states
+	$: currentRoute = $page.url.pathname;
+
+	onMount(() => {
+		// Listen for navigation events to show loading states
+		let timeoutId;
+
+		const handleRouteChange = () => {
+			isLoading = true;
+			loadingMessage = 'Loading application...';
+
+			// Set a timeout to hide loading if it takes too long
+			timeoutId = setTimeout(() => {
+				isLoading = false;
+			}, 10000); // 10 second timeout
+		};
+
+		// This will be called when route changes
+		// SvelteKit handles the actual navigation
+		return () => {
+			if (timeoutId) clearTimeout(timeoutId);
+		};
+	});
 </script>
 
 <main class="min-h-screen bg-gray-50">

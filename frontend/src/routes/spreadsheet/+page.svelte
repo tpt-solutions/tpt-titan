@@ -4,9 +4,9 @@
 	import { onMount } from 'svelte';
 
 	// Accept framework-provided props to avoid warnings
-	export let params = null;
-	export let data = null;
-	export let form = null;
+	export const params = null;
+	export const data = null;
+	export const form = null;
 
 	let mode = 'simple'; // 'simple' or 'advanced'
 	let showTemplates = true; // Show template selector initially
@@ -32,6 +32,8 @@
 		selectedTemplate = event.detail.template;
 		showTemplates = false;
 		console.log('Template selected:', selectedTemplate.name);
+		console.log('Template data length:', selectedTemplate.data ? selectedTemplate.data.length : 'no data');
+		console.log('Template styles:', selectedTemplate.styles ? 'has styles' : 'no styles');
 	}
 
 	function handleCreateBlank() {

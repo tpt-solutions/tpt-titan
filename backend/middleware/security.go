@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -80,13 +81,42 @@ func NewRateLimiter() *RateLimiter {
 
 // NewCORSConfig creates default CORS configuration
 func NewCORSConfig() *CORSConfig {
+	// Get allowed origins from environment, default to localhost for development
+	originsStr := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173")
+	origins := splitOrigins(originsStr)
+	
 	return &CORSConfig{
-		AllowedOrigins:   []string{"*"}, // In production, specify exact origins
+		AllowedOrigins:   origins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Origin", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "Accept", "Cache-Control", "X-Requested-With"},
 		AllowCredentials: true,
 		MaxAge:           86400, // 24 hours
 	}
+}
+
+// splitOrigins splits a comma-separated string of origins
+func splitOrigins(origins string) []string {
+	if origins == "" {
+		return []string{"http://localhost:3000"}
+	}
+	
+	parts := strings.Split(origins, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+// getEnv gets an environment variable with a default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
 // CORSMiddleware handles CORS requests

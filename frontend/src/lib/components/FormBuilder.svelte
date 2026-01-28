@@ -30,18 +30,60 @@
 
 	// Available field types
 	const fieldTypes = [
+		// Basic Text Fields
 		{ id: 'text', name: 'Text Input', icon: '📝', properties: { placeholder: '', required: false, maxLength: 100 } },
 		{ id: 'textarea', name: 'Long Text', icon: '📄', properties: { placeholder: '', required: false, rows: 3 } },
+		{ id: 'password', name: 'Password', icon: '🔒', properties: { placeholder: '', required: false } },
+
+		// Numbers & Calculations
 		{ id: 'number', name: 'Number', icon: '🔢', properties: { placeholder: '', required: false, min: null, max: null } },
+		{ id: 'currency', name: 'Currency', icon: '💰', properties: { placeholder: '', required: false, currency: 'USD', min: null, max: null } },
+		{ id: 'percentage', name: 'Percentage', icon: '📊', properties: { placeholder: '', required: false, min: 0, max: 100 } },
+		{ id: 'calculation', name: 'Calculated Field', icon: '🧮', properties: { formula: '', required: false, decimalPlaces: 2 } },
+
+		// Contact Information
 		{ id: 'email', name: 'Email', icon: '📧', properties: { placeholder: '', required: false } },
 		{ id: 'phone', name: 'Phone', icon: '📱', properties: { placeholder: '', required: false } },
+		{ id: 'url', name: 'Website URL', icon: '🌐', properties: { placeholder: 'https://', required: false } },
+
+		// Date & Time
 		{ id: 'date', name: 'Date', icon: '📅', properties: { required: false } },
+		{ id: 'time', name: 'Time', icon: '🕐', properties: { required: false } },
+		{ id: 'datetime-local', name: 'Date & Time', icon: '📅🕐', properties: { required: false } },
+
+		// Selection Fields
 		{ id: 'select', name: 'Dropdown', icon: '▼', properties: { options: ['Option 1', 'Option 2'], required: false } },
 		{ id: 'radio', name: 'Radio Buttons', icon: '⭕', properties: { options: ['Option 1', 'Option 2'], required: false } },
 		{ id: 'checkbox', name: 'Checkboxes', icon: '☑️', properties: { options: ['Option 1', 'Option 2'], required: false } },
+		{ id: 'yesno', name: 'Yes/No', icon: '👍👎', properties: { required: false, defaultValue: null } },
+
+		// Advanced Selection
+		{ id: 'rating', name: 'Rating', icon: '⭐', properties: { maxRating: 5, required: false } },
+		{ id: 'scale', name: 'Scale', icon: '📏', properties: { min: 1, max: 10, minLabel: 'Poor', maxLabel: 'Excellent', required: false } },
+		{ id: 'matrix', name: 'Rating Matrix', icon: '📋', properties: { rows: ['Feature 1', 'Feature 2'], columns: ['Poor', 'Good', 'Excellent'], required: false } },
+
+		// Files & Media
 		{ id: 'file', name: 'File Upload', icon: '📎', properties: { accept: '*', maxSize: 10, required: false } },
+		{ id: 'image-upload', name: 'Image Upload', icon: '🖼️', properties: { accept: 'image/*', maxSize: 5, maxFiles: 3, required: false } },
+		{ id: 'video-upload', name: 'Video Upload', icon: '🎥', properties: { accept: 'video/*', maxSize: 100, required: false } },
+		{ id: 'audio-upload', name: 'Audio Upload', icon: '🎵', properties: { accept: 'audio/*', maxSize: 50, required: false } },
+
+		// Special Fields
 		{ id: 'signature', name: 'Digital Signature', icon: '✍️', properties: { required: false, legalText: '' } },
-		{ id: 'rating', name: 'Rating', icon: '⭐', properties: { maxRating: 5, required: false } }
+		{ id: 'geolocation', name: 'GPS Location', icon: '📍', properties: { required: false, accuracy: 'high' } },
+		{ id: 'qr-code', name: 'QR Code Input', icon: '📱📷', properties: { required: false, format: 'text' } },
+		{ id: 'barcode', name: 'Barcode Scanner', icon: '📊📷', properties: { required: false, format: 'code128' } },
+
+		// Advanced Fields
+		{ id: 'address', name: 'Address', icon: '🏠', properties: { required: false, includeCountry: true, format: 'single' } },
+		{ id: 'table', name: 'Data Table', icon: '📊', properties: { columns: ['Column 1', 'Column 2'], rows: 3, required: false } },
+		{ id: 'range', name: 'Range Slider', icon: '🎚️', properties: { min: 0, max: 100, step: 1, required: false } },
+		{ id: 'color', name: 'Color Picker', icon: '🎨', properties: { required: false, defaultColor: '#000000' } },
+
+		// Utility Fields
+		{ id: 'hidden', name: 'Hidden Field', icon: '👁️‍🗨️', properties: { value: '', required: false } },
+		{ id: 'html', name: 'HTML Content', icon: '⚡', properties: { content: '<p>Custom HTML content</p>', required: false } },
+		{ id: 'divider', name: 'Section Divider', icon: '➖', properties: { title: 'Section Title', required: false } }
 	];
 
 	function addField(fieldType) {
@@ -308,6 +350,71 @@
 		isDragging = false;
 		draggedField = null;
 	}
+
+	// Field reordering drag handlers
+	function handleFieldDragStart(event, field) {
+		draggedField = field;
+		isDragging = true;
+		event.dataTransfer.effectAllowed = 'move';
+		event.dataTransfer.setData('text/plain', field.id.toString());
+
+		// Add visual feedback
+		event.target.style.opacity = '0.5';
+	}
+
+	function handleFieldDragEnd(event) {
+		// Reset visual feedback
+		document.querySelectorAll('.form-field').forEach(field => {
+			field.style.opacity = '1';
+			field.style.borderColor = '';
+		});
+
+		isDragging = false;
+		draggedField = null;
+	}
+
+	function handleFieldDragOver(event, dropIndex) {
+		event.preventDefault();
+		event.dataTransfer.dropEffect = 'move';
+
+		// Visual feedback for drop target
+		const target = event.currentTarget;
+		if (draggedField && draggedField.id !== formData.fields[dropIndex]?.id) {
+			target.style.borderColor = '#3b82f6';
+			target.style.backgroundColor = '#eff6ff';
+		}
+	}
+
+	function handleFieldDrop(event, dropIndex) {
+		event.preventDefault();
+
+		const draggedId = event.dataTransfer.getData('text/plain');
+		const draggedFieldIndex = formData.fields.findIndex(f => f.id.toString() === draggedId);
+
+		if (draggedFieldIndex !== -1 && draggedFieldIndex !== dropIndex) {
+			// Reorder the fields
+			const fields = [...formData.fields];
+			const [movedField] = fields.splice(draggedFieldIndex, 1);
+			fields.splice(dropIndex, 0, movedField);
+
+			// Update order property
+			fields.forEach((field, index) => {
+				field.order = index;
+			});
+
+			formData.fields = fields;
+
+			// Reset visual feedback
+			document.querySelectorAll('.form-field').forEach(field => {
+				field.style.borderColor = '';
+				field.style.backgroundColor = '';
+				field.style.opacity = '1';
+			});
+		}
+
+		isDragging = false;
+		draggedField = null;
+	}
 </script>
 
 <div class="h-full flex">
@@ -317,16 +424,18 @@
 			<h3 class="text-lg font-semibold text-gray-900 mb-3">Form Settings</h3>
 			<div class="space-y-3">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Form Name</label>
+					<label for="form-name" class="block text-sm font-medium text-gray-700 mb-1">Form Name</label>
 					<input
+						id="form-name"
 						bind:value={formData.name}
 						placeholder="Enter form name"
 						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
 					/>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+					<label for="form-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
 					<textarea
+						id="form-description"
 						bind:value={formData.description}
 						placeholder="Describe your form"
 						rows="3"
@@ -342,8 +451,9 @@
 				<h3 class="text-lg font-semibold text-gray-900 mb-3">Field Properties</h3>
 				<div class="space-y-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Label</label>
+						<label for="field-label-{selectedField.id}" class="block text-sm font-medium text-gray-700 mb-1">Label</label>
 						<input
+							id="field-label-{selectedField.id}"
 							bind:value={selectedField.label}
 							on:input={(e) => updateFieldLabel(selectedField.id, e.target.value)}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -353,8 +463,9 @@
 					<!-- Type-specific properties -->
 					{#if selectedField.type === 'text' || selectedField.type === 'textarea' || selectedField.type === 'email'}
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Placeholder</label>
+							<label for="field-placeholder-{selectedField.id}" class="block text-sm font-medium text-gray-700 mb-1">Placeholder</label>
 							<input
+								id="field-placeholder-{selectedField.id}"
 								bind:value={selectedField.properties.placeholder}
 								on:input={(e) => updateFieldProperty(selectedField.id, 'placeholder', e.target.value)}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -365,8 +476,9 @@
 					{#if selectedField.type === 'number'}
 						<div class="grid grid-cols-2 gap-2">
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">Min</label>
+								<label for="field-min-{selectedField.id}" class="block text-sm font-medium text-gray-700 mb-1">Min</label>
 								<input
+									id="field-min-{selectedField.id}"
 									type="number"
 									bind:value={selectedField.properties.min}
 									on:input={(e) => updateFieldProperty(selectedField.id, 'min', e.target.value ? parseFloat(e.target.value) : null)}
@@ -374,8 +486,9 @@
 								/>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">Max</label>
+								<label for="field-max-{selectedField.id}" class="block text-sm font-medium text-gray-700 mb-1">Max</label>
 								<input
+									id="field-max-{selectedField.id}"
 									type="number"
 									bind:value={selectedField.properties.max}
 									on:input={(e) => updateFieldProperty(selectedField.id, 'max', e.target.value ? parseFloat(e.target.value) : null)}
@@ -387,8 +500,9 @@
 
 					{#if ['select', 'radio', 'checkbox'].includes(selectedField.type)}
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Options</label>
+							<label for="field-options-{selectedField.id}" class="block text-sm font-medium text-gray-700 mb-1">Options</label>
 							<textarea
+								id="field-options-{selectedField.id}"
 								bind:value={selectedField.properties.options}
 								on:input={(e) => updateFieldProperty(selectedField.id, 'options', e.target.value.split('\n').filter(opt => opt.trim()))}
 								placeholder="One option per line"
@@ -401,8 +515,9 @@
 					{#if selectedField.type === 'file'}
 						<div class="grid grid-cols-2 gap-2">
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">Max Size (MB)</label>
+								<label for="field-maxsize-{selectedField.id}" class="block text-sm font-medium text-gray-700 mb-1">Max Size (MB)</label>
 								<input
+									id="field-maxsize-{selectedField.id}"
 									type="number"
 									bind:value={selectedField.properties.maxSize}
 									on:input={(e) => updateFieldProperty(selectedField.id, 'maxSize', parseInt(e.target.value))}
@@ -410,8 +525,9 @@
 								/>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">File Types</label>
+								<label for="field-accept-{selectedField.id}" class="block text-sm font-medium text-gray-700 mb-1">File Types</label>
 								<input
+									id="field-accept-{selectedField.id}"
 									bind:value={selectedField.properties.accept}
 									on:input={(e) => updateFieldProperty(selectedField.id, 'accept', e.target.value)}
 									placeholder="e.g., .pdf,.doc"
@@ -465,10 +581,13 @@
 				<!-- Form Fields -->
 				{#each formData.fields as field, index}
 					<div
-						class="mb-6 p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-move hover:border-blue-400 transition-colors {selectedField?.id === field.id ? 'border-blue-500 bg-blue-50' : ''}"
+						class="mb-6 p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-move hover:border-blue-400 transition-colors {selectedField?.id === field.id ? 'border-blue-500 bg-blue-50' : ''} {isDragging && draggedField?.id === field.id ? 'opacity-50' : ''}"
+						draggable="true"
 						on:click={() => selectField(field)}
-						on:drop={(e) => handleDrop(e, index)}
-						on:dragover={(e) => e.preventDefault()}
+						on:dragstart={(e) => handleFieldDragStart(e, field)}
+						on:dragend={handleFieldDragEnd}
+						on:drop={(e) => handleFieldDrop(e, index)}
+						on:dragover={(e) => handleFieldDragOver(e, index)}
 					>
 						<div class="flex items-center justify-between mb-2">
 							<span class="text-sm font-medium text-gray-700">{field.label}</span>
@@ -567,6 +686,8 @@
 						class="mb-6 p-8 border-2 border-dashed border-gray-300 rounded-lg text-center text-gray-500 hover:border-blue-400 transition-colors"
 						on:drop={(e) => handleDrop(e, 0)}
 						on:dragover={(e) => e.preventDefault()}
+						role="region"
+						aria-label="Drop zone for form fields"
 					>
 						<svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -609,6 +730,9 @@
 					draggable="true"
 					on:dragstart={(e) => handleDragStart(e, fieldType)}
 					on:dragend={handleDragEnd}
+					role="button"
+					tabindex="0"
+					aria-label="Drag {fieldType.name} field to add to form"
 				>
 					<div class="flex items-center space-x-3">
 						<span class="text-lg">{fieldType.icon}</span>
@@ -661,6 +785,11 @@
 						<div
 							class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer group"
 							on:click={() => applyTemplate(template)}
+							on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyTemplate(template); } }}
+							tabindex="0"
+							role="button"
+							aria-label="Select {template.name} template"
+							aria-pressed="false"
 						>
 							<div class="flex items-center mb-4">
 								<div class="text-3xl mr-3">{template.icon}</div>
@@ -846,8 +975,9 @@
 
 										<div class="grid grid-cols-1 md:grid-cols-4 gap-3">
 											<div>
-												<label class="block text-sm font-medium text-gray-700 mb-1">If field</label>
+												<label for="rule-field-{index}" class="block text-sm font-medium text-gray-700 mb-1">If field</label>
 												<select
+													id="rule-field-{index}"
 													bind:value={rule.field}
 													on:change={(e) => updateConditionalRule(index, 'field', e.target.value)}
 													class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -860,8 +990,9 @@
 											</div>
 
 											<div>
-												<label class="block text-sm font-medium text-gray-700 mb-1">Operator</label>
+												<label for="rule-operator-{index}" class="block text-sm font-medium text-gray-700 mb-1">Operator</label>
 												<select
+													id="rule-operator-{index}"
 													bind:value={rule.operator}
 													on:change={(e) => updateConditionalRule(index, 'operator', e.target.value)}
 													class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -876,8 +1007,9 @@
 											</div>
 
 											<div>
-												<label class="block text-sm font-medium text-gray-700 mb-1">Value</label>
+												<label for="rule-value-{index}" class="block text-sm font-medium text-gray-700 mb-1">Value</label>
 												<input
+													id="rule-value-{index}"
 													type="text"
 													bind:value={rule.value}
 													on:input={(e) => updateConditionalRule(index, 'value', e.target.value)}
@@ -887,8 +1019,9 @@
 											</div>
 
 											<div>
-												<label class="block text-sm font-medium text-gray-700 mb-1">Then</label>
+												<label for="rule-action-{index}" class="block text-sm font-medium text-gray-700 mb-1">Then</label>
 												<select
+													id="rule-action-{index}"
 													bind:value={rule.action}
 													on:change={(e) => updateConditionalRule(index, 'action', e.target.value)}
 													class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"

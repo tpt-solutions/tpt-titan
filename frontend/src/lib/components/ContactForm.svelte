@@ -128,13 +128,13 @@
 <svelte:window on:keydown={handleKeydown} />
 
 <!-- Modal backdrop -->
-<div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" on:click={handleClose}>
+<div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" on:click={handleClose} role="presentation">
 	<!-- Modal container -->
-	<div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white dark:bg-gray-800" on:click|stopPropagation>
+	<div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white dark:bg-gray-800" on:click|stopPropagation role="dialog" aria-modal="true" aria-labelledby="contact-form-title">
 		<div class="mt-3">
 			<!-- Header -->
 			<div class="flex items-center justify-between mb-4">
-				<h3 class="text-lg font-medium text-gray-900 dark:text-white">
+				<h3 id="contact-form-title" class="text-lg font-medium text-gray-900 dark:text-white">
 					{contact ? 'Edit Contact' : 'Add New Contact'}
 				</h3>
 				<button
@@ -190,93 +190,113 @@
 				<!-- Emails -->
 				<div>
 					<div class="flex items-center justify-between mb-2">
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+						<label id="email-label" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
 							Email Addresses
 						</label>
 						<button
 							type="button"
 							on:click={addEmail}
 							class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+							aria-label="Add another email address"
 						>
 							+ Add Email
 						</button>
 					</div>
-					{#each formData.emails as email, index}
-						<div class="flex gap-2 mb-2">
-							<select
-								bind:value={email.type}
-								class="flex-shrink-0 w-20 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"
-							>
-								<option value="work">Work</option>
-								<option value="personal">Personal</option>
-								<option value="other">Other</option>
-							</select>
-							<input
-								type="email"
-								bind:value={email.value}
-								class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-								placeholder="john.doe@example.com"
-							>
-							{#if formData.emails.length > 1}
-								<button
-									type="button"
-									on:click={() => removeEmail(index)}
-									class="flex-shrink-0 px-2 py-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-									title="Remove email"
+					<div role="group" aria-labelledby="email-label">
+						{#each formData.emails as email, index}
+							<div class="flex gap-2 mb-2">
+								<label for="email-type-{index}" class="sr-only">Email {index + 1} type</label>
+								<select
+									id="email-type-{index}"
+									bind:value={email.type}
+									class="flex-shrink-0 w-20 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"
+									aria-label="Type for email {index + 1}"
 								>
-									✕
-								</button>
+									<option value="work">Work</option>
+									<option value="personal">Personal</option>
+									<option value="other">Other</option>
+								</select>
+								<label for="email-value-{index}" class="sr-only">Email {index + 1} address</label>
+								<input
+									id="email-value-{index}"
+									type="email"
+									bind:value={email.value}
+									class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+									placeholder="john.doe@example.com"
+									aria-label="Email {index + 1} address"
+								>
+								{#if formData.emails.length > 1}
+									<button
+										type="button"
+										on:click={() => removeEmail(index)}
+										class="flex-shrink-0 px-2 py-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+										title="Remove email"
+										aria-label="Remove email {index + 1}"
+									>
+										✕
+									</button>
+								{/if}
+							</div>
+							{#if errors[`email_${index}`]}
+								<p class="text-sm text-red-600 dark:text-red-400 mb-2">{errors[`email_${index}`]}</p>
 							{/if}
-						</div>
-						{#if errors[`email_${index}`]}
-							<p class="text-sm text-red-600 dark:text-red-400 mb-2">{errors[`email_${index}`]}</p>
-						{/if}
-					{/each}
+						{/each}
+					</div>
 				</div>
 
 				<!-- Phones -->
 				<div>
 					<div class="flex items-center justify-between mb-2">
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+						<label id="phone-label" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
 							Phone Numbers
 						</label>
 						<button
 							type="button"
 							on:click={addPhone}
 							class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+							aria-label="Add another phone number"
 						>
 							+ Add Phone
 						</button>
 					</div>
-					{#each formData.phones as phone, index}
-						<div class="flex gap-2 mb-2">
-							<select
-								bind:value={phone.type}
-								class="flex-shrink-0 w-20 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"
-							>
-								<option value="mobile">Mobile</option>
-								<option value="work">Work</option>
-								<option value="home">Home</option>
-								<option value="other">Other</option>
-							</select>
-							<input
-								type="tel"
-								bind:value={phone.value}
-								class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-								placeholder="+1 (555) 123-4567"
-							>
-							{#if formData.phones.length > 1}
-								<button
-									type="button"
-									on:click={() => removePhone(index)}
-									class="flex-shrink-0 px-2 py-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-									title="Remove phone"
+					<div role="group" aria-labelledby="phone-label">
+						{#each formData.phones as phone, index}
+							<div class="flex gap-2 mb-2">
+								<label for="phone-type-{index}" class="sr-only">Phone {index + 1} type</label>
+								<select
+									id="phone-type-{index}"
+									bind:value={phone.type}
+									class="flex-shrink-0 w-20 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"
+									aria-label="Type for phone {index + 1}"
 								>
-									✕
-								</button>
-							{/if}
-						</div>
-					{/each}
+									<option value="mobile">Mobile</option>
+									<option value="work">Work</option>
+									<option value="home">Home</option>
+									<option value="other">Other</option>
+								</select>
+								<label for="phone-value-{index}" class="sr-only">Phone {index + 1} number</label>
+								<input
+									id="phone-value-{index}"
+									type="tel"
+									bind:value={phone.value}
+									class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+									placeholder="+1 (555) 123-4567"
+									aria-label="Phone {index + 1} number"
+								>
+								{#if formData.phones.length > 1}
+									<button
+										type="button"
+										on:click={() => removePhone(index)}
+										class="flex-shrink-0 px-2 py-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+										title="Remove phone"
+										aria-label="Remove phone {index + 1}"
+									>
+										✕
+									</button>
+								{/if}
+							</div>
+						{/each}
+					</div>
 				</div>
 
 				<!-- Company and Position -->

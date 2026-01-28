@@ -1,17 +1,23 @@
 <script>
 	import FormBuilder from '$lib/components/FormBuilder.svelte';
 	import FormList from '$lib/components/FormList.svelte';
+	import DatabaseRelationsModal from '$lib/components/DatabaseRelationsModal.svelte';
+	import AdvancedReportsModal from '$lib/components/AdvancedReportsModal.svelte';
+	import WorkflowDesignerModal from '$lib/components/WorkflowDesignerModal.svelte';
 	import { getForms } from '$lib/api.js';
 	import { onMount } from 'svelte';
 
 	// Accept framework-provided props to avoid warnings
-	export let params = null;
-	export let data = null;
-	export let form = null;
+	export const params = null;
+	export const data = null;
+	export const form = null;
 
 	let currentView = 'list'; // 'list' or 'builder'
 	let selectedForm = null;
 	let forms = [];
+	let showDatabaseRelationsModal = false;
+	let showAdvancedReportsModal = false;
+	let showWorkflowDesignerModal = false;
 
 	onMount(() => {
 		// Load user's forms
@@ -104,15 +110,15 @@
 	}
 
 	function handleDatabaseRelations() {
-		alert('Database Relations feature coming soon! This will allow you to create relationships between forms.');
+		showDatabaseRelationsModal = true;
 	}
 
 	function handleAdvancedReports() {
-		alert('Advanced Reports feature coming soon! This will provide powerful reporting and analytics capabilities.');
+		showAdvancedReportsModal = true;
 	}
 
 	function handleWorkflowDesigner() {
-		alert('Workflow Designer feature coming soon! This will enable automated approval chains and notifications.');
+		showWorkflowDesignerModal = true;
 	}
 </script>
 
@@ -169,3 +175,24 @@
 		{/if}
 	</div>
 </div>
+
+<!-- Database Relations Modal -->
+<DatabaseRelationsModal
+	{forms}
+	showModal={showDatabaseRelationsModal}
+	on:close={() => showDatabaseRelationsModal = false}
+/>
+
+<!-- Advanced Reports Modal -->
+<AdvancedReportsModal
+	{forms}
+	showModal={showAdvancedReportsModal}
+	on:close={() => showAdvancedReportsModal = false}
+/>
+
+<!-- Workflow Designer Modal -->
+<WorkflowDesignerModal
+	{forms}
+	showModal={showWorkflowDesignerModal}
+	on:close={() => showWorkflowDesignerModal = false}
+/>

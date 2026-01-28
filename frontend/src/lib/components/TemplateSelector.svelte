@@ -105,9 +105,10 @@
 				{:else}
 					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 						{#each filteredTemplates as template}
-							<div
-								class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer group"
+							<button
+								class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer group text-left w-full"
 								on:click={() => selectTemplate(template)}
+								type="button"
 							>
 								<!-- Template Icon and Category -->
 								<div class="flex items-center justify-between mb-4">
@@ -145,10 +146,11 @@
 								<button
 									class="w-full px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
 									on:click|stopPropagation={() => dispatch('preview', { template })}
+									type="button"
 								>
 									👁️ Preview
 								</button>
-							</div>
+							</button>
 						{/each}
 					</div>
 				{/if}

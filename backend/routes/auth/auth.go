@@ -11,11 +11,24 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
-	"tpt-titan/backend/models"
-	"tpt-titan/backend/utils"
+	"tpt-titan-simple/backend/models"
+	"tpt-titan-simple/backend/utils"
 )
 
-var jwtSecret = []byte("your-secret-key-change-in-production") // TODO: Move to config
+var jwtSecret []byte
+
+// InitAuth initializes the auth package with the JWT secret from configuration
+func InitAuth(secret string) {
+	jwtSecret = []byte(secret)
+}
+
+// getJWTSecret returns the JWT secret, panics if not initialized
+func getJWTSecret() []byte {
+	if jwtSecret == nil {
+		panic("JWT secret not initialized. Call InitAuth() before using auth functions")
+	}
+	return jwtSecret
+}
 
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
@@ -68,7 +81,7 @@ func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
 			}
-			return jwtSecret, nil
+			return getJWTSecret(), nil
 		})
 
 		if err != nil || !token.Valid {
@@ -290,7 +303,7 @@ func generateToken(userID uuid.UUID) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	return token.SignedString(getJWTSecret())
 }
 
 // initializeUserEncryption sets up encryption keys for a new user

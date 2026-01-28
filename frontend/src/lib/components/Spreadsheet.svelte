@@ -13,11 +13,13 @@
 	import {
 		mode as modeStore,
 		selectedTemplate as selectedTemplateStore,
-		resetSpreadsheet
+		resetSpreadsheet,
+		spreadsheetData,
+		cellFormats
 	} from '../stores/spreadsheet-store.js';
 
-	export let mode = 'simple'; // 'simple' or 'advanced'
-	export let selectedTemplate = null;
+	export const mode = 'simple'; // 'simple' or 'advanced'
+	export const selectedTemplate = null;
 
 	// Event dispatcher for parent communication
 	const dispatch = createEventDispatcher();
@@ -140,11 +142,49 @@
 	// Lifecycle
 	onMount(() => {
 		// Initialize any required setup
+		console.log('Spreadsheet component mounted');
 	});
 
 	onDestroy(() => {
 		// Cleanup if needed
 	});
+
+	// Apply template when selectedTemplate changes
+	$: if (selectedTemplate && selectedTemplate.data) {
+		console.log('Applying template:', selectedTemplate.name);
+		console.log('Template data:', selectedTemplate.data);
+
+		// Apply template data to spreadsheet
+		const templateData = selectedTemplate.data;
+		const numRows = templateData.length;
+		const numCols = Math.max(...templateData.map(row => row.length));
+
+		// Create new data array with template data
+		const newData = Array(Math.max(100, numRows)).fill().map(() => Array(Math.max(26, numCols)).fill(''));
+
+		// Populate with template data
+		templateData.forEach((row, rowIndex) => {
+			row.forEach((cellValue, colIndex) => {
+				if (cellValue !== undefined && cellValue !== null) {
+					newData[rowIndex][colIndex] = String(cellValue);
+				}
+			});
+		});
+
+		// Update the spreadsheet data store
+		spreadsheetData.set(newData);
+		console.log('Template applied successfully, new data length:', newData.length);
+
+		// Apply styles if available
+		if (selectedTemplate.styles) {
+			console.log('Applying template styles:', selectedTemplate.styles);
+			const stylesMap = new Map();
+			Object.entries(selectedTemplate.styles).forEach(([range, style]) => {
+				stylesMap.set(range, style);
+			});
+			cellFormats.set(stylesMap);
+		}
+	}
 </script>
 
 

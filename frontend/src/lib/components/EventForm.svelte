@@ -541,10 +541,10 @@
 				<!-- Attendees (if contacts available) -->
 				{#if availableContacts.length > 0}
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+						<label id="attendees-label" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
 							Attendees
 						</label>
-						<div class="max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-2 space-y-2">
+						<div role="group" aria-labelledby="attendees-label" class="max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-2 space-y-2">
 							{#each availableContacts as contact}
 								<label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded">
 									<input
@@ -552,6 +552,7 @@
 										checked={formData.attendee_ids.includes(contact.id)}
 										on:change={() => toggleAttendee(contact.id)}
 										class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+										aria-label="Add {contact.first_name || contact.last_name ? `${contact.first_name || ''} ${contact.last_name || ''}`.trim() : 'Unnamed Contact'} as attendee"
 									>
 									<div class="flex-1 min-w-0">
 										<div class="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -579,11 +580,13 @@
 								<button
 									type="button"
 									on:click={startVoiceEventCreation}
+									on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startVoiceEventCreation(); } }}
 									disabled={voiceCreating}
+									aria-label={voiceCreating ? 'Voice recording in progress' : 'Start voice event creation'}
 									class="flex items-center justify-center px-4 py-3 border border-purple-300 dark:border-purple-600 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900 transition-colors disabled:opacity-50"
 								>
 									<div class="flex items-center space-x-2">
-										<svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
 										</svg>
 										<span class="text-sm font-medium text-purple-700 dark:text-purple-300">
@@ -596,11 +599,13 @@
 							<button
 								type="button"
 								on:click={getSchedulingSuggestions}
+								on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); getSchedulingSuggestions(); } }}
 								disabled={isGeneratingSuggestions}
+								aria-label={isGeneratingSuggestions ? 'Finding scheduling suggestions' : 'Get smart scheduling suggestions'}
 								class="flex items-center justify-center px-4 py-3 border border-blue-300 dark:border-blue-600 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900 transition-colors disabled:opacity-50"
 							>
 								<div class="flex items-center space-x-2">
-									<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
 									</svg>
 									<span class="text-sm font-medium text-blue-700 dark:text-blue-300">

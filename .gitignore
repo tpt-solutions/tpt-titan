@@ -33,6 +33,7 @@ Thumbs.db
 *.temp
 .cache/
 .tmp/
+.vite-cache/
 
 # Database
 *.db

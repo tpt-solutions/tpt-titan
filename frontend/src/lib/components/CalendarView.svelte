@@ -122,20 +122,26 @@
 			</div>
 
 			<!-- Navigation -->
-			<div class="flex space-x-1">
+			<div class="flex space-x-1" role="group" aria-label="Month navigation">
 				<button
 					on:click={() => navigateMonth(-1)}
+					on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateMonth(-1); } }}
 					class="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+					aria-label="Previous month"
+					type="button"
 				>
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
 					</svg>
 				</button>
 				<button
 					on:click={() => navigateMonth(1)}
+					on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateMonth(1); } }}
 					class="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+					aria-label="Next month"
+					type="button"
 				>
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
 					</svg>
 				</button>
@@ -158,9 +164,12 @@
 		<div class="grid grid-cols-7 gap-1">
 			{#each monthData as week}
 				{#each week as dayData}
-					<div
-						class="min-h-[120px] p-2 border border-gray-200 dark:border-gray-600 rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {dayData.isCurrentMonth ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} {dayData.isToday ? 'ring-2 ring-blue-500' : ''}"
+					<button
+						class="min-h-[120px] p-2 border border-gray-200 dark:border-gray-600 rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {dayData.isCurrentMonth ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} {dayData.isToday ? 'ring-2 ring-blue-500' : ''} w-full text-left"
 						on:click={() => handleDayClick(dayData)}
+						on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDayClick(dayData); } }}
+						aria-label="{dayData.isCurrentMonth ? formatMonthYear(dayData.date).split(' ')[0] + ' ' + dayData.date.getDate() + ', ' + dayData.date.getFullYear() + (dayData.events.length > 0 ? ', ' + dayData.events.length + ' event' + (dayData.events.length !== 1 ? 's' : '') : ', no events') : 'Not in current month'}"
+						type="button"
 					>
 						<div class="flex justify-between items-start mb-1">
 							<span class="text-sm font-medium {dayData.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}">
@@ -198,7 +207,7 @@
 								</div>
 							{/if}
 						</div>
-					</div>
+					</button>
 				{/each}
 			{/each}
 		</div>

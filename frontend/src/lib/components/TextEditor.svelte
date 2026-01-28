@@ -7,8 +7,8 @@
 	// AI Services
 	import { aiService } from '../services/ai.js';
 
-	export let editorMode = 'blocks'; // 'blocks', 'markdown', 'richtext'
-	export let documentId = null; // For loading existing documents
+	export const editorMode = 'blocks'; // 'blocks', 'markdown', 'richtext'
+	export const documentId = null; // For loading existing documents
 
 	const dispatch = createEventDispatcher();
 
@@ -316,9 +316,9 @@
 				if (response.content.markdown) {
 					markdownContent = response.content.markdown;
 				}
-				if (response.content.mode) {
-					editorMode = response.content.mode;
-				}
+			if (response.content.mode) {
+				editorMode = response.content.mode || 'blocks';
+			}
 			}
 
 			showDocumentList = false;
@@ -1036,6 +1036,8 @@
 						on:click={getAIWritingSuggestions}
 						disabled={isGeneratingAI}
 						title="Get AI writing suggestions for grammar, style, and clarity improvements"
+						aria-label="Get AI writing suggestions"
+						type="button"
 					>
 						{isGeneratingAI ? '💭' : '✨ Suggest'}
 						<!-- Enhanced Tooltip -->
@@ -1046,25 +1048,12 @@
 					</button>
 
 					<button
-						class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 relative group ml-1"
-						on:click={() => improveSelectedText('general')}
-						disabled={isGeneratingAI}
-						title="AI-powered text improvement - select text first for best results"
-					>
-						✏️ Improve
-						<!-- Enhanced Tooltip -->
-						<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10 pointer-events-none">
-							✏️ Improve Selected Text
-							<div class="text-xs text-gray-300 mt-1">Select text first for targeted improvements</div>
-							<div class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-						</div>
-					</button>
-
-					<button
 						class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 relative group ml-1"
 						on:click={continueWriting}
 						disabled={isGeneratingAI}
 						title="AI content continuation - select text to continue from that point"
+						aria-label="Continue writing with AI"
+						type="button"
 					>
 						📝 Continue
 						<!-- Enhanced Tooltip -->
@@ -1080,6 +1069,8 @@
 						on:click={generateDocumentSummary}
 						disabled={isGeneratingSummary}
 						title="Generate intelligent document summaries - works best with longer documents"
+						aria-label="Generate document summary"
+						type="button"
 					>
 						{isGeneratingSummary ? '📋' : '📄 Summary'}
 						<!-- Enhanced Tooltip -->
@@ -1094,6 +1085,8 @@
 						class="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 relative group ml-1"
 						on:click={analyzeDocument}
 						title="Analyze document for readability, sentiment, and key insights"
+						aria-label="Analyze document"
+						type="button"
 					>
 						📊 Analyze
 						<!-- Enhanced Tooltip -->
@@ -1864,30 +1857,5 @@ You can write natural math expressions:
 		color: #374151;
 	}
 
-	.prose strong {
-		font-weight: 600;
-	}
 
-	.prose em {
-		font-style: italic;
-	}
-
-	.prose code {
-		background-color: #f3f4f6;
-		padding: 0.125rem 0.25rem;
-		border-radius: 0.25rem;
-		font-size: 0.875em;
-	}
-
-	.prose h1 {
-		font-size: 2rem;
-		font-weight: 700;
-		margin-bottom: 1rem;
-	}
-
-	.prose h2 {
-		font-size: 1.5rem;
-		font-weight: 600;
-		margin-bottom: 0.75rem;
-	}
 </style>

@@ -8,6 +8,22 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// LoadAndValidate loads configuration and validates required fields
+func LoadAndValidate() *Config {
+	cfg := Load()
+	
+	// Validate required configuration
+	if cfg.JWT.Secret == "" {
+		log.Fatal("JWT_SECRET is required. Please set a secure secret key (min 32 characters recommended)")
+	}
+	
+	if len(cfg.JWT.Secret) < 32 {
+		log.Println("WARNING: JWT_SECRET should be at least 32 characters for security")
+	}
+	
+	return cfg
+}
+
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
@@ -42,6 +58,7 @@ type JWTConfig struct {
 }
 
 type RedisConfig struct {
+	Enabled  bool
 	Host     string
 	Port     string
 	Password string
@@ -123,10 +140,11 @@ func Load() *Config {
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 		JWT: JWTConfig{
-			Secret:     getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
+			Secret:     getEnv("JWT_SECRET", ""),
 			ExpiryHour: getEnvAsInt("JWT_EXPIRY_HOUR", 24),
 		},
 		Redis: RedisConfig{
+			Enabled:  getEnvAsBool("REDIS_ENABLED", false),
 			Host:     getEnv("REDIS_HOST", "localhost"),
 			Port:     getEnv("REDIS_PORT", "6379"),
 			Password: getEnv("REDIS_PASSWORD", ""),

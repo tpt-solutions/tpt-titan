@@ -1,13 +1,14 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-	"tpt-titan/backend/config"
-	"tpt-titan/backend/middleware"
-	"tpt-titan/backend/routes"
-	"tpt-titan/backend/routes/auth"
-	"tpt-titan/backend/services"
+	"tpt-titan-simple/backend/config"
+	"tpt-titan-simple/backend/middleware"
+	"tpt-titan-simple/backend/routes"
+	"tpt-titan-simple/backend/routes/auth"
+	"tpt-titan-simple/backend/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -38,12 +39,27 @@ func (s *Server) Initialize() error {
 	}
 	s.database = config.GetDatabase()
 
-	// Initialize cache service first (needed for auth service)
-	cacheService, err := services.NewCacheService("redis://localhost:6379")
-	if err != nil {
-		log.Printf("Failed to connect to Redis, continuing without cache: %v", err)
-		cacheService = nil
+	// Initialize cache service if enabled (optional for small teams)
+	var cacheService *services.CacheService
+	if s.config.Redis.Enabled {
+		redisURL := fmt.Sprintf("redis://%s:%s", s.config.Redis.Host, s.config.Redis.Port)
+		var err error
+		cacheService, err = services.NewCacheService(redisURL)
+		if err != nil {
+			log.Printf("Failed to connect to Redis, continuing without cache: %v", err)
+			cacheService = nil
+		}
+	} else {
+		log.Println("Redis is disabled (REDIS_ENABLED=false). Running without cache.")
 	}
+
+	// Validate required configuration
+	if err := s.validateConfig(); err != nil {
+		return err
+	}
+
+	// Initialize auth package with JWT secret
+	auth.InitAuth(s.config.JWT.Secret)
 
 	// Initialize auth service
 	authService := services.NewAuthService(s.database, s.config.JWT.Secret, cacheService)
@@ -454,4 +470,17 @@ func (s *Server) GetDatabase() *gorm.DB {
 // Close closes the server and cleans up resources
 func (s *Server) Close() {
 	config.CloseDatabase()
+}
+
+// validateConfig checks that all required configuration is set
+func (s *Server) validateConfig() error {
+	if s.config.JWT.Secret == "" {
+		return fmt.Errorf("JWT_SECRET is required. Please set a secure secret key")
+	}
+	
+	if len(s.config.JWT.Secret) < 32 {
+		log.Println("WARNING: JWT_SECRET should be at least 32 characters for security")
+	}
+	
+	return nil
 }

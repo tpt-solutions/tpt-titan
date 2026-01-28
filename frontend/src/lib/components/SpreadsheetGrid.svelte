@@ -33,7 +33,7 @@
 	} from '../utils/spreadsheet-utils.js';
 
 	// Props
-	export let mode = 'simple'; // 'simple' or 'advanced'
+	export const mode = 'simple'; // 'simple' or 'advanced'
 
 	// Column headers (A-Z)
 	$: columns = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
@@ -315,6 +315,8 @@
 											class="absolute bottom-0 right-0 w-2 h-2 bg-blue-500 border border-white cursor-crosshair z-10"
 											on:mousedown={handleFillHandleMouseDown}
 											title="Drag to auto-fill adjacent cells"
+											role="button"
+											tabindex="0"
 										></div>
 									{/if}
 								{/if}

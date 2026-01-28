@@ -229,14 +229,17 @@
 	<!-- Search Bar -->
 	<div class="p-4 border-b border-gray-200 dark:border-gray-700">
 		<div class="relative">
+			<label for="email-search" class="sr-only">Search emails</label>
 			<input
+				id="email-search"
 				bind:value={searchQuery}
 				on:input={() => emailSearchQuery.set(searchQuery)}
 				type="text"
 				placeholder="Search emails..."
 				class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+				aria-label="Search emails by subject, sender, or content"
 			>
-			<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+			<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" aria-hidden="true">
 				<svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
 				</svg>
@@ -485,9 +488,12 @@
 		{:else}
 			<div class="divide-y divide-gray-200 dark:divide-gray-700">
 				{#each filteredEmails as email}
-					<div
+					<button
 						on:click={() => handleEmailSelect(email)}
-						class="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {selectedEmailData?.id === email.id ? 'bg-blue-50 dark:bg-blue-900 border-r-4 border-blue-500' : ''}"
+						on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleEmailSelect(email); } }}
+						class="w-full text-left p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {selectedEmailData?.id === email.id ? 'bg-blue-50 dark:bg-blue-900 border-r-4 border-blue-500' : ''} focus:outline-none focus:ring-2 focus:ring-blue-500"
+						aria-label="Read email: {email.subject || '(No subject)'} from {email.sender_name || email.sender_email}{email.is_starred ? ', starred' : ''}{!email.is_read ? ', unread' : ''}"
+						type="button"
 					>
 						<div class="flex items-start justify-between">
 							<div class="flex-1 min-w-0">
@@ -518,7 +524,7 @@
 								{formatDate(email.received_at || email.sent_at)}
 							</div>
 						</div>
-					</div>
+					</button>
 				{/each}
 			</div>
 		{/if}

@@ -17,7 +17,7 @@ import (
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 
-	"tpt-titan/backend/models"
+	"tpt-titan-simple/backend/models"
 )
 
 // AuthService handles authentication and authorization

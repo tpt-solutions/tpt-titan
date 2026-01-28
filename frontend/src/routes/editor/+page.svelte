@@ -3,9 +3,9 @@
 	import { onMount } from 'svelte';
 
 	// Accept framework-provided props to avoid warnings
-	export let params = null;
-	export let data = null;
-	export let form = null;
+	export const params = null;
+	export const data = null;
+	export const form = null;
 
 	let documentTitle = 'Untitled Document';
 	let isAutoSaving = false;

@@ -247,8 +247,9 @@
 					<h4 class="text-lg font-medium text-gray-900 mb-4">📊 Data Source</h4>
 					<div class="space-y-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">Select Range</label>
+							<label for="pivot-range" class="block text-sm font-medium text-gray-700 mb-2">Select Range</label>
 							<input
+								id="pivot-range"
 								type="text"
 								placeholder="Click and drag on spreadsheet to select range"
 								value="A1:D10"
@@ -258,16 +259,16 @@
 							<p class="text-xs text-gray-500 mt-1">💡 Open the pivot table builder and select cells visually</p>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">Data has headers</label>
-							<input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" />
+							<label for="pivot-headers" class="block text-sm font-medium text-gray-700 mb-2">Data has headers</label>
+							<input id="pivot-headers" type="checkbox" checked class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" />
 						</div>
 					</div>
 
 					<h4 class="text-lg font-medium text-gray-900 mb-4 mt-6">🎯 Pivot Configuration</h4>
 					<div class="space-y-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">Rows</label>
-							<select class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+							<label for="pivot-rows" class="block text-sm font-medium text-gray-700 mb-2">Rows</label>
+							<select id="pivot-rows" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
 								<option>Select field...</option>
 								<option>Product</option>
 								<option>Category</option>
@@ -275,8 +276,8 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">Columns</label>
-							<select class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+							<label for="pivot-columns" class="block text-sm font-medium text-gray-700 mb-2">Columns</label>
+							<select id="pivot-columns" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
 								<option>Select field...</option>
 								<option>Month</option>
 								<option>Quarter</option>
@@ -284,8 +285,8 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">Values</label>
-							<select class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+							<label for="pivot-values" class="block text-sm font-medium text-gray-700 mb-2">Values</label>
+							<select id="pivot-values" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
 								<option>Select field...</option>
 								<option>Sales</option>
 								<option>Revenue</option>
