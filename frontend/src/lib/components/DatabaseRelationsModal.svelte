@@ -84,17 +84,18 @@
 			width: 180,
 			height: 100,
 			color: getRandomColor(),
-			fields: getFormFields(form)
+			fields: extractFieldNames(form)
 		}));
 	}
 
-	function getFormFields(form) {
+	function extractFieldNames(form) {
 		// Extract field names from form data
 		if (form.fields && Array.isArray(form.fields)) {
 			return form.fields.map(f => f.label || f.name || f.id);
 		}
 		return ['id', 'name', 'created_at'];
 	}
+
 
 	function getRandomColor() {
 		const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];

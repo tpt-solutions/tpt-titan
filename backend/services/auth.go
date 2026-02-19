@@ -13,11 +13,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 
-	"tpt-titan-simple/backend/models"
+	"tpt-titan/backend/models"
 )
 
 // AuthService handles authentication and authorization

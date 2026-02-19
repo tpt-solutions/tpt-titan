@@ -225,7 +225,7 @@ func (s *WorkflowService) executeWorkflowAsync(execution *models.WorkflowExecuti
 }
 
 // executeNode executes a single workflow node
-func (s *WorkflowService) executeNode(node map[string]interface{}, ctx *WorkflowExecutionContext, nodeMap map[string]interface{}, connections []interface{}) error {
+func (s *WorkflowService) executeNode(node map[string]interface{}, ctx *WorkflowExecutionContext, nodeMap map[string]map[string]interface{}, connections []interface{}) error {
 	nodeID := node["id"].(string)
 	nodeType := node["type"].(string)
 
@@ -314,7 +314,7 @@ func (s *WorkflowService) findStartNodes(nodes []interface{}, connections []inte
 }
 
 // findNextNodes finds nodes that should execute after the current node
-func (s *WorkflowService) findNextNodes(nodeID string, connections []interface{}, nodeMap map[string]interface{}) []map[string]interface{} {
+func (s *WorkflowService) findNextNodes(nodeID string, connections []interface{}, nodeMap map[string]map[string]interface{}) []map[string]interface{} {
 	var nextNodes []map[string]interface{}
 
 	for _, conn := range connections {
@@ -335,7 +335,6 @@ func (s *WorkflowService) findNextNodes(nodeID string, connections []interface{}
 // executeCondition executes a conditional logic node
 func (s *WorkflowService) executeCondition(config map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {
 	// Simple condition evaluation - can be extended with more complex logic
-	condition := config["condition"].(string)
 	field := config["field"].(string)
 	operator := config["operator"].(string)
 	value := config["value"]
@@ -452,7 +451,7 @@ func (c *EmailSendConnector) Execute(config map[string]interface{}, inputData ma
 	subject := config["subject"].(string)
 	body := config["body"].(string)
 
-	log.Printf("Sending email to %s: %s", to, subject)
+	log.Printf("Sending email to %s: %s\n%s", to, subject, body)
 
 	return map[string]interface{}{
 		"email_sent": true,
@@ -564,7 +563,7 @@ func (c *SpreadsheetUpdateConnector) Execute(config map[string]interface{}, inpu
 	// TODO: Implement spreadsheet updates
 	spreadsheetID := config["spreadsheet_id"].(string)
 	range_ := config["range"].(string)
-	values := config["values"]
+	_ = config["values"]
 
 	log.Printf("Updating spreadsheet %s range %s", spreadsheetID, range_)
 

@@ -3,14 +3,9 @@ package services
 import (
 	"archive/zip"
 	"bytes"
-	"encoding/xml"
 	"fmt"
-	"io"
-	"strconv"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // DOCXExportService provides Microsoft Word (.docx) export functionality

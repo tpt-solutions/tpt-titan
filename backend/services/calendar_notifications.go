@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"tpt-titan/backend/models"
 )
 
 // CalendarNotificationService handles calendar reminders and notifications
@@ -271,21 +272,22 @@ func (cns *CalendarNotificationService) sendEmailReminder(email, subject, messag
 		ctx.MinutesBefore,
 	)
 
-	return cns.emailService.SendEmail([]string{email}, "Event Reminder: "+subject, htmlMessage, "text/html")
+	_, err := cns.emailService.SendEmail(uuid.UUID{}, models.EmailRequest{
+		RecipientEmails: []string{email},
+		Subject:         "Event Reminder: " + subject,
+		Content:         htmlMessage,
+	})
+	return err
 }
 
 func (cns *CalendarNotificationService) sendInAppReminder(userID uuid.UUID, title, message string, ctx ReminderContext) error {
-	// Send WebSocket notification
-	notification := map[string]interface{}{
-		"type":      "calendar_reminder",
-		"user_id":   userID.String(),
-		"title":     title,
-		"message":   message,
-		"event_id":  ctx.EventID.String(),
-		"timestamp": time.Now(),
-	}
-
-	// In a real implementation, send via WebSocket
+	// In a real implementation, broadcast this via WebSocket
+	// notification payload would be:
+	// { type: "calendar_reminder", user_id, title, message, event_id, timestamp }
+	_ = userID // used in WebSocket routing
+	_ = title
+	_ = message
+	_ = ctx
 	return nil
 }
 
@@ -429,7 +431,11 @@ func (cns *CalendarNotificationService) SendEventNotification(eventID uuid.UUID,
 			// Get user email
 			var email string
 			cns.db.QueryRow("SELECT email FROM users WHERE id = $1", userID).Scan(&email)
-			cns.emailService.SendEmail([]string{email}, title, message, "")
+			_, _ = cns.emailService.SendEmail(uuid.UUID{}, models.EmailRequest{
+				RecipientEmails: []string{email},
+				Subject:         title,
+				Content:         message,
+			})
 		case NotificationTypeInApp:
 			// Send WebSocket notification
 			cns.sendInAppReminder(userID, title, message, ReminderContext{})

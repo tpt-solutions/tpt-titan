@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"golang.org/x/crypto/argon2"
 )
@@ -301,4 +302,42 @@ func FromBase64(data string) (*SecureString, error) {
 		Salt:          decoded[:32],
 		Algorithm:     "AES-256-GCM",
 	}, nil
+}
+
+// systemEncryptionKey returns a 32-byte system-level encryption key.
+// The ENCRYPTION_KEY env var is used when set; otherwise a stable default is used.
+func systemEncryptionKey() string {
+	key := os.Getenv("ENCRYPTION_KEY")
+	// Pad or trim to exactly 32 bytes
+	for len(key) < 32 {
+		key += "tpt-titan-default-system-enc-key"
+	}
+	return key[:32]
+}
+
+// systemSalt is a fixed salt for system-level (non-user-specific) encryption.
+// Changing this will invalidate all previously encrypted email passwords.
+var systemSalt = []byte("tpt-titan-sys-s1")
+
+// EncryptPassword encrypts a plaintext password string using AES-256-GCM
+// with a system-level key derived from the ENCRYPTION_KEY environment variable.
+func EncryptPassword(plaintext string) ([]byte, error) {
+	km, err := DeriveKeyFromPassword(systemEncryptionKey(), systemSalt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create system encryption key: %w", err)
+	}
+	return km.Encrypt([]byte(plaintext))
+}
+
+// DecryptPassword decrypts a ciphertext produced by EncryptPassword back to a string.
+func DecryptPassword(data []byte) (string, error) {
+	km, err := DeriveKeyFromPassword(systemEncryptionKey(), systemSalt)
+	if err != nil {
+		return "", fmt.Errorf("failed to create system decryption key: %w", err)
+	}
+	plaintext, err := km.Decrypt(data)
+	if err != nil {
+		return "", fmt.Errorf("failed to decrypt password: %w", err)
+	}
+	return string(plaintext), nil
 }

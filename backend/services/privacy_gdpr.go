@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -195,6 +194,7 @@ func (pgs *PrivacyGDPRService) RecordDataProcessing(record *DataProcessingRecord
 
 	// Hash sensitive data for privacy
 	recordHash := sha256.Sum256([]byte(fmt.Sprintf("%s-%s-%s", record.UserID, record.ProcessingType, record.ProcessedAt)))
+	_ = recordHash
 	record.ID = uuid.New() // Use hash-based ID for privacy
 
 	query := `

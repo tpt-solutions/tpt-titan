@@ -2,12 +2,15 @@
 	import { onMount, onDestroy, createEventDispatcher } from 'svelte';
 
 	// Import extracted components
+	import QuickAccessToolbar from './QuickAccessToolbar.svelte';
 	import SpreadsheetMenuBar from './SpreadsheetMenuBar.svelte';
 	import SpreadsheetRibbon from './SpreadsheetRibbon.svelte';
-	import SpreadsheetToolbar from './SpreadsheetToolbar.svelte';
 	import FormulaBar from './FormulaBar.svelte';
 	import SpreadsheetGrid from './SpreadsheetGrid.svelte';
+	import SheetTabs from './SheetTabs.svelte';
+	import SpreadsheetStatusBar from './SpreadsheetStatusBar.svelte';
 	import SpreadsheetModals from './SpreadsheetModals.svelte';
+
 
 	// Import stores and utilities
 	import {
@@ -15,14 +18,116 @@
 		selectedTemplate as selectedTemplateStore,
 		resetSpreadsheet,
 		spreadsheetData,
-		cellFormats
+		cellFormats,
+		selectedCells,
+		statusBarInfo,
+		canUndo,
+		canRedo
 	} from '../stores/spreadsheet-store.js';
 
-	export const mode = 'simple'; // 'simple' or 'advanced'
-	export const selectedTemplate = null;
+
+	// Import history management
+	import SpreadsheetHistory, { createDebouncedPush, handleUndoRedoKeyboard } from '../utils/spreadsheet-history.js';
+
+
+	export let mode = 'simple'; // 'simple' or 'advanced'
+	export let selectedTemplate = null;
+
 
 	// Event dispatcher for parent communication
 	const dispatch = createEventDispatcher();
+
+	// History management
+	let spreadsheetHistory = new SpreadsheetHistory();
+	let debouncedHistoryPush;
+
+	// Update undo/redo availability in store
+	function updateHistoryState() {
+		canUndo.set(spreadsheetHistory.canUndo());
+		canRedo.set(spreadsheetHistory.canRedo());
+	}
+
+
+	// Save current state to history
+	function saveToHistory(actionType = 'cellChange') {
+		const currentData = $spreadsheetData;
+		const currentFormats = $cellFormats;
+		
+		debouncedHistoryPush({
+			data: currentData,
+			formats: currentFormats,
+			actionType,
+			timestamp: Date.now()
+		});
+		updateHistoryState();
+	}
+
+	// Undo handler
+	function handleUndo() {
+		const state = spreadsheetHistory.undo();
+		if (state) {
+			spreadsheetData.set(state.data);
+			cellFormats.set(state.formats);
+			updateHistoryState();
+		}
+	}
+
+	// Redo handler
+	function handleRedo() {
+		const state = spreadsheetHistory.redo();
+		if (state) {
+			spreadsheetData.set(state.data);
+			cellFormats.set(state.formats);
+			updateHistoryState();
+		}
+	}
+
+	// Update status bar when selection changes
+	$: {
+		const cells = Array.from($selectedCells);
+		const data = $spreadsheetData;
+		
+		let sum = 0;
+		let count = 0;
+		let min = null;
+		let max = null;
+		let hasNumericValues = false;
+
+		cells.forEach(cellId => {
+			const match = cellId.match(/([A-Z]+)(\d+)/);
+			if (match) {
+				const col = match[1].charCodeAt(0) - 65;
+				const row = parseInt(match[2]) - 1;
+				const value = data[row]?.[col];
+				const numValue = parseFloat(value);
+				
+				if (!isNaN(numValue) && value !== '') {
+					sum += numValue;
+					count++;
+					hasNumericValues = true;
+					if (min === null || numValue < min) min = numValue;
+					if (max === null || numValue > max) max = numValue;
+				}
+			}
+		});
+
+		statusBarInfo.set({
+			selectedCount: cells.length,
+			sum: hasNumericValues ? sum : 0,
+			average: hasNumericValues && count > 0 ? sum / count : 0,
+			min: hasNumericValues ? min : null,
+			max: hasNumericValues ? max : null
+		});
+	}
+
+
+	// Global keyboard handler for undo/redo
+	function handleGlobalKeyDown(event) {
+		if (handleUndoRedoKeyboard(event, handleUndo, handleRedo)) {
+			return;
+		}
+	}
+
 
 	// Action handlers from child components - orchestrate actions between components
 	function handleAction(event) {
@@ -91,11 +196,12 @@
 				dispatch('cut');
 				break;
 			case 'undo':
-				dispatch('undo');
+				handleUndo();
 				break;
 			case 'redo':
-				dispatch('redo');
+				handleRedo();
 				break;
+
 			case 'selectAll':
 				dispatch('selectAll');
 				break;
@@ -143,11 +249,22 @@
 	onMount(() => {
 		// Initialize any required setup
 		console.log('Spreadsheet component mounted');
+		
+		// Initialize history with debounced push
+		debouncedHistoryPush = createDebouncedPush(spreadsheetHistory, 300);
+		
+		// Add keyboard listener for undo/redo
+		document.addEventListener('keydown', handleGlobalKeyDown);
+		
+		// Save initial state
+		saveToHistory('initial');
 	});
 
 	onDestroy(() => {
-		// Cleanup if needed
+		// Cleanup
+		document.removeEventListener('keydown', handleGlobalKeyDown);
 	});
+
 
 	// Apply template when selectedTemplate changes
 	$: if (selectedTemplate && selectedTemplate.data) {
@@ -184,26 +301,40 @@
 			});
 			cellFormats.set(stylesMap);
 		}
+		
+		// Save to history after template application
+		setTimeout(() => saveToHistory('templateApply'), 0);
 	}
+
 </script>
 
 
 
-<div class="flex flex-col h-full">
+<div class="flex flex-col h-full bg-white">
+	<!-- Quick Access Toolbar -->
+	<QuickAccessToolbar on:action={handleAction} />
+
 	<!-- Menu Bar -->
 	<SpreadsheetMenuBar on:action={handleAction} />
 
 	<!-- Customizable Ribbon -->
-	<SpreadsheetRibbon on:action={handleAction} />
+	<SpreadsheetRibbon 
+		on:action={handleAction}
+	/>
 
-	<!-- Professional Toolbar -->
-	<SpreadsheetToolbar on:action={handleAction} />
-
-	<!-- Formula bar -->
+	<!-- Formula bar with Name Box -->
 	<FormulaBar on:action={handleAction} />
 
 	<!-- Spreadsheet grid -->
-	<SpreadsheetGrid on:action={handleAction} />
+	<div class="flex-1 overflow-hidden relative">
+		<SpreadsheetGrid on:action={handleAction} />
+	</div>
+
+	<!-- Sheet Tabs -->
+	<SheetTabs on:action={handleAction} />
+
+	<!-- Status Bar -->
+	<SpreadsheetStatusBar on:action={handleAction} />
 </div>
 
 <!-- Modals -->

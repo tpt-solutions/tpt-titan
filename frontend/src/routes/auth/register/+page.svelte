@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 
 	// Accept framework-provided props to avoid warnings
-	export let params = null;
 	export let data = null;
 	export let form = null;
 

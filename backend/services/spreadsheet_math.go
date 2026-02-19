@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -152,7 +151,7 @@ func (sms *SpreadsheetMathService) EvaluateFormula(formula string, cellResolver 
 	}
 
 	dataType := "number"
-	switch v := result.(type) {
+	switch result.(type) {
 	case string:
 		dataType = "string"
 	case bool:
@@ -338,7 +337,7 @@ func (sms *SpreadsheetMathService) evaluateArithmetic(expr string, cellResolver 
 			if err != nil {
 				return nil, err
 			}
-			return toFloat64(left) + toFloat64(right), nil
+			return spreadsheetToFloat64(left) + spreadsheetToFloat64(right), nil
 		}
 	}
 
@@ -353,7 +352,7 @@ func (sms *SpreadsheetMathService) evaluateArithmetic(expr string, cellResolver 
 			if err != nil {
 				return nil, err
 			}
-			return toFloat64(left) - toFloat64(right), nil
+			return spreadsheetToFloat64(left) - spreadsheetToFloat64(right), nil
 		}
 	}
 
@@ -376,14 +375,14 @@ func (sms *SpreadsheetMathService) evaluateSimpleTerm(term string, cellResolver 
 		if err != nil {
 			return 0, err
 		}
-		return toFloat64(value), nil
+		return spreadsheetToFloat64(value), nil
 	}
 
 	return 0, fmt.Errorf("invalid term: %s", term)
 }
 
-// toFloat64 converts various numeric types to float64
-func toFloat64(value interface{}) float64 {
+// spreadsheetToFloat64 converts various numeric types to float64
+func spreadsheetToFloat64(value interface{}) float64 {
 	switch v := value.(type) {
 	case float64:
 		return v

@@ -599,6 +599,14 @@ func (css *CalendarSharingService) canUserShareCalendar(calendarID, userID uuid.
 }
 
 func (css *CalendarSharingService) canUserInvite(calendarID, userID uuid.UUID) bool {
+	// Calendar owners can always invite others
+	var ownerID uuid.UUID
+	err := css.db.QueryRow("SELECT user_id FROM calendars WHERE id = $1", calendarID).Scan(&ownerID)
+	if err == nil && ownerID == userID {
+		return true
+	}
+
+	// Otherwise check if the user has a share with CanInviteOthers set
 	share, err := css.getExistingShare(calendarID, userID)
 	if err != nil {
 		return false

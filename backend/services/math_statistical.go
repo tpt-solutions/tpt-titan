@@ -1,6 +1,9 @@
 package services
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 // Statistical functions
 

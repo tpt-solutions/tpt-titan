@@ -2,10 +2,13 @@
 	import {
 		activeRibbonTab,
 		ribbonTabs,
-		showRibbonCustomizer
+		showRibbonCustomizer,
+		canUndo,
+		canRedo
 	} from '../stores/spreadsheet-store.js';
 
 	// Default available tools
+
 	const defaultAvailableTools = [
 		// File operations
 		{ id: 'save', name: 'Save', icon: '💾', category: 'file', shortcut: 'Ctrl+S' },
@@ -50,8 +53,10 @@
 	let availableTools = defaultAvailableTools;
 
 	// Dispatch events to parent
+
 	import { createEventDispatcher } from 'svelte';
 	const dispatch = createEventDispatcher();
+
 
 	function dispatchAction(action, data = {}) {
 		dispatch('action', { action, ...data });
@@ -173,11 +178,14 @@
 				<div class="flex flex-wrap gap-2">
 					{#each tab.tools as tool, toolIndex}
 						<div class="group relative">
-							<button
-								class="flex flex-col items-center justify-center w-12 h-12 p-2 text-sm border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 transition-colors"
-								title="{tool.name}{tool.shortcut ? ` (${tool.shortcut})` : ''}"
-								on:click={() => handleToolClick(tool)}
-							>
+						<button
+							class="flex flex-col items-center justify-center w-12 h-12 p-2 text-sm border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white"
+							title="{tool.name}{tool.shortcut ? ` (${tool.shortcut})` : ''}"
+							on:click={() => handleToolClick(tool)}
+							disabled={(tool.id === 'undo' && !$canUndo) || (tool.id === 'redo' && !$canRedo)}
+
+						>
+
 								<span class="text-lg">{tool.icon}</span>
 								<span class="text-xs mt-1 truncate w-full">{tool.name.split(' ')[0]}</span>
 							</button>

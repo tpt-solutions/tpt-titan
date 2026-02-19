@@ -11,8 +11,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
-	"tpt-titan-simple/backend/models"
-	"tpt-titan-simple/backend/utils"
+	"tpt-titan/backend/models"
+	"tpt-titan/backend/utils"
 )
 
 var jwtSecret []byte

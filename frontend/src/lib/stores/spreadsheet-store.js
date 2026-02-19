@@ -87,7 +87,31 @@ export const maxUndoSteps = writable(50);
 export const mode = writable('simple'); // 'simple' or 'advanced'
 export const selectedTemplate = writable(null);
 
+// Sheet management state
+export const sheets = writable([
+	{ id: 'sheet1', name: 'Sheet1', data: Array(100).fill().map(() => Array(26).fill('')) }
+]);
+export const activeSheetId = writable('sheet1');
+export const sheetCounter = writable(1); // For generating new sheet names
+
+// Status bar state
+export const statusBarInfo = writable({
+	selectedCount: 0,
+	sum: 0,
+	average: 0,
+	min: null,
+	max: null
+});
+
+// Zoom state
+export const zoomLevel = writable(100); // Percentage
+
+// Undo/Redo availability state (for UI)
+export const canUndo = writable(false);
+export const canRedo = writable(false);
+
 // Find & Replace state
+
 export const findText = writable('');
 export const replaceText = writable('');
 export const findResults = writable([]);

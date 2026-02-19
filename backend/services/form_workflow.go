@@ -3,9 +3,11 @@ package services
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"tpt-titan/backend/models"
 )
 
 // FormWorkflowService manages workflow automation for forms
@@ -282,6 +284,7 @@ func (fws *FormWorkflowService) executeAssignmentStep(instance *WorkflowInstance
 
 	// Update record assignment in database
 	// This would depend on your form response structure
+	fmt.Printf("Assigning record %s to %s\n", instance.RecordID, assignee)
 
 	return nil
 }
@@ -575,7 +578,12 @@ func (fws *FormWorkflowService) sendEmailNotification(recipientID uuid.UUID, sub
 	}
 
 	// Send email using email service
-	return fws.emailService.SendEmail([]string{email}, subject, body, "")
+	_, err = fws.emailService.SendEmail(recipientID, models.EmailRequest{
+		RecipientEmails: []string{email},
+		Subject:         subject,
+		Content:         body,
+	})
+	return err
 }
 
 func (fws *FormWorkflowService) sendInAppNotification(recipientID uuid.UUID, title, message string) error {
@@ -624,6 +632,7 @@ func (fws *FormWorkflowService) executeFieldUpdateAction(step WorkflowStep, reco
 	}
 
 	// Update the field (would need to handle JSON field updates in form_responses)
+	fmt.Printf("Updating field %q to %v in record %s\n", field, value, recordID)
 	return nil
 }
 
@@ -635,6 +644,7 @@ func (fws *FormWorkflowService) executeRecordCreationAction(step WorkflowStep, i
 	}
 
 	// Create new record logic
+	fmt.Printf("Creating new record in form %s from instance %s\n", targetForm, instance.ID)
 	return nil
 }
 

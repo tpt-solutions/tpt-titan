@@ -4,9 +4,9 @@
 	import { onMount } from 'svelte';
 
 	// Accept framework-provided props to avoid warnings
-	export const params = null;
 	export const data = null;
 	export const form = null;
+
 
 	let mode = 'simple'; // 'simple' or 'advanced'
 	let showTemplates = true; // Show template selector initially

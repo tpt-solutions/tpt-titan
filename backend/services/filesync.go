@@ -356,8 +356,13 @@ func (s *FileSyncService) SyncFolder(userID uuid.UUID, folderID uuid.UUID, devic
 		return nil, fmt.Errorf("failed to get file changes: %w", err)
 	}
 
+	// Convert file changes to path->hash map for conflict detection
+	remoteChangeMap := make(map[string]string)
+	for _, c := range changes {
+		remoteChangeMap[c.Path] = c.Hash
+	}
 	// Check for conflicts
-	conflicts, err := s.detectConflicts(folderID, deviceID, localHashes, changes)
+	conflicts, err := s.detectConflicts(folderID, deviceID, localHashes, remoteChangeMap)
 	if err != nil {
 		return nil, fmt.Errorf("failed to detect conflicts: %w", err)
 	}
@@ -688,7 +693,7 @@ func (s *FileSyncService) handleFileEvent(folderID uuid.UUID, relPath, eventType
 	}
 
 	// Store the event (in production, this would trigger sync operations)
-	log.Printf("File event: %s %s", eventType, relPath)
+	log.Printf("File event: %s %s (id=%s)", eventType, relPath, event.ID)
 
 	// For now, just log. In production, this would:
 	// 1. Check if file should be synced

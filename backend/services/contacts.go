@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"tpt-titan-simple/backend/models"
+	"tpt-titan/backend/models"
 )
 
 // ContactService handles contact-related business logic

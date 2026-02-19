@@ -2,12 +2,12 @@ package services
 
 import (
 	"bytes"
-	"crypto"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -18,6 +18,7 @@ import (
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/argon2"
 )
 
 // PGPEncryptionService provides PGP encryption and decryption for emails
@@ -318,7 +319,7 @@ func (pes *PGPEncryptionService) VerifySignature(message, signature string, sign
 	}
 
 	// Verify signature
-	_, err = openpgp.CheckDetachedSignature(strings.NewReader(message), strings.NewReader(signature), publicKey)
+	_, err = openpgp.CheckDetachedSignature(openpgp.EntityList{publicKey}, strings.NewReader(message), strings.NewReader(signature), nil)
 	if err != nil {
 		return false, fmt.Errorf("signature verification failed: %w", err)
 	}
@@ -454,8 +455,63 @@ func (pes *PGPEncryptionService) encryptPrivateKey(privateKey *rsa.PrivateKey, p
 }
 
 func (pes *PGPEncryptionService) encryptWithPassphrase(data []byte, passphrase string) ([]byte, error) {
-	// Simple encryption - would use proper encryption in production
-	return data, nil
+	// Generate random salt (32 bytes)
+	salt := make([]byte, 32)
+	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
+		return nil, fmt.Errorf("failed to generate salt: %w", err)
+	}
+
+	// Derive 256-bit key using Argon2id
+	key := argon2.IDKey([]byte(passphrase), salt, 1, 64*1024, 4, 32)
+
+	// Encrypt with AES-256-GCM
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create AES cipher: %w", err)
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GCM: %w", err)
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, fmt.Errorf("failed to generate nonce: %w", err)
+	}
+
+	// Layout: salt (32 bytes) | nonce | ciphertext+tag
+	ciphertext := gcm.Seal(nonce, nonce, data, nil)
+	return append(salt, ciphertext...), nil
+}
+
+func (pes *PGPEncryptionService) decryptWithPassphrase(encryptedData []byte, passphrase string) ([]byte, error) {
+	if len(encryptedData) < 32 {
+		return nil, fmt.Errorf("encrypted data too short")
+	}
+
+	salt := encryptedData[:32]
+	rest := encryptedData[32:]
+
+	key := argon2.IDKey([]byte(passphrase), salt, 1, 64*1024, 4, 32)
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create AES cipher: %w", err)
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GCM: %w", err)
+	}
+
+	nonceSize := gcm.NonceSize()
+	if len(rest) < nonceSize {
+		return nil, fmt.Errorf("ciphertext too short")
+	}
+
+	nonce, ciphertext := rest[:nonceSize], rest[nonceSize:]
+	return gcm.Open(nil, nonce, ciphertext, nil)
 }
 
 func (pes *PGPEncryptionService) parsePublicKey(armoredKey string) (*packet.PublicKey, error) {
@@ -567,10 +623,9 @@ func (pks *PGPKeyStore) GetKeyPairs(userID uuid.UUID) ([]PGPKeyPair, error) {
 
 func (pks *PGPKeyStore) GetPublicKeys(userID uuid.UUID) ([]PublicKeyInfo, error) {
 	var keys []PublicKeyInfo
-	for email, armoredKey := range pks.publicKeys[userID.String()] {
-		// Parse key to get info
+	for email := range pks.publicKeys[userID.String()] {
 		keys = append(keys, PublicKeyInfo{
-			UserID: email,
+			UserID: userID.String(),
 			Email:  email,
 		})
 	}
@@ -578,13 +633,46 @@ func (pks *PGPKeyStore) GetPublicKeys(userID uuid.UUID) ([]PublicKeyInfo, error)
 }
 
 func (pks *PGPKeyStore) GetPublicKeyEntity(email string) (*openpgp.Entity, error) {
-	// Simplified - would parse armored key
-	return nil, fmt.Errorf("not implemented")
+	for _, userKeys := range pks.publicKeys {
+		if armoredKey, ok := userKeys[email]; ok {
+			entityList, err := openpgp.ReadArmoredKeyRing(strings.NewReader(armoredKey))
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse public key for %s: %w", email, err)
+			}
+			if len(entityList) == 0 {
+				return nil, fmt.Errorf("no entity found in key for %s", email)
+			}
+			return entityList[0], nil
+		}
+	}
+	return nil, fmt.Errorf("no public key found for email: %s", email)
 }
 
 func (pks *PGPKeyStore) GetPrivateKeyEntity(userID uuid.UUID, passphrase string) (openpgp.EntityList, error) {
-	// Simplified - would decrypt and parse private key
-	return nil, fmt.Errorf("not implemented")
+	for _, pair := range pks.keyPairs {
+		if pair.UserID != userID || !pair.IsActive {
+			continue
+		}
+		entityList, err := openpgp.ReadArmoredKeyRing(strings.NewReader(pair.PublicKey))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse key ring: %w", err)
+		}
+		// Decrypt each private key subkey if needed
+		for _, entity := range entityList {
+			if entity.PrivateKey != nil && entity.PrivateKey.Encrypted {
+				if err := entity.PrivateKey.Decrypt([]byte(passphrase)); err != nil {
+					return nil, fmt.Errorf("failed to decrypt private key with passphrase: %w", err)
+				}
+			}
+			for _, sub := range entity.Subkeys {
+				if sub.PrivateKey != nil && sub.PrivateKey.Encrypted {
+					_ = sub.PrivateKey.Decrypt([]byte(passphrase))
+				}
+			}
+		}
+		return entityList, nil
+	}
+	return nil, fmt.Errorf("no active key pair found for user")
 }
 
 func (pks *PGPKeyStore) SetDefaultKey(userID uuid.UUID, keyID string) error {

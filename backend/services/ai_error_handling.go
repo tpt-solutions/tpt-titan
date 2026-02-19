@@ -3,6 +3,8 @@ package services
 import (
 	"fmt"
 	"log"
+	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -327,9 +329,3 @@ func contains(s string, substrings ...string) bool {
 	}
 	return false
 }
-
-// Import missing packages
-import (
-	"math/rand"
-	"strings"
-)

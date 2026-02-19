@@ -1,14 +1,10 @@
 package services
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math"
-	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -142,7 +138,7 @@ func (hrs *HandwritingRecognitionService) RecognizeEquationFromImage(imageData [
 	}
 
 	// Call image recognition API (simulated)
-	jsonData, _ := json.Marshal(request)
+	_, _ = json.Marshal(request) // serialise for future use
 
 	// Simulate API call
 	result := &RecognitionResult{
@@ -165,7 +161,7 @@ func (hrs *HandwritingRecognitionService) callRecognitionAPI(request Recognition
 	// In a real implementation, this would make an HTTP call to a machine learning service
 	// For now, simulate recognition based on stroke patterns
 
-	jsonData, err := json.Marshal(request)
+	_, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}

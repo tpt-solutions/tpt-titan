@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"io"
-	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -97,9 +96,11 @@ func (es *ExcelService) ImportExcel(fileData io.Reader, filename string) (*Excel
 	}
 
 	// Extract metadata
-	result.Metadata["creator"] = f.GetAppProps().Creator
-	result.Metadata["created"] = f.GetAppProps().Created
-	result.Metadata["modified"] = f.GetAppProps().Modified
+	if docProps, err := f.GetDocProps(); err == nil {
+		result.Metadata["creator"] = docProps.Creator
+		result.Metadata["created"] = docProps.Created
+		result.Metadata["modified"] = docProps.Modified
+	}
 	result.Metadata["sheet_count"] = len(sheetNames)
 
 	return result, nil
@@ -270,8 +271,8 @@ func (es *ExcelService) ExportExcel(spreadsheetID uuid.UUID, sheets []ExcelSheet
 	f.SetDocProps(&excelize.DocProperties{
 		Title:    fmt.Sprintf("TPT Titan Spreadsheet - %s", spreadsheetID.String()[:8]),
 		Creator:  "TPT Titan",
-		Created:  time.Now(),
-		Modified: time.Now(),
+		Created:  time.Now().Format(time.RFC3339),
+		Modified: time.Now().Format(time.RFC3339),
 	})
 
 	// Save to buffer
@@ -355,7 +356,7 @@ func (es *ExcelService) convertExcelStyle(f *excelize.File, styleID int) *ExcelS
 	}
 
 	// Convert fill/background
-	if excelStyle.Fill != nil && excelStyle.Fill.PatternType == "solid" {
+	if excelStyle.Fill.Type != "" && excelStyle.Fill.Pattern == 1 && len(excelStyle.Fill.Color) > 0 {
 		style.Background = excelStyle.Fill.Color[0]
 	}
 
@@ -380,9 +381,9 @@ func (es *ExcelService) convertExcelStyle(f *excelize.File, styleID int) *ExcelS
 		}
 	}
 
-	// Convert number format
-	if excelStyle.NumFmt != "" {
-		style.Format = excelStyle.NumFmt
+	// Convert number format (NumFmt is int in excelize v2)
+	if excelStyle.NumFmt != 0 {
+		style.Format = strconv.Itoa(excelStyle.NumFmt)
 	}
 
 	return style
@@ -520,10 +521,11 @@ func (es *ExcelService) GetExcelInfo(fileData io.Reader) (map[string]interface{}
 	info["sheet_names"] = sheets
 
 	// Get document properties
-	props := f.GetAppProps()
-	info["creator"] = props.Creator
-	info["created"] = props.Created
-	info["modified"] = props.Modified
+	if props, err := f.GetDocProps(); err == nil {
+		info["creator"] = props.Creator
+		info["created"] = props.Created
+		info["modified"] = props.Modified
+	}
 
 	// Get basic sheet info
 	sheetInfo := make(map[string]interface{})

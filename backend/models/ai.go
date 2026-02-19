@@ -1,3 +1,64 @@
+package models
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+// AIModel represents a configured AI model
+type AIModel struct {
+	ID           uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	UserID       uuid.UUID  `gorm:"type:uuid" json:"user_id,omitempty"`
+	Name         string     `gorm:"size:255;not null" json:"name"`
+	Type         string     `gorm:"size:50;not null" json:"type"`         // "local", "cloud"
+	Provider     string     `gorm:"size:100;not null" json:"provider"`    // "ollama", "openrouter"
+	ModelID      string     `gorm:"size:255;not null" json:"model_id"`
+	Capabilities []string   `gorm:"serializer:json" json:"capabilities"`
+	IsSystem     bool       `gorm:"default:false" json:"is_system"`
+	IsActive     bool       `gorm:"default:true" json:"is_active"`
+	APIKey       []byte     `json:"-"` // Encrypted
+	Endpoint     string     `gorm:"size:500" json:"endpoint,omitempty"`
+	Priority     int        `gorm:"default:0" json:"priority"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+}
+
+// AITask represents a configured AI task/use-case for a user
+type AITask struct {
+	ID          uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	UserID      uuid.UUID `gorm:"type:uuid" json:"user_id,omitempty"`
+	ModelID     uuid.UUID `gorm:"type:uuid" json:"model_id,omitempty"`
+	Name        string    `gorm:"size:255;not null" json:"name"`
+	Description string    `gorm:"type:text" json:"description"`
+	Category    string    `gorm:"size:100;not null" json:"category"`
+	Priority    int       `gorm:"default:1" json:"priority"`
+	IsActive    bool      `gorm:"default:true" json:"is_active"`
+	Config      string    `gorm:"type:jsonb" json:"config,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// AIRequest represents a single AI inference request
+type AIRequest struct {
+	ID          uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	UserID      uuid.UUID  `gorm:"type:uuid;not null" json:"user_id"`
+	ModelID     uuid.UUID  `gorm:"type:uuid;not null" json:"model_id"`
+	TaskID      uuid.UUID  `gorm:"type:uuid" json:"task_id,omitempty"`
+	InputType   string     `gorm:"size:50;default:'text'" json:"input_type"` // "text", "image", "audio"
+	Input       string     `gorm:"type:text" json:"input"`
+	Output      string     `gorm:"type:text" json:"output"`
+	Status      string     `gorm:"size:20;default:'pending'" json:"status"` // "pending","processing","completed","failed"
+	Error       string     `gorm:"type:text" json:"error,omitempty"`
+	Tokens      int        `gorm:"default:0" json:"tokens"`
+	Cost        float64    `gorm:"default:0" json:"cost"`
+	Duration    int        `gorm:"default:0" json:"duration_ms"`
+	StartedAt   *time.Time `json:"started_at,omitempty"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
 // DocumentAnalysis represents AI-processed document data
 type DocumentAnalysis struct {
 	ID          uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`

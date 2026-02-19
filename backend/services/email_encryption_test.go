@@ -1,249 +1,326 @@
+// backend/services/email_encryption_test.go
+// Run with: cd backend && go test ./services/... -run TestPGP -v
+
 package services
 
 import (
+	"strings"
 	"testing"
-	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/google/uuid"
 )
 
-// TestPGPKeyGeneration tests PGP key pair generation
-func TestPGPKeyGeneration(t *testing.T) {
-	pgpService := &PGPService{}
+// ─── Service construction ─────────────────────────────────────────────────────
 
-	// Test key generation
-	privateKey, publicKey, err := pgpService.GenerateKeyPair("test@example.com", "Test User")
-
-	assert.NoError(t, err)
-	assert.NotNil(t, privateKey)
-	assert.NotNil(t, publicKey)
-	assert.Contains(t, privateKey, "BEGIN PGP PRIVATE KEY")
-	assert.Contains(t, publicKey, "BEGIN PGP PUBLIC KEY")
-	assert.Contains(t, publicKey, "test@example.com")
-	assert.Contains(t, publicKey, "Test User")
-}
-
-// TestPGPEncryptionDecryption tests basic encryption/decryption cycle
-func TestPGPEncryptionDecryption(t *testing.T) {
-	pgpService := &PGPService{}
-
-	// Generate test key pair
-	privateKey, publicKey, err := pgpService.GenerateKeyPair("test@example.com", "Test User")
-	require.NoError(t, err)
-
-	testMessage := "This is a test message for PGP encryption/decryption."
-
-	// Encrypt the message
-	encryptedMessage, err := pgpService.EncryptMessage(testMessage, publicKey)
-	assert.NoError(t, err)
-	assert.NotNil(t, encryptedMessage)
-	assert.Contains(t, encryptedMessage, "BEGIN PGP MESSAGE")
-	assert.NotEqual(t, testMessage, encryptedMessage)
-
-	// Decrypt the message
-	decryptedMessage, err := pgpService.DecryptMessage(encryptedMessage, privateKey, "")
-	assert.NoError(t, err)
-	assert.Equal(t, testMessage, decryptedMessage)
-}
-
-// TestPGPSigningVerification tests digital signature creation and verification
-func TestPGPSigningVerification(t *testing.T) {
-	pgpService := &PGPService{}
-
-	// Generate test key pair
-	privateKey, publicKey, err := pgpService.GenerateKeyPair("test@example.com", "Test User")
-	require.NoError(t, err)
-
-	testMessage := "This is a test message for PGP signing."
-
-	// Sign the message
-	signature, err := pgpService.SignMessage(testMessage, privateKey, "")
-	assert.NoError(t, err)
-	assert.NotNil(t, signature)
-	assert.Contains(t, signature, "BEGIN PGP SIGNATURE")
-
-	// Verify the signature
-	isValid, err := pgpService.VerifySignature(testMessage, signature, publicKey)
-	assert.NoError(t, err)
-	assert.True(t, isValid)
-}
-
-// TestPGPKeyImportExport tests key import/export functionality
-func TestPGPKeyImportExport(t *testing.T) {
-	pgpService := &PGPService{}
-
-	// Generate test key pair
-	privateKey, publicKey, err := pgpService.GenerateKeyPair("test@example.com", "Test User")
-	require.NoError(t, err)
-
-	// Test public key export (should be same as generated)
-	exportedPublicKey, err := pgpService.ExportPublicKey(privateKey)
-	assert.NoError(t, err)
-	assert.Equal(t, publicKey, exportedPublicKey)
-
-	// Test key fingerprint generation
-	fingerprint, err := pgpService.GetKeyFingerprint(publicKey)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, fingerprint)
-	assert.Len(t, fingerprint, 40) // PGP fingerprints are 40 characters
-}
-
-// TestPGPEncryptedEmailProcessing tests email encryption workflow
-func TestPGPEncryptedEmailProcessing(t *testing.T) {
-	pgpService := &PGPService{}
-
-	// Generate key pairs for sender and recipient
-	senderPrivate, senderPublic, err := pgpService.GenerateKeyPair("sender@example.com", "Sender User")
-	require.NoError(t, err)
-
-	recipientPrivate, recipientPublic, err := pgpService.GenerateKeyPair("recipient@example.com", "Recipient User")
-	require.NoError(t, err)
-
-	emailContent := "This is a confidential email message."
-	emailSubject := "Confidential Subject"
-
-	// Encrypt email for recipient
-	encryptedContent, err := pgpService.EncryptEmail(emailContent, recipientPublic)
-	assert.NoError(t, err)
-	assert.NotEqual(t, emailContent, encryptedContent)
-
-	// Sign the email
-	signature, err := pgpService.SignEmail(emailContent, senderPrivate, "")
-	assert.NoError(t, err)
-
-	// Verify recipient can decrypt
-	decryptedContent, err := pgpService.DecryptEmail(encryptedContent, recipientPrivate, "")
-	assert.NoError(t, err)
-	assert.Equal(t, emailContent, decryptedContent)
-
-	// Verify signature
-	isValidSignature, err := pgpService.VerifyEmailSignature(emailContent, signature, senderPublic)
-	assert.NoError(t, err)
-	assert.True(t, isValidSignature)
-}
-
-// TestPGPKeyManagement tests key storage and retrieval
-func TestPGPKeyManagement(t *testing.T) {
-	pgpService := &PGPService{}
-
-	// Generate test key
-	privateKey, publicKey, err := pgpService.GenerateKeyPair("user@example.com", "Test User")
-	require.NoError(t, err)
-
-	userID := "test-user-123"
-
-	// Test key storage simulation (in real implementation, this would go to database)
-	err = pgpService.StorePrivateKey(userID, privateKey, "test-password")
-	assert.NoError(t, err)
-
-	err = pgpService.StorePublicKey(userID, publicKey)
-	assert.NoError(t, err)
-
-	// Test key retrieval simulation
-	retrievedPrivate, err := pgpService.GetPrivateKey(userID, "test-password")
-	assert.NoError(t, err)
-	assert.Equal(t, privateKey, retrievedPrivate)
-
-	retrievedPublic, err := pgpService.GetPublicKey(userID)
-	assert.NoError(t, err)
-	assert.Equal(t, publicKey, retrievedPublic)
-}
-
-// TestPGPErrorHandling tests error conditions
-func TestPGPErrorHandling(t *testing.T) {
-	pgpService := &PGPService{}
-
-	// Test decryption with wrong key
-	encryptedMessage := "-----BEGIN PGP MESSAGE-----\nInvalid\n-----END PGP MESSAGE-----"
-	_, err := pgpService.DecryptMessage(encryptedMessage, "invalid-key", "")
-	assert.Error(t, err)
-
-	// Test signature verification with wrong key
-	signature := "-----BEGIN PGP SIGNATURE-----\nInvalid\n-----END PGP SIGNATURE-----"
-	_, err = pgpService.VerifySignature("test", signature, "invalid-key")
-	assert.Error(t, err)
-
-	// Test key generation with invalid email
-	_, _, err = pgpService.GenerateKeyPair("", "Test User")
-	assert.Error(t, err)
-
-	// Test key generation with invalid name
-	_, _, err = pgpService.GenerateKeyPair("test@example.com", "")
-	assert.Error(t, err)
-}
-
-// TestPGPBatchOperations tests batch encryption/decryption
-func TestPGPBatchOperations(t *testing.T) {
-	pgpService := &PGPService{}
-
-	// Generate multiple key pairs
-	keyPairs := make(map[string]string)
-	userIDs := []string{"user1", "user2", "user3"}
-
-	for _, userID := range userIDs {
-		_, publicKey, err := pgpService.GenerateKeyPair(userID+"@example.com", "User "+userID)
-		require.NoError(t, err)
-		keyPairs[userID] = publicKey
+func TestNewPGPEncryptionService(t *testing.T) {
+	svc := NewPGPEncryptionService()
+	if svc == nil {
+		t.Fatal("expected non-nil PGPEncryptionService")
 	}
-
-	testMessage := "Batch test message"
-
-	// Encrypt message for multiple recipients
-	encryptedMessages, err := pgpService.EncryptForMultipleRecipients(testMessage, []string{keyPairs["user1"], keyPairs["user2"], keyPairs["user3"]})
-	assert.NoError(t, err)
-	assert.Len(t, encryptedMessages, 3)
-
-	// Each recipient should be able to decrypt their copy
-	for i, userID := range userIDs {
-		// In real implementation, we'd get private key for userID
-		// For test, we'll use the public key as placeholder
-		_, err := pgpService.DecryptMessage(encryptedMessages[i], "placeholder-private-key", "")
-		// This will fail because we don't have real private keys, but structure is tested
-		assert.Error(t, err) // Expected to fail in test environment
+	if svc.keyStore == nil {
+		t.Fatal("expected non-nil key store")
 	}
 }
 
-// TestPGPKeyRevocation tests key revocation functionality
-func TestPGPKeyRevocation(t *testing.T) {
-	pgpService := &PGPService{}
-
-	// Generate test key
-	privateKey, publicKey, err := pgpService.GenerateKeyPair("user@example.com", "Test User")
-	require.NoError(t, err)
-
-	// Test key revocation
-	revocationCert, err := pgpService.RevokeKey(privateKey, "Key compromised")
-	assert.NoError(t, err)
-	assert.NotNil(t, revocationCert)
-	assert.Contains(t, revocationCert, "BEGIN PGP PUBLIC KEY")
-
-	// Test revocation verification
-	isRevoked, err := pgpService.IsKeyRevoked(publicKey, revocationCert)
-	assert.NoError(t, err)
-	assert.True(t, isRevoked)
+func TestNewPGPKeyStore(t *testing.T) {
+	ks := NewPGPKeyStore()
+	if ks == nil {
+		t.Fatal("expected non-nil PGPKeyStore")
+	}
 }
 
-// TestPGPKeyExpiration tests key expiration handling
-func TestPGPKeyExpiration(t *testing.T) {
-	pgpService := &PGPService{}
+// ─── Key store – empty queries ────────────────────────────────────────────────
 
-	// Generate key with expiration
-	expiration := time.Now().Add(24 * time.Hour) // Expires in 24 hours
-	privateKey, publicKey, err := pgpService.GenerateKeyPairWithExpiration("user@example.com", "Test User", expiration)
-	require.NoError(t, err)
+func TestGetKeyPairs_EmptyStore(t *testing.T) {
+	svc := NewPGPEncryptionService()
+	pairs, err := svc.GetKeyPairs(uuid.New())
+	if err != nil {
+		t.Fatalf("GetKeyPairs: %v", err)
+	}
+	if len(pairs) != 0 {
+		t.Errorf("expected 0 key pairs on empty store, got %d", len(pairs))
+	}
+}
 
-	// Test expiration check - should not be expired yet
-	isExpired, err := pgpService.IsKeyExpired(publicKey)
-	assert.NoError(t, err)
-	assert.False(t, isExpired)
+func TestGetPublicKeys_EmptyStore(t *testing.T) {
+	svc := NewPGPEncryptionService()
+	keys, err := svc.GetPublicKeys(uuid.New())
+	if err != nil {
+		t.Fatalf("GetPublicKeys: %v", err)
+	}
+	if len(keys) != 0 {
+		t.Errorf("expected 0 public keys, got %d", len(keys))
+	}
+}
 
-	// Test with expired key (create expired key for test)
-	pastExpiration := time.Now().Add(-24 * time.Hour) // Already expired
-	expiredPrivate, expiredPublic, err := pgpService.GenerateKeyPairWithExpiration("expired@example.com", "Expired User", pastExpiration)
-	require.NoError(t, err)
+func TestGetKeyStats_EmptyStore(t *testing.T) {
+	svc := NewPGPEncryptionService()
+	stats, err := svc.GetKeyStats(uuid.New())
+	if err != nil {
+		t.Fatalf("GetKeyStats: %v", err)
+	}
+	if stats["key_pairs"] != 0 {
+		t.Errorf("expected 0 key_pairs, got %v", stats["key_pairs"])
+	}
+	if stats["public_keys"] != 0 {
+		t.Errorf("expected 0 public_keys, got %v", stats["public_keys"])
+	}
+}
 
-	isExpired, err = pgpService.IsKeyExpired(expiredPublic)
-	assert.NoError(t, err)
-	assert.True(t, isExpired)
+func TestGetPublicKeyEntity_UnknownEmail(t *testing.T) {
+	ks := NewPGPKeyStore()
+	_, err := ks.GetPublicKeyEntity("nobody@example.com")
+	if err == nil {
+		t.Error("expected error for unknown email")
+	}
+}
+
+func TestGetPrivateKeyEntity_UnknownUser(t *testing.T) {
+	ks := NewPGPKeyStore()
+	_, err := ks.GetPrivateKeyEntity(uuid.New(), "passphrase")
+	if err == nil {
+		t.Error("expected error for unknown user")
+	}
+}
+
+// ─── encryptWithPassphrase / decryptWithPassphrase ────────────────────────────
+
+func TestEncryptDecryptWithPassphrase_RoundTrip(t *testing.T) {
+	svc := NewPGPEncryptionService()
+	plaintext := []byte("top secret message")
+	passphrase := "hunter2"
+
+	ciphertext, err := svc.encryptWithPassphrase(plaintext, passphrase)
+	if err != nil {
+		t.Fatalf("encryptWithPassphrase: %v", err)
+	}
+
+	if string(ciphertext) == string(plaintext) {
+		t.Fatal("ciphertext must differ from plaintext")
+	}
+
+	recovered, err := svc.decryptWithPassphrase(ciphertext, passphrase)
+	if err != nil {
+		t.Fatalf("decryptWithPassphrase: %v", err)
+	}
+
+	if string(recovered) != string(plaintext) {
+		t.Errorf("round-trip failed: got %q, want %q", recovered, plaintext)
+	}
+}
+
+func TestEncryptWithPassphrase_DifferentOutputEachTime(t *testing.T) {
+	svc := NewPGPEncryptionService()
+	data := []byte("same data")
+	pass := "samepass"
+
+	ct1, err := svc.encryptWithPassphrase(data, pass)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ct2, err := svc.encryptWithPassphrase(data, pass)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(ct1) == string(ct2) {
+		t.Error("expected random salt to produce different ciphertexts each time")
+	}
+}
+
+func TestDecryptWithPassphrase_WrongPassphraseReturnsError(t *testing.T) {
+	svc := NewPGPEncryptionService()
+	ct, err := svc.encryptWithPassphrase([]byte("secret"), "correct-pass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = svc.decryptWithPassphrase(ct, "wrong-pass")
+	if err == nil {
+		t.Error("expected error when decrypting with wrong passphrase")
+	}
+}
+
+func TestDecryptWithPassphrase_TooShortReturnsError(t *testing.T) {
+	svc := NewPGPEncryptionService()
+	_, err := svc.decryptWithPassphrase([]byte("tooshort"), "pass")
+	if err == nil {
+		t.Error("expected error for too-short ciphertext")
+	}
+}
+
+// ─── SaveKeyPair / GetKeyPairs ────────────────────────────────────────────────
+
+func TestSaveKeyPair_ThenGetKeyPairs(t *testing.T) {
+	ks := NewPGPKeyStore()
+	userID := uuid.New()
+
+	pair := &PGPKeyPair{
+		ID:       uuid.New(),
+		UserID:   userID,
+		Name:     "Test User",
+		Email:    "test@example.com",
+		IsActive: true,
+	}
+
+	if err := ks.SaveKeyPair(pair); err != nil {
+		t.Fatalf("SaveKeyPair: %v", err)
+	}
+
+	pairs, err := ks.GetKeyPairs(userID)
+	if err != nil {
+		t.Fatalf("GetKeyPairs: %v", err)
+	}
+
+	if len(pairs) != 1 {
+		t.Fatalf("expected 1 key pair, got %d", len(pairs))
+	}
+	if pairs[0].Email != "test@example.com" {
+		t.Errorf("expected email test@example.com, got %s", pairs[0].Email)
+	}
+}
+
+func TestSaveKeyPair_MultipleUsers_IsolatesResults(t *testing.T) {
+	ks := NewPGPKeyStore()
+	user1 := uuid.New()
+	user2 := uuid.New()
+
+	_ = ks.SaveKeyPair(&PGPKeyPair{ID: uuid.New(), UserID: user1, Email: "u1@example.com", IsActive: true})
+	_ = ks.SaveKeyPair(&PGPKeyPair{ID: uuid.New(), UserID: user1, Email: "u1b@example.com", IsActive: true})
+	_ = ks.SaveKeyPair(&PGPKeyPair{ID: uuid.New(), UserID: user2, Email: "u2@example.com", IsActive: true})
+
+	pairs1, _ := ks.GetKeyPairs(user1)
+	pairs2, _ := ks.GetKeyPairs(user2)
+
+	if len(pairs1) != 2 {
+		t.Errorf("user1 expected 2 pairs, got %d", len(pairs1))
+	}
+	if len(pairs2) != 1 {
+		t.Errorf("user2 expected 1 pair, got %d", len(pairs2))
+	}
+}
+
+// ─── SavePublicKey / GetPublicKeys ────────────────────────────────────────────
+
+func TestSavePublicKey_ThenGetPublicKeys(t *testing.T) {
+	ks := NewPGPKeyStore()
+	userID := uuid.New()
+
+	info := &PublicKeyInfo{
+		Email: "alice@example.com",
+		KeyID: "AABBCCDD",
+	}
+
+	if err := ks.SavePublicKey(userID, "armored-key-data", info); err != nil {
+		t.Fatalf("SavePublicKey: %v", err)
+	}
+
+	keys, err := ks.GetPublicKeys(userID)
+	if err != nil {
+		t.Fatalf("GetPublicKeys: %v", err)
+	}
+
+	if len(keys) != 1 {
+		t.Fatalf("expected 1 public key, got %d", len(keys))
+	}
+	if keys[0].Email != "alice@example.com" {
+		t.Errorf("expected email alice@example.com, got %s", keys[0].Email)
+	}
+	if keys[0].UserID != userID.String() {
+		t.Errorf("expected userID %s, got %s", userID, keys[0].UserID)
+	}
+}
+
+// ─── ExportPublicKey ──────────────────────────────────────────────────────────
+
+func TestExportPublicKey_FoundAndNotFound(t *testing.T) {
+	ks := NewPGPKeyStore()
+	userID := uuid.New()
+	keyID := uuid.New()
+
+	pair := &PGPKeyPair{
+		ID:        keyID,
+		UserID:    userID,
+		PublicKey: "-----BEGIN PGP PUBLIC KEY-----",
+		IsActive:  true,
+	}
+	_ = ks.SaveKeyPair(pair)
+
+	// Found case
+	exported, err := ks.ExportPublicKey(userID, keyID.String())
+	if err != nil {
+		t.Fatalf("ExportPublicKey: %v", err)
+	}
+	if !strings.HasPrefix(exported, "-----BEGIN") {
+		t.Errorf("unexpected key content: %s", exported)
+	}
+
+	// Not found case
+	_, err = ks.ExportPublicKey(userID, uuid.New().String())
+	if err == nil {
+		t.Error("expected error for non-existent key")
+	}
+}
+
+// ─── DeleteKeyPair ─────────────────────────────────────────────────────────────
+
+func TestDeleteKeyPair_RemovesFromStore(t *testing.T) {
+	ks := NewPGPKeyStore()
+	userID := uuid.New()
+	keyID := uuid.New()
+
+	_ = ks.SaveKeyPair(&PGPKeyPair{ID: keyID, UserID: userID, IsActive: true})
+
+	if err := ks.DeleteKeyPair(userID, keyID.String()); err != nil {
+		t.Fatalf("DeleteKeyPair: %v", err)
+	}
+
+	pairs, _ := ks.GetKeyPairs(userID)
+	if len(pairs) != 0 {
+		t.Errorf("expected 0 pairs after delete, got %d", len(pairs))
+	}
+}
+
+// ─── GetKeyStats ──────────────────────────────────────────────────────────────
+
+func TestGetKeyStats_AfterAdding(t *testing.T) {
+	svc := NewPGPEncryptionService()
+	userID := uuid.New()
+
+	_ = svc.keyStore.SaveKeyPair(&PGPKeyPair{ID: uuid.New(), UserID: userID, IsActive: true})
+	_ = svc.keyStore.SaveKeyPair(&PGPKeyPair{ID: uuid.New(), UserID: userID, IsActive: true})
+	_ = svc.keyStore.SavePublicKey(userID, "key-data", &PublicKeyInfo{Email: "a@b.com"})
+
+	stats, err := svc.GetKeyStats(userID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if stats["key_pairs"] != 2 {
+		t.Errorf("expected 2 key_pairs, got %v", stats["key_pairs"])
+	}
+	if stats["public_keys"] != 1 {
+		t.Errorf("expected 1 public_key, got %v", stats["public_keys"])
+	}
+	if stats["total_keys"] != 3 {
+		t.Errorf("expected total_keys=3, got %v", stats["total_keys"])
+	}
+}
+
+// ─── encryptPrivateKey ─────────────────────────────────────────────────────────
+
+func TestEncryptWithPassphrase_OutputLongerThanSalt(t *testing.T) {
+	svc := NewPGPEncryptionService()
+
+	// Output layout: 32-byte salt | nonce (12 bytes) | ciphertext+tag (≥ data + 16)
+	data := []byte("private key DER bytes here")
+	ct, err := svc.encryptWithPassphrase(data, "testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Minimum: 32 (salt) + 12 (nonce) + 16 (GCM tag) + len(data)
+	minExpected := 32 + 12 + 16 + len(data)
+	if len(ct) < minExpected {
+		t.Errorf("encrypted output too short: got %d bytes, want >= %d", len(ct), minExpected)
+	}
 }

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"tpt-titan-simple/backend/config"
-	"tpt-titan-simple/backend/middleware"
-	"tpt-titan-simple/backend/routes"
-	"tpt-titan-simple/backend/routes/auth"
-	"tpt-titan-simple/backend/services"
+	"tpt-titan/backend/config"
+	"tpt-titan/backend/middleware"
+	"tpt-titan/backend/routes"
+	"tpt-titan/backend/routes/auth"
+	"tpt-titan/backend/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -185,8 +185,19 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 			// Password management routes
 			protected.POST("/auth/change-password", auth.ChangePassword)
 
-			// Spreadsheet routes - TODO: Implement
-			// spreadsheetGroup := protected.Group("/spreadsheets")
+			// Spreadsheet routes
+			spreadsheetGroup := protected.Group("/spreadsheets")
+			{
+				spreadsheetGroup.POST("", routes.CreateSpreadsheet)
+				spreadsheetGroup.GET("/:id", routes.GetSpreadsheet)
+				spreadsheetGroup.PUT("/:id/cells", routes.UpdateSpreadsheetCell)
+				spreadsheetGroup.GET("/:id/version", routes.GetSpreadsheetVersion)
+				spreadsheetGroup.PUT("/:id/batch", routes.UpdateSpreadsheetBatch)
+				spreadsheetGroup.GET("/:id/changes", routes.GetSpreadsheetChanges)
+				spreadsheetGroup.POST("/:id/lock", routes.LockSpreadsheetCells)
+				spreadsheetGroup.POST("/:id/unlock", routes.UnlockSpreadsheetCells)
+			}
+
 
 			// Basic Form routes
 			formGroup := protected.Group("/forms")

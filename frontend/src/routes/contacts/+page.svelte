@@ -6,7 +6,6 @@
 	import { contacts } from '$lib/stores';
 
 	// Accept framework-provided props to avoid warnings
-	export let params = null;
 	export let data = null;
 	export let form = null;
 

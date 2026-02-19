@@ -2,11 +2,9 @@ package services
 
 import (
 	"database/sql"
-	"encoding/base64"
+	"encoding/json"
 	"fmt"
-	"io"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -832,16 +830,12 @@ func (cies *ContactImportExportService) exportToCSV(contacts []VCardContact, opt
 func (cies *ContactImportExportService) exportToJSON(contacts []VCardContact, options ExportOptions) ([]byte, error) {
 	// Simple JSON export
 	result := map[string]interface{}{
-		"contacts": contacts,
+		"contacts":    contacts,
 		"exported_at": time.Now(),
-		"format": "json",
+		"format":      "json",
 	}
-
-	// Convert to JSON (simplified)
-	jsonData := fmt.Sprintf(`{"contacts": [], "exported_at": "%s", "format": "json"}`,
-		time.Now().Format(time.RFC3339))
-
-	return []byte(jsonData), nil
+	_ = options
+	return json.Marshal(result)
 }
 
 func (cies *ContactImportExportService) buildFullName(firstName, lastName *string) string {

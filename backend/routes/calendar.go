@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"net/http"
 	"time"
-	"tpt-titan-simple/backend/models"
-	"tpt-titan-simple/backend/services"
+	"tpt-titan/backend/models"
+	"tpt-titan/backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

@@ -1,5 +1,7 @@
 package services
 
+import "fmt"
+
 // Basic mathematical functions
 
 func (sms *SpreadsheetMathService) sum(args []float64) (float64, error) {

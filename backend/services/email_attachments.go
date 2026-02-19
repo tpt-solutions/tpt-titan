@@ -5,10 +5,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
-	"io"
-	"mime"
 	"net/mail"
-	"path/filepath"
 	"strings"
 	"time"
 

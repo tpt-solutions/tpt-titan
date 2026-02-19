@@ -256,7 +256,7 @@ func (bs *BackupService) ListBackups(userID *uuid.UUID) ([]BackupMetadata, error
 			continue
 		}
 
-		backupID, err := uuid.Parse(entry.Name())
+			_, err := uuid.Parse(entry.Name())
 		if err != nil {
 			continue // Skip invalid backup directories
 		}

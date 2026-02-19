@@ -2,7 +2,6 @@ package services
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -130,8 +129,6 @@ func (s *OllamaService) GenerateResponse(modelName, prompt string) (string, erro
 // AnalyzeDocument processes a document using vision models for OCR and analysis
 func (s *OllamaService) AnalyzeDocument(modelName string, imageData []byte, analysisType string) (*models.DocumentAnalysisResult, error) {
 	// Convert image data to base64 for Ollama API
-	base64Data := base64.StdEncoding.EncodeToString(imageData)
-
 	// Create analysis prompt based on type
 	prompt := s.createAnalysisPrompt(analysisType)
 
@@ -139,7 +136,7 @@ func (s *OllamaService) AnalyzeDocument(modelName string, imageData []byte, anal
 	req := api.GenerateRequest{
 		Model:  modelName,
 		Prompt: prompt,
-		Images: []api.ImageData{{Data: base64Data}},
+		Images: []api.ImageData{api.ImageData(imageData)},
 		Stream: &[]bool{false}[0],
 		Options: map[string]interface{}{
 			"temperature": 0.1, // Lower temperature for more consistent analysis

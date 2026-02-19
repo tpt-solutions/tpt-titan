@@ -25,12 +25,14 @@
 
 	function handleDragEnter(event, index) {
 		// Visual feedback for drop target
-		event.target.closest('.form-card').style.borderColor = '#3b82f6';
+		const card = event.target.closest('.form-card');
+		if (card) card.style.borderColor = '#3b82f6';
 	}
 
 	function handleDragLeave(event) {
 		// Remove visual feedback
-		event.target.closest('.form-card').style.borderColor = '#e5e7eb';
+		const card = event.target.closest('.form-card');
+		if (card) card.style.borderColor = '#e5e7eb';
 	}
 
 	function handleDrop(event, dropIndex) {

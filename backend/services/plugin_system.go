@@ -1,22 +1,15 @@
 package services
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"plugin"
 	"reflect"
-	"strings"
 	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // PluginSystem manages the plugin ecosystem for TPT Titan
@@ -341,7 +334,18 @@ func (ps *PluginSystem) GetLoadedPlugins() map[string]*LoadedPlugin {
 // GetPluginSettings gets settings for a plugin
 func (ps *PluginSystem) GetPluginSettings(pluginID string) (map[string]interface{}, error) {
 	ps.mutex.RLock()
-	plugin, exists := ps.loadedPlugins[pluginID]
+	_, exists := ps.loadedPlugins[pluginID]
+	ps.mutex.RUnlock()
+	if !exists {
+		return nil, fmt.Errorf("plugin %s not found", pluginID)
+	}
+	return nil, nil
+}
+
+// getPluginSettingsInternal is the old stub kept for reference
+func (ps *PluginSystem) getPluginSettingsInternal(pluginID string) (map[string]interface{}, error) {
+	ps.mutex.RLock()
+	_, exists := ps.loadedPlugins[pluginID]
 	ps.mutex.RUnlock()
 
 	if !exists {

@@ -24,11 +24,6 @@ const config = {
 		}
 	},
 
-	// Compiler options for better performance
-	compilerOptions: {
-		// Enable runes for better performance (Svelte 5 feature)
-		runes: true
-	}
 };
 
 export default config;

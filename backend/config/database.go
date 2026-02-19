@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"tpt-titan-simple/backend/models"
+	"tpt-titan/backend/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"tpt-titan-simple/backend/models"
+	"tpt-titan/backend/models"
 )
 
 // CalendarService handles calendar-related business logic

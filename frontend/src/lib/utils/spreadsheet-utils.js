@@ -1,12 +1,25 @@
 // Spreadsheet utility functions
 
 // Cell reference utilities
+// Supports columns beyond Z: A-Z, AA-AZ, BA-BZ, ..., ZA-ZZ, AAA, etc.
 export function getCellId(row, col) {
-	const cols = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
-	return `${cols[col]}${row + 1}`;
+	let colStr = '';
+	let c = col + 1; // Convert to 1-based
+	while (c > 0) {
+		c--;
+		colStr = String.fromCharCode(65 + (c % 26)) + colStr;
+		c = Math.floor(c / 26);
+	}
+	return `${colStr}${row + 1}`;
+}
+
+// Alias for parseCellReference - converts cell ID like "A1" to {row, col}
+export function getCellFromId(cellId) {
+	return parseCellReference(cellId);
 }
 
 export function parseCellReference(ref) {
+
 	const match = ref.match(/^([A-Z]+)(\d+)$/);
 	if (!match) return null;
 
@@ -109,16 +122,19 @@ export function parseClipboardData(clipboardText) {
 }
 
 // Formula utilities
+// Matches cell references (e.g. A1, AB12) but excludes function names (e.g. SUM, MAX)
+// by ensuring the match is NOT immediately followed by '(' which signals a function call.
 export function extractFormulaDependencies(formula) {
-	const dependencies = [];
-	const cellRefRegex = /([A-Z]+\d+)/g;
+	const dependencies = new Set();
+	// Use negative lookahead to exclude function calls like SUM( MAX( etc.
+	const cellRefRegex = /\b([A-Z]+\d+)\b(?!\s*\()/g;
 	let match;
 
 	while ((match = cellRefRegex.exec(formula)) !== null) {
-		dependencies.push(match[1]);
+		dependencies.add(match[1]);
 	}
 
-	return dependencies;
+	return Array.from(dependencies);
 }
 
 // Sorting utilities

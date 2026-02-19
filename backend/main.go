@@ -2,8 +2,8 @@ package main
 
 import (
 	"log"
-	"tpt-titan-simple/backend/config"
-	"tpt-titan-simple/backend/internal/server"
+	"tpt-titan/backend/config"
+	"tpt-titan/backend/internal/server"
 )
 
 func main() {

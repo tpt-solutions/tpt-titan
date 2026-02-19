@@ -1,15 +1,76 @@
 <script>
+	import { createEventDispatcher } from 'svelte';
 	import {
 		selectedCell,
 		formulaBar,
 		showFormulaHelp,
 		isFormulaRangeSelecting,
-		formulaBeingEdited
+		formulaBeingEdited,
+		selectedCells,
+		selectCellRange,
+		selectSingleCell
 	} from '../stores/spreadsheet-store.js';
 
-	import { getCellId } from '../utils/spreadsheet-utils.js';
+	import { getCellId, getCellFromId } from '../utils/spreadsheet-utils.js';
+
+	const dispatch = createEventDispatcher();
+
+	let nameBoxValue = '';
+
+	// Update name box when selected cell changes
+	$: if ($selectedCell) {
+		const selectedCount = $selectedCells.size;
+		if (selectedCount > 1) {
+			// Show range if multiple cells selected
+			const cells = Array.from($selectedCells).sort();
+			nameBoxValue = `${cells[0]}:${cells[cells.length - 1]}`;
+		} else {
+			nameBoxValue = getCellId($selectedCell.row, $selectedCell.col);
+		}
+	}
+
+	// Handle name box input for navigation
+	function handleNameBoxKeyDown(event) {
+		if (event.key === 'Enter') {
+			navigateToCell(nameBoxValue);
+		}
+	}
+
+	function navigateToCell(reference) {
+		// Parse cell reference (e.g., "A1", "B2:D10")
+		const rangeMatch = reference.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/);
+		const singleMatch = reference.match(/^([A-Z]+)(\d+)$/);
+
+		if (rangeMatch) {
+			// Range selection
+			const startCol = rangeMatch[1].charCodeAt(0) - 65;
+			const startRow = parseInt(rangeMatch[2]) - 1;
+			const endCol = rangeMatch[3].charCodeAt(0) - 65;
+			const endRow = parseInt(rangeMatch[4]) - 1;
+
+			if (isValidCell(startRow, startCol) && isValidCell(endRow, endCol)) {
+				selectCellRange(startRow, startCol, endRow, endCol);
+				selectedCell.set({ row: startRow, col: startCol });
+				dispatch('action', { action: 'selectCell', row: startRow, col: startCol });
+			}
+		} else if (singleMatch) {
+			// Single cell selection
+			const col = singleMatch[1].charCodeAt(0) - 65;
+			const row = parseInt(singleMatch[2]) - 1;
+
+			if (isValidCell(row, col)) {
+				selectSingleCell(row, col);
+				dispatch('action', { action: 'selectCell', row, col });
+			}
+		}
+	}
+
+	function isValidCell(row, col) {
+		return row >= 0 && row < 100 && col >= 0 && col < 26;
+	}
 
 	// Handle formula input to enable range selection for ANY function that needs ranges
+
 	function handleFormulaInput(event) {
 		const value = event.target.value;
 
@@ -66,12 +127,27 @@
 	}
 </script>
 
-<!-- Formula bar -->
+<!-- Formula bar with Name Box -->
 <div class="flex items-center px-4 py-2 border-b border-gray-200 bg-white">
-	<span class="text-sm font-medium text-gray-600 mr-2 w-16">
-		{$selectedCell ? getCellId($selectedCell.row, $selectedCell.col) : ''}
-	</span>
+	<!-- Name Box -->
+	<div class="flex items-center mr-4">
+		<span class="text-xs text-gray-500 mr-2">Name Box</span>
+		<input
+			type="text"
+			bind:value={nameBoxValue}
+			class="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium"
+			placeholder="A1"
+			on:keydown={handleNameBoxKeyDown}
+			title="Type cell reference (e.g., A1 or B2:D10) and press Enter"
+		/>
+	</div>
+
+	<div class="w-px h-6 bg-gray-300 mx-2"></div>
+
+	<!-- Formula Input -->
+	<span class="text-sm font-medium text-gray-600 mr-2">fx</span>
 	<div class="flex-1 relative">
+
 		<input
 			bind:value={$formulaBar}
 			placeholder="Enter formula or value"
