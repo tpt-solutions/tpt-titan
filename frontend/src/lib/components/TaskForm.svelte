@@ -1,6 +1,7 @@
 <script>
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import SpeechService from '../services/speech.js';
+
 
 	export let task = null; // Existing task to edit, or null for new
 	export let projects = [];

@@ -435,16 +435,16 @@ const WorkflowDesignerModal = create_ssr_component(($$result, $$props, $$binding
   })}</select> <p class="text-xs text-gray-500 mt-1">${escape(triggerTypes.find((t) => t.id === workflow.trigger)?.description)}</p></div> <div class="flex items-center"><input type="checkbox" id="workflow-active" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"${add_attribute("checked", workflow.isActive, 1)}> <label for="workflow-active" class="ml-2 text-sm text-gray-700" data-svelte-h="svelte-1y2xp7b">Activate workflow</label></div></div></div>`}</div></div></div></div>` : ``}`;
 });
 const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  const params = null;
   const data = null;
   const form = null;
+  const params = null;
   let forms = [];
   let showDatabaseRelationsModal = false;
   let showAdvancedReportsModal = false;
   let showWorkflowDesignerModal = false;
-  if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   if ($$props.data === void 0 && $$bindings.data && data !== void 0) $$bindings.data(data);
   if ($$props.form === void 0 && $$bindings.form && form !== void 0) $$bindings.form(form);
+  if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   return `${$$result.head += `<!-- HEAD_svelte-1wh74jd_START -->${$$result.title = `<title>Forms &amp; Templates - TPT Titan</title>`, ""}<!-- HEAD_svelte-1wh74jd_END -->`, ""} <div class="h-screen flex flex-col bg-gray-50"> <header class="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-white"><div class="flex items-center space-x-4" data-svelte-h="svelte-16kmn8v"><h1 class="text-xl font-semibold text-gray-900">Forms &amp; Templates</h1> <span class="text-sm text-gray-500">MS Access-style database features</span></div> <div class="flex items-center space-x-2">${`<button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" data-svelte-h="svelte-2ndb8s">Create Form</button>`}</div></header>  <div class="flex-1 overflow-hidden">${`${validate_component(FormList, "FormList").$$render($$result, { forms }, {}, {})}`}</div></div>  ${validate_component(DatabaseRelationsModal, "DatabaseRelationsModal").$$render(
     $$result,
     {

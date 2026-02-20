@@ -1,11 +1,17 @@
 <!-- frontend/src/lib/components/TextEditorBlockEditor.svelte -->
 <script>
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
+	import mathService from '$lib/services/math.js';
 
 	export let blocks = [];
 	export let selectedBlockIndex = 0;
 
 	const dispatch = createEventDispatcher();
+
+	// Track math conversion state
+	let mathConversions = {};
+	let convertingMath = {};
+
 
 	const blockTypes = {
 		text: { icon: '📝', placeholder: 'Type something...' },
@@ -36,42 +42,66 @@
 		return styles[blockType] || styles.text;
 	}
 
-	function parseMathExpression(text) {
-		const expressions = {
-			'integral of ([^ ]+) dx': '\\int $1 \\, dx',
-			'integral from ([^ ]+) to ([^ ]+) of ([^ ]+) d([^ ]+)': '\\int_{$1}^{$2} $3 \\, d$4',
-			'fraction ([^ ]+) over ([^ ]+)': '\\frac{$1}{$2}',
-			'square root of ([^ ]+)': '\\sqrt{$1}',
-			'sum from ([^=]+)=([^ ]+) to ([^ ]+)': '\\sum_{$1=$2}^{$3}',
-			'sum from ([^ ]+) to ([^ ]+) of ([^ ]+)': '\\sum_{$1}^{$2} $3',
-			'alpha': '\\alpha',
-			'beta': '\\beta',
-			'gamma': '\\gamma',
-			'delta': '\\delta',
-			'pi': '\\pi',
-			'sigma': '\\sigma',
-			'omega': '\\omega',
-			'plus or minus': '\\pm',
-			'times': '\\times',
-			'divided by': '\\div',
-			'therefore': '\\therefore',
-			'because': '\\because'
-		};
-
-		let result = text;
-		for (const [pattern, replacement] of Object.entries(expressions)) {
-			const regex = new RegExp(pattern, 'gi');
-			result = result.replace(regex, replacement);
+	async function parseMathExpression(text) {
+		if (!text || text.trim() === '') return '';
+		
+		// Use the math service for superior natural language processing
+		try {
+			const result = await mathService.parseNaturalMath(text);
+			return result.latex || text;
+		} catch (error) {
+			console.error('Math parsing error:', error);
+			return text;
 		}
-		return result;
+	}
+
+	async function convertMathBlock(blockIndex) {
+		const block = blocks[blockIndex];
+		if (!block || block.type !== 'math' || !block.content) return;
+		
+		const content = block.content.trim();
+		if (!content) return;
+		
+		// Check cache first
+		if (mathConversions[content]) {
+			blocks[blockIndex].mathData = mathConversions[content];
+			blocks = [...blocks];
+			return;
+		}
+		
+		convertingMath[blockIndex] = true;
+		
+		try {
+			const result = await mathService.parseNaturalMath(content);
+			mathConversions[content] = result;
+			blocks[blockIndex].mathData = result;
+			blocks = [...blocks];
+		} catch (error) {
+			console.error('Math conversion error:', error);
+		} finally {
+			convertingMath[blockIndex] = false;
+		}
 	}
 
 	function renderBlockContent(block) {
-		if (block.type === 'math') {
-			return parseMathExpression(block.content);
+		if (block.type === 'math' && block.mathData) {
+			return block.mathData.latex || block.content;
 		}
 		return block.content;
 	}
+
+	function renderMathHTML(block) {
+		if (block.type === 'math' && block.mathData) {
+			return mathService.renderToHTML(block.mathData.latex);
+		}
+		return block.content;
+	}
+
+	// Convert math when block loses focus
+	function handleMathBlur(blockIndex) {
+		convertMathBlock(blockIndex);
+	}
+
 
 	function handleKeyDown(event, blockIndex) {
 		const { key } = event;
@@ -154,31 +184,54 @@
 						<textarea
 							bind:value={block.content}
 							placeholder={blockTypes[block.type]?.placeholder || 'Start typing...'}
-							class="w-full bg-transparent border-none outline-none resize-none {block.type === 'code' ? 'font-mono' : ''}"
+							class="w-full bg-transparent border-none outline-none resize-none {block.type === 'code' ? 'font-mono' : ''} {block.type === 'math' ? 'font-serif' : ''}"
 							rows="1"
 							on:input={(e) => {
 								e.target.style.height = 'auto';
 								e.target.style.height = e.target.scrollHeight + 'px';
 								dispatch('contentChange', { index, content: e.target.value });
+								// Clear math data when editing
+								if (block.type === 'math') {
+									block.mathData = null;
+								}
 							}}
 							on:keydown={(e) => handleKeyDown(e, index)}
 							on:focus={() => dispatch('selectBlock', index)}
+							on:blur={() => {
+								if (block.type === 'math') {
+									handleMathBlur(index);
+								}
+							}}
 							use:autoResize
 						/>
+
 					{:else}
 						<div
 							class="cursor-text"
 							on:click={() => dispatch('selectBlock', index)}
 						>
-							{#if block.type === 'math'}
-								<span class="font-serif">
-									{renderBlockContent(block) || blockTypes[block.type]?.placeholder}
+					{#if block.type === 'math'}
+						<div class="math-display font-serif text-lg">
+							{#if convertingMath[index]}
+								<span class="text-gray-400 italic">Converting...</span>
+							{:else if block.mathData}
+								<span class="math-rendered" title="LaTeX: {block.mathData.latex}">
+									{@html renderMathHTML(block)}
 								</span>
-								{#if block.content}
-									<span class="ml-2 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
-										Math
-									</span>
-								{/if}
+							{:else}
+								<span class="text-gray-600">{block.content || blockTypes[block.type]?.placeholder}</span>
+							{/if}
+						</div>
+						{#if block.mathData}
+							<span class="ml-2 text-xs text-green-600 bg-green-50 px-2 py-1 rounded border border-green-200">
+								✓ Math
+							</span>
+						{:else if block.content}
+							<span class="ml-2 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
+								Press Enter to convert
+							</span>
+						{/if}
+
 							{:else}
 								{block.content || blockTypes[block.type]?.placeholder}
 							{/if}
@@ -213,5 +266,39 @@
 <style>
 	textarea {
 		min-height: 1.5em;
+	}
+
+	.math-display {
+		min-height: 1.5em;
+		padding: 0.25rem 0;
+	}
+
+	.math-rendered :global(.fraction) {
+		display: inline-flex;
+		flex-direction: column;
+		vertical-align: middle;
+		text-align: center;
+		margin: 0 0.2em;
+	}
+
+	.math-rendered :global(.fraction .num) {
+		border-bottom: 1px solid currentColor;
+		padding: 0 0.2em;
+	}
+
+	.math-rendered :global(.fraction .den) {
+		padding: 0 0.2em;
+	}
+
+	.math-rendered :global(sup) {
+		font-size: 0.75em;
+		vertical-align: super;
+		line-height: 0;
+	}
+
+	.math-rendered :global(sub) {
+		font-size: 0.75em;
+		vertical-align: sub;
+		line-height: 0;
 	}
 </style>

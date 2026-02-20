@@ -3,7 +3,13 @@
 	import { apiGet } from '../../lib/api.js';
 	import DatabaseSpreadsheet from '../../lib/components/DatabaseSpreadsheet.svelte';
 
+	// Accept framework-provided props to avoid warnings
+	export let data = null;
+	export let form = null;
+	export let params = null;
+
 	let tables = [];
+
 	let selectedTable = null;
 	let loading = true;
 	let error = null;

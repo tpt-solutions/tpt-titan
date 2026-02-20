@@ -1,12 +1,12 @@
-import { c as create_ssr_component, u as emailAccounts, x as emails, y as selectedEmail, z as currentFolder, d as each, v as validate_component, b as escape } from "../../../chunks/calendar.js";
+import { c as create_ssr_component, x as emailAccounts, y as emails, z as selectedEmail, A as currentFolder, d as each, v as validate_component, b as escape } from "../../../chunks/calendar.js";
 import "@sveltejs/kit/internal";
 import "../../../chunks/svelte-kit.js";
 import "@sveltejs/kit/internal/server";
 import { E as EmailInbox, a as EmailViewer } from "../../../chunks/email.js";
 const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let { params = null } = $$props;
   let { data = null } = $$props;
   let { form = null } = $$props;
+  let { params = null } = $$props;
   let emailAccountsList = [];
   let emailsList = [];
   let selectedEmailData = null;
@@ -40,9 +40,9 @@ const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     loadEmails();
     selectedEmail.set(null);
   }
-  if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   if ($$props.data === void 0 && $$bindings.data && data !== void 0) $$bindings.data(data);
   if ($$props.form === void 0 && $$bindings.form && form !== void 0) $$bindings.form(form);
+  if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   {
     if (currentFolderValue) {
       loadEmails();

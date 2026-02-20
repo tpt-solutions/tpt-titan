@@ -6,11 +6,8 @@ const editingCell = writable(null);
 const selectedCells = writable(/* @__PURE__ */ new Set());
 const isDragging = writable(false);
 const cellFormats = writable(/* @__PURE__ */ new Map());
-const currentWorkbook = writable(null);
 const workbookName = writable("Untitled Spreadsheet");
 const hasUnsavedChanges = writable(false);
-const isSaving = writable(false);
-const saveStatus = writable("");
 const formulaBar = writable("");
 const showFormulaHelp = writable(false);
 const showPivotTableBuilder = writable(false);
@@ -39,12 +36,43 @@ const showFillHandle = writable(false);
 const showContextMenu = writable(false);
 const contextMenuPosition = writable({ x: 0, y: 0 });
 const contextMenuItems = writable([]);
-const mode = writable("simple");
+const sheets = writable([
+  { id: "sheet1", name: "Sheet1", data: Array(100).fill().map(() => Array(26).fill("")) }
+]);
+const activeSheetId = writable("sheet1");
+const sheetCounter = writable(1);
+const statusBarInfo = writable({
+  selectedCount: 0,
+  sum: 0,
+  average: 0,
+  min: null,
+  max: null
+});
+const zoomLevel = writable(100);
+const canUndo = writable(false);
+const canRedo = writable(false);
 const isFormulaRangeSelecting = writable(false);
 const formulaRangeStart = writable(null);
 const formulaRangeEnd = writable(null);
 derived([], () => Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)));
 derived([], () => Array.from({ length: 100 }, (_, i) => i + 1));
+const QuickAccessToolbar = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let $hasUnsavedChanges, $$unsubscribe_hasUnsavedChanges;
+  let $canUndo, $$unsubscribe_canUndo;
+  let $canRedo, $$unsubscribe_canRedo;
+  let $workbookName, $$unsubscribe_workbookName;
+  $$unsubscribe_hasUnsavedChanges = subscribe(hasUnsavedChanges, (value) => $hasUnsavedChanges = value);
+  $$unsubscribe_canUndo = subscribe(canUndo, (value) => $canUndo = value);
+  $$unsubscribe_canRedo = subscribe(canRedo, (value) => $canRedo = value);
+  $$unsubscribe_workbookName = subscribe(workbookName, (value) => $workbookName = value);
+  createEventDispatcher();
+  $$unsubscribe_hasUnsavedChanges();
+  $$unsubscribe_canUndo();
+  $$unsubscribe_canRedo();
+  $$unsubscribe_workbookName();
+  return ` <div class="bg-gray-900 text-white px-3 py-1.5 flex items-center space-x-1"> <div class="flex items-center space-x-2 mr-4" data-svelte-h="svelte-1rx1vhw"><span class="text-lg">📊</span> <span class="font-semibold text-sm">TPT Titan</span></div>  <div class="flex items-center space-x-1"> <button class="p-1.5 rounded hover:bg-gray-700 transition-colors" title="New Spreadsheet (Ctrl+N)" data-svelte-h="svelte-19tlspf">📄</button>  <button class="p-1.5 rounded hover:bg-gray-700 transition-colors" title="Open Spreadsheet (Ctrl+O)" data-svelte-h="svelte-1f4damo">📂</button>  <button class="p-1.5 rounded hover:bg-gray-700 transition-colors relative" title="Save (Ctrl+S)">💾
+			${$hasUnsavedChanges ? `<span class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-500 rounded-full"></span>` : ``}</button> <div class="w-px h-5 bg-gray-600 mx-2"></div>  <button class="p-1.5 rounded hover:bg-gray-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" ${!$canUndo ? "disabled" : ""} title="Undo (Ctrl+Z)">↶</button>  <button class="p-1.5 rounded hover:bg-gray-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" ${!$canRedo ? "disabled" : ""} title="Redo (Ctrl+Y)">↷</button></div>  <div class="flex-1 text-center"><span class="text-sm text-gray-300 truncate max-w-md inline-block">${escape($workbookName)} ${$hasUnsavedChanges ? `<span class="text-orange-400" data-svelte-h="svelte-1hbje4n">●</span>` : ``}</span></div>  <div class="flex items-center space-x-1"><button class="p-1.5 rounded hover:bg-gray-700 transition-colors" title="Share" data-svelte-h="svelte-1gq6w0m">👥</button></div></div>`;
+});
 const SpreadsheetMenuBar = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let $showFileMenu, $$unsubscribe_showFileMenu;
   let $showEditMenu, $$unsubscribe_showEditMenu;
@@ -67,23 +95,25 @@ const SpreadsheetMenuBar = create_ssr_component(($$result, $$props, $$bindings, 
   $$unsubscribe_showToolsMenu();
   return ` <div class="bg-gray-800 text-white px-4 py-1 flex items-center space-x-6 text-sm"> <div class="relative"><button class="${"hover:bg-gray-700 px-3 py-1 rounded transition-colors " + escape($showFileMenu ? "bg-gray-700" : "", true)}">File</button> ${$showFileMenu ? `<div class="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg py-1 min-w-48 z-50"><button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1072cf2">📄 New Spreadsheet</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1ayjopy">📂 Open...</button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between" data-svelte-h="svelte-b6jo40"><span>💾 Save</span> <span class="text-xs text-gray-500">Ctrl+S</span></button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between" data-svelte-h="svelte-x2v39k"><span>💾 Save As...</span> <span class="text-xs text-gray-500">Ctrl+Shift+S</span></button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-8ecd84">📊 Export to CSV</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1wc31wk">📈 Export to Excel</button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-k0bc2z">🖨️ Print...</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-ht6634">👥 Share...</button></div>` : ``}</div>  <div class="relative"><button class="${"hover:bg-gray-700 px-3 py-1 rounded transition-colors " + escape($showEditMenu ? "bg-gray-700" : "", true)}">Edit</button> ${$showEditMenu ? `<div class="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg py-1 min-w-48 z-50"><button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1o8w9vf">↶ Undo</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-av8l50">↷ Redo</button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1vl4qff">📋 Copy</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-rrrtge">✂️ Cut</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-8ch926">📌 Paste</button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-xaks1f">🔍 Find &amp; Replace...</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-11alknb">📋 Select All</button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1gnm6sc">🧹 Clear Contents</button></div>` : ``}</div>  <div class="relative"><button class="${"hover:bg-gray-700 px-3 py-1 rounded transition-colors " + escape($showFormatMenu ? "bg-gray-700" : "", true)}">Format</button> ${$showFormatMenu ? `<div class="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg py-1 min-w-48 z-50"><button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-nkw5yx">🎨 Format Cells...</button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-13s7nri"><strong>B</strong> Bold</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1ean2fv"><em>I</em> Italic</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-14t9dc5"><u>U</u> Underline</button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1dyrf7">⬅️ Align Left</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-3g16kk">⬌ Center</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-zu65u7">➡️ Align Right</button></div>` : ``}</div>  <div class="relative"><button class="${"hover:bg-gray-700 px-3 py-1 rounded transition-colors " + escape($showViewMenu ? "bg-gray-700" : "", true)}">View</button> ${$showViewMenu ? `<div class="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg py-1 min-w-48 z-50"><button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1q1uigh">🔍 Zoom In</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-tbnqtu">🔎 Zoom Out</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1r1eexo">📏 100% Zoom</button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1vhlgir">📊 Show Gridlines</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1r5grke">📋 Show Headers</button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-dz74f">🧊 Freeze Panes</button></div>` : ``}</div>  <div class="relative"><button class="${"hover:bg-gray-700 px-3 py-1 rounded transition-colors " + escape($showInsertMenu ? "bg-gray-700" : "", true)}">Insert</button> ${$showInsertMenu ? `<div class="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg py-1 min-w-48 z-50"><button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1upm52i">➕ Insert Row Above</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1j2yjku">➕ Insert Row Below</button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-x93hg2">➕ Insert Column Left</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-ii2z9e">➕ Insert Column Right</button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1mufa7b">📋 Insert Pivot Table</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1v9wx94">📈 Insert Chart</button></div>` : ``}</div>  <div class="relative"><button class="${"hover:bg-gray-700 px-3 py-1 rounded transition-colors " + escape($showToolsMenu ? "bg-gray-700" : "", true)}">Tools</button> ${$showToolsMenu ? `<div class="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg py-1 min-w-48 z-50"><button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1exrujz">🔧 Data Preparation</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-cvk7kk">📊 Data Analysis</button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-5dzlgz">🔢 Formula Help</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-1n67q3b">📋 Function Reference</button> <div class="border-t border-gray-200 my-1"></div> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-p56uz">🔍 Spelling Check</button> <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-svelte-h="svelte-qcx1a5">📝 AutoCorrect Options</button></div>` : ``}</div></div>`;
 });
-const css$2 = {
+const css$1 = {
   code: ".group.svelte-1rf0shy:hover .group-hover\\:opacity-100.svelte-1rf0shy{opacity:1}",
-  map: `{"version":3,"file":"SpreadsheetRibbon.svelte","sources":["SpreadsheetRibbon.svelte"],"sourcesContent":["<script>\\r\\n\\timport {\\r\\n\\t\\tactiveRibbonTab,\\r\\n\\t\\tribbonTabs,\\r\\n\\t\\tshowRibbonCustomizer\\r\\n\\t} from '../stores/spreadsheet-store.js';\\r\\n\\r\\n\\t// Default available tools\\r\\n\\tconst defaultAvailableTools = [\\r\\n\\t\\t// File operations\\r\\n\\t\\t{ id: 'save', name: 'Save', icon: '💾', category: 'file', shortcut: 'Ctrl+S' },\\r\\n\\t\\t{ id: 'open', name: 'Open', icon: '📂', category: 'file' },\\r\\n\\t\\t{ id: 'export', name: 'Export', icon: '📤', category: 'file' },\\r\\n\\r\\n\\t\\t// Editing\\r\\n\\t\\t{ id: 'undo', name: 'Undo', icon: '↶', category: 'edit', shortcut: 'Ctrl+Z' },\\r\\n\\t\\t{ id: 'redo', name: 'Redo', icon: '↷', category: 'edit', shortcut: 'Ctrl+Y' },\\r\\n\\t\\t{ id: 'copy', name: 'Copy', icon: '📋', category: 'edit', shortcut: 'Ctrl+C' },\\r\\n\\t\\t{ id: 'paste', name: 'Paste', icon: '📌', category: 'edit', shortcut: 'Ctrl+V' },\\r\\n\\t\\t{ id: 'cut', name: 'Cut', icon: '✂️', category: 'edit', shortcut: 'Ctrl+X' },\\r\\n\\r\\n\\t\\t// Formatting\\r\\n\\t\\t{ id: 'bold', name: 'Bold', icon: 'B', category: 'format' },\\r\\n\\t\\t{ id: 'italic', name: 'Italic', icon: 'I', category: 'format' },\\r\\n\\t\\t{ id: 'underline', name: 'Underline', icon: 'U', category: 'format' },\\r\\n\\t\\t{ id: 'align-left', name: 'Align Left', icon: '⬅️', category: 'format' },\\r\\n\\t\\t{ id: 'align-center', name: 'Align Center', icon: '⬌', category: 'format' },\\r\\n\\t\\t{ id: 'align-right', name: 'Align Right', icon: '➡️', category: 'format' },\\r\\n\\r\\n\\t\\t// Formulas\\r\\n\\t\\t{ id: 'sum', name: 'Sum', icon: '∑', category: 'formulas' },\\r\\n\\t\\t{ id: 'average', name: 'Average', icon: '📊', category: 'formulas' },\\r\\n\\t\\t{ id: 'count', name: 'Count', icon: '#', category: 'formulas' },\\r\\n\\t\\t{ id: 'min', name: 'Min', icon: '↓', category: 'formulas' },\\r\\n\\t\\t{ id: 'max', name: 'Max', icon: '↑', category: 'formulas' },\\r\\n\\r\\n\\t\\t// Insert\\r\\n\\t\\t{ id: 'insert-row', name: 'Insert Row', icon: '➕', category: 'insert' },\\r\\n\\t\\t{ id: 'insert-column', name: 'Insert Column', icon: '➕', category: 'insert' },\\r\\n\\t\\t{ id: 'insert-chart', name: 'Insert Chart', icon: '📈', category: 'insert' },\\r\\n\\t\\t{ id: 'insert-pivot', name: 'Insert Pivot', icon: '📋', category: 'insert' },\\r\\n\\r\\n\\t\\t// Data\\r\\n\\t\\t{ id: 'sort-asc', name: 'Sort Ascending', icon: '↑', category: 'data' },\\r\\n\\t\\t{ id: 'sort-desc', name: 'Sort Descending', icon: '↓', category: 'data' },\\r\\n\\t\\t{ id: 'filter', name: 'Filter', icon: '🔍', category: 'data' },\\r\\n\\t\\t{ id: 'data-cleanup', name: 'Data Cleanup', icon: '🧹', category: 'data' }\\r\\n\\t];\\r\\n\\r\\n\\tlet availableTools = defaultAvailableTools;\\r\\n\\r\\n\\t// Props for undo/redo state\\r\\n\\texport let canUndo = false;\\r\\n\\texport let canRedo = false;\\r\\n\\r\\n\\t// Dispatch events to parent\\r\\n\\timport { createEventDispatcher } from 'svelte';\\r\\n\\tconst dispatch = createEventDispatcher();\\r\\n\\r\\n\\r\\n\\tfunction dispatchAction(action, data = {}) {\\r\\n\\t\\tdispatch('action', { action, ...data });\\r\\n\\t}\\r\\n\\r\\n\\t// Handle tool click\\r\\n\\tfunction handleToolClick(tool) {\\r\\n\\t\\tswitch (tool.id) {\\r\\n\\t\\t\\tcase 'save':\\r\\n\\t\\t\\t\\tdispatchAction('save');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'copy':\\r\\n\\t\\t\\t\\tdispatchAction('copy');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'paste':\\r\\n\\t\\t\\t\\tdispatchAction('paste');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'cut':\\r\\n\\t\\t\\t\\tdispatchAction('cut');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'undo':\\r\\n\\t\\t\\t\\tdispatchAction('undo');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'redo':\\r\\n\\t\\t\\t\\tdispatchAction('redo');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'bold':\\r\\n\\t\\t\\t\\tdispatchAction('applyFormatting', { type: 'bold' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'italic':\\r\\n\\t\\t\\t\\tdispatchAction('applyFormatting', { type: 'italic' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'underline':\\r\\n\\t\\t\\t\\tdispatchAction('applyFormatting', { type: 'underline' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'align-left':\\r\\n\\t\\t\\t\\tdispatchAction('applyFormatting', { type: 'align', value: 'left' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'align-center':\\r\\n\\t\\t\\t\\tdispatchAction('applyFormatting', { type: 'align', value: 'center' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'align-right':\\r\\n\\t\\t\\t\\tdispatchAction('applyFormatting', { type: 'align', value: 'right' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'sum':\\r\\n\\t\\t\\t\\tdispatchAction('insertFormula', { formula: '=SUM()' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'average':\\r\\n\\t\\t\\t\\tdispatchAction('insertFormula', { formula: '=AVERAGE()' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'count':\\r\\n\\t\\t\\t\\tdispatchAction('insertFormula', { formula: '=COUNT()' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'min':\\r\\n\\t\\t\\t\\tdispatchAction('insertFormula', { formula: '=MIN()' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'max':\\r\\n\\t\\t\\t\\tdispatchAction('insertFormula', { formula: '=MAX()' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'insert-row':\\r\\n\\t\\t\\t\\tdispatchAction('insertRowBelow');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'insert-column':\\r\\n\\t\\t\\t\\tdispatchAction('insertColumnRight');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'insert-pivot':\\r\\n\\t\\t\\t\\tdispatchAction('insertPivotTable');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'sort-asc':\\r\\n\\t\\t\\t\\tdispatchAction('sortColumn', { direction: 'asc' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'sort-desc':\\r\\n\\t\\t\\t\\tdispatchAction('sortColumn', { direction: 'desc' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'filter':\\r\\n\\t\\t\\t\\tdispatchAction('showFilterDialog');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'data-cleanup':\\r\\n\\t\\t\\t\\tdispatchAction('showDataPrepTools');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tdefault:\\r\\n\\t\\t\\t\\tdispatchAction('toolAction', { toolId: tool.id, tool });\\r\\n\\t\\t}\\r\\n\\t}\\r\\n\\r\\n\\t// Get tool by ID\\r\\n\\tfunction getToolById(toolId) {\\r\\n\\t\\treturn availableTools.find(t => t.id === toolId);\\r\\n\\t}\\r\\n<\/script>\\r\\n\\r\\n<!-- Customizable Ribbon -->\\r\\n<div class=\\"bg-white border-b border-gray-200\\">\\r\\n\\t<!-- Ribbon Tabs -->\\r\\n\\t<div class=\\"flex border-b border-gray-200\\">\\r\\n\\t\\t{#each $ribbonTabs as tab, tabIndex}\\r\\n\\t\\t\\t<button\\r\\n\\t\\t\\t\\tclass=\\"px-4 py-2 text-sm font-medium border-r border-gray-200 hover:bg-gray-50 transition-colors flex items-center space-x-2 {activeRibbonTab === tab.id ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500' : 'text-gray-700'}\\"\\r\\n\\t\\t\\t\\ton:click={() => activeRibbonTab.set(tab.id)}\\r\\n\\t\\t\\t>\\r\\n\\t\\t\\t\\t<span>{tab.icon}</span>\\r\\n\\t\\t\\t\\t<span>{tab.name}</span>\\r\\n\\t\\t\\t</button>\\r\\n\\t\\t{/each}\\r\\n\\t\\t<div class=\\"flex-1\\"></div>\\r\\n\\t\\t<button\\r\\n\\t\\t\\tclass=\\"px-3 py-2 text-gray-600 hover:bg-gray-100 rounded transition-colors\\"\\r\\n\\t\\t\\ton:click={() => showRibbonCustomizer.set(true)}\\r\\n\\t\\t\\ttitle=\\"Customize Ribbon\\"\\r\\n\\t\\t>\\r\\n\\t\\t\\t⚙️\\r\\n\\t\\t</button>\\r\\n\\t</div>\\r\\n\\r\\n\\t<!-- Ribbon Content -->\\r\\n\\t<div class=\\"p-4 min-h-20\\">\\r\\n\\t\\t{#each $ribbonTabs as tab}\\r\\n\\t\\t\\t{#if $activeRibbonTab === tab.id}\\r\\n\\t\\t\\t\\t<div class=\\"flex flex-wrap gap-2\\">\\r\\n\\t\\t\\t\\t\\t{#each tab.tools as tool, toolIndex}\\r\\n\\t\\t\\t\\t\\t\\t<div class=\\"group relative\\">\\r\\n\\t\\t\\t\\t\\t\\t<button\\r\\n\\t\\t\\t\\t\\t\\t\\tclass=\\"flex flex-col items-center justify-center w-12 h-12 p-2 text-sm border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white\\"\\r\\n\\t\\t\\t\\t\\t\\t\\ttitle=\\"{tool.name}{tool.shortcut ? \` (\${tool.shortcut})\` : ''}\\"\\r\\n\\t\\t\\t\\t\\t\\t\\ton:click={() => handleToolClick(tool)}\\r\\n\\t\\t\\t\\t\\t\\t\\tdisabled={(tool.id === 'undo' && !canUndo) || (tool.id === 'redo' && !canRedo)}\\r\\n\\t\\t\\t\\t\\t\\t>\\r\\n\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<span class=\\"text-lg\\">{tool.icon}</span>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<span class=\\"text-xs mt-1 truncate w-full\\">{tool.name.split(' ')[0]}</span>\\r\\n\\t\\t\\t\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t\\t\\t\\t<!-- Remove button (shown on hover) -->\\r\\n\\t\\t\\t\\t\\t\\t\\t<button\\r\\n\\t\\t\\t\\t\\t\\t\\t\\tclass=\\"absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600\\"\\r\\n\\t\\t\\t\\t\\t\\t\\t\\ton:click={() => dispatchAction('removeToolFromRibbon', { tabId: tab.id, toolIndex })}\\r\\n\\t\\t\\t\\t\\t\\t\\t\\ttitle=\\"Remove from ribbon\\"\\r\\n\\t\\t\\t\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t×\\r\\n\\t\\t\\t\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t\\t\\t{/each}\\r\\n\\t\\t\\t\\t\\t<!-- Drop zone for new tools -->\\r\\n\\t\\t\\t\\t\\t<div\\r\\n\\t\\t\\t\\t\\t\\tclass=\\"w-12 h-12 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 hover:border-gray-500 hover:text-gray-600 transition-colors cursor-pointer\\"\\r\\n\\t\\t\\t\\t\\t\\ttitle=\\"Drop tools here\\"\\r\\n\\t\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t\\t+\\r\\n\\t\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t{/if}\\r\\n\\t\\t{/each}\\r\\n\\t</div>\\r\\n</div>\\r\\n\\r\\n<style>\\r\\n\\t/* Ensure proper spacing and alignment */\\r\\n\\t.group:hover .group-hover\\\\:opacity-100 {\\r\\n\\t\\topacity: 1;\\r\\n\\t}\\r\\n</style>\\r\\n"],"names":[],"mappings":"AAuNC,qBAAM,MAAM,CAAC,wCAA0B,CACtC,OAAO,CAAE,CACV"}`
+  map: `{"version":3,"file":"SpreadsheetRibbon.svelte","sources":["SpreadsheetRibbon.svelte"],"sourcesContent":["<script>\\r\\n\\timport {\\r\\n\\t\\tactiveRibbonTab,\\r\\n\\t\\tribbonTabs,\\r\\n\\t\\tshowRibbonCustomizer,\\r\\n\\t\\tcanUndo,\\r\\n\\t\\tcanRedo\\r\\n\\t} from '../stores/spreadsheet-store.js';\\r\\n\\r\\n\\t// Default available tools\\r\\n\\r\\n\\tconst defaultAvailableTools = [\\r\\n\\t\\t// File operations\\r\\n\\t\\t{ id: 'save', name: 'Save', icon: '💾', category: 'file', shortcut: 'Ctrl+S' },\\r\\n\\t\\t{ id: 'open', name: 'Open', icon: '📂', category: 'file' },\\r\\n\\t\\t{ id: 'export', name: 'Export', icon: '📤', category: 'file' },\\r\\n\\r\\n\\t\\t// Editing\\r\\n\\t\\t{ id: 'undo', name: 'Undo', icon: '↶', category: 'edit', shortcut: 'Ctrl+Z' },\\r\\n\\t\\t{ id: 'redo', name: 'Redo', icon: '↷', category: 'edit', shortcut: 'Ctrl+Y' },\\r\\n\\t\\t{ id: 'copy', name: 'Copy', icon: '📋', category: 'edit', shortcut: 'Ctrl+C' },\\r\\n\\t\\t{ id: 'paste', name: 'Paste', icon: '📌', category: 'edit', shortcut: 'Ctrl+V' },\\r\\n\\t\\t{ id: 'cut', name: 'Cut', icon: '✂️', category: 'edit', shortcut: 'Ctrl+X' },\\r\\n\\r\\n\\t\\t// Formatting\\r\\n\\t\\t{ id: 'bold', name: 'Bold', icon: 'B', category: 'format' },\\r\\n\\t\\t{ id: 'italic', name: 'Italic', icon: 'I', category: 'format' },\\r\\n\\t\\t{ id: 'underline', name: 'Underline', icon: 'U', category: 'format' },\\r\\n\\t\\t{ id: 'align-left', name: 'Align Left', icon: '⬅️', category: 'format' },\\r\\n\\t\\t{ id: 'align-center', name: 'Align Center', icon: '⬌', category: 'format' },\\r\\n\\t\\t{ id: 'align-right', name: 'Align Right', icon: '➡️', category: 'format' },\\r\\n\\r\\n\\t\\t// Formulas\\r\\n\\t\\t{ id: 'sum', name: 'Sum', icon: '∑', category: 'formulas' },\\r\\n\\t\\t{ id: 'average', name: 'Average', icon: '📊', category: 'formulas' },\\r\\n\\t\\t{ id: 'count', name: 'Count', icon: '#', category: 'formulas' },\\r\\n\\t\\t{ id: 'min', name: 'Min', icon: '↓', category: 'formulas' },\\r\\n\\t\\t{ id: 'max', name: 'Max', icon: '↑', category: 'formulas' },\\r\\n\\r\\n\\t\\t// Insert\\r\\n\\t\\t{ id: 'insert-row', name: 'Insert Row', icon: '➕', category: 'insert' },\\r\\n\\t\\t{ id: 'insert-column', name: 'Insert Column', icon: '➕', category: 'insert' },\\r\\n\\t\\t{ id: 'insert-chart', name: 'Insert Chart', icon: '📈', category: 'insert' },\\r\\n\\t\\t{ id: 'insert-pivot', name: 'Insert Pivot', icon: '📋', category: 'insert' },\\r\\n\\r\\n\\t\\t// Data\\r\\n\\t\\t{ id: 'sort-asc', name: 'Sort Ascending', icon: '↑', category: 'data' },\\r\\n\\t\\t{ id: 'sort-desc', name: 'Sort Descending', icon: '↓', category: 'data' },\\r\\n\\t\\t{ id: 'filter', name: 'Filter', icon: '🔍', category: 'data' },\\r\\n\\t\\t{ id: 'data-cleanup', name: 'Data Cleanup', icon: '🧹', category: 'data' }\\r\\n\\t];\\r\\n\\r\\n\\tlet availableTools = defaultAvailableTools;\\r\\n\\r\\n\\t// Dispatch events to parent\\r\\n\\r\\n\\timport { createEventDispatcher } from 'svelte';\\r\\n\\tconst dispatch = createEventDispatcher();\\r\\n\\r\\n\\r\\n\\tfunction dispatchAction(action, data = {}) {\\r\\n\\t\\tdispatch('action', { action, ...data });\\r\\n\\t}\\r\\n\\r\\n\\t// Handle tool click\\r\\n\\tfunction handleToolClick(tool) {\\r\\n\\t\\tswitch (tool.id) {\\r\\n\\t\\t\\tcase 'save':\\r\\n\\t\\t\\t\\tdispatchAction('save');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'copy':\\r\\n\\t\\t\\t\\tdispatchAction('copy');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'paste':\\r\\n\\t\\t\\t\\tdispatchAction('paste');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'cut':\\r\\n\\t\\t\\t\\tdispatchAction('cut');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'undo':\\r\\n\\t\\t\\t\\tdispatchAction('undo');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'redo':\\r\\n\\t\\t\\t\\tdispatchAction('redo');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'bold':\\r\\n\\t\\t\\t\\tdispatchAction('applyFormatting', { type: 'bold' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'italic':\\r\\n\\t\\t\\t\\tdispatchAction('applyFormatting', { type: 'italic' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'underline':\\r\\n\\t\\t\\t\\tdispatchAction('applyFormatting', { type: 'underline' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'align-left':\\r\\n\\t\\t\\t\\tdispatchAction('applyFormatting', { type: 'align', value: 'left' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'align-center':\\r\\n\\t\\t\\t\\tdispatchAction('applyFormatting', { type: 'align', value: 'center' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'align-right':\\r\\n\\t\\t\\t\\tdispatchAction('applyFormatting', { type: 'align', value: 'right' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'sum':\\r\\n\\t\\t\\t\\tdispatchAction('insertFormula', { formula: '=SUM()' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'average':\\r\\n\\t\\t\\t\\tdispatchAction('insertFormula', { formula: '=AVERAGE()' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'count':\\r\\n\\t\\t\\t\\tdispatchAction('insertFormula', { formula: '=COUNT()' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'min':\\r\\n\\t\\t\\t\\tdispatchAction('insertFormula', { formula: '=MIN()' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'max':\\r\\n\\t\\t\\t\\tdispatchAction('insertFormula', { formula: '=MAX()' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'insert-row':\\r\\n\\t\\t\\t\\tdispatchAction('insertRowBelow');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'insert-column':\\r\\n\\t\\t\\t\\tdispatchAction('insertColumnRight');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'insert-pivot':\\r\\n\\t\\t\\t\\tdispatchAction('insertPivotTable');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'sort-asc':\\r\\n\\t\\t\\t\\tdispatchAction('sortColumn', { direction: 'asc' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'sort-desc':\\r\\n\\t\\t\\t\\tdispatchAction('sortColumn', { direction: 'desc' });\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'filter':\\r\\n\\t\\t\\t\\tdispatchAction('showFilterDialog');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tcase 'data-cleanup':\\r\\n\\t\\t\\t\\tdispatchAction('showDataPrepTools');\\r\\n\\t\\t\\t\\tbreak;\\r\\n\\t\\t\\tdefault:\\r\\n\\t\\t\\t\\tdispatchAction('toolAction', { toolId: tool.id, tool });\\r\\n\\t\\t}\\r\\n\\t}\\r\\n\\r\\n\\t// Get tool by ID\\r\\n\\tfunction getToolById(toolId) {\\r\\n\\t\\treturn availableTools.find(t => t.id === toolId);\\r\\n\\t}\\r\\n<\/script>\\r\\n\\r\\n<!-- Customizable Ribbon -->\\r\\n<div class=\\"bg-white border-b border-gray-200\\">\\r\\n\\t<!-- Ribbon Tabs -->\\r\\n\\t<div class=\\"flex border-b border-gray-200\\">\\r\\n\\t\\t{#each $ribbonTabs as tab, tabIndex}\\r\\n\\t\\t\\t<button\\r\\n\\t\\t\\t\\tclass=\\"px-4 py-2 text-sm font-medium border-r border-gray-200 hover:bg-gray-50 transition-colors flex items-center space-x-2 {activeRibbonTab === tab.id ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500' : 'text-gray-700'}\\"\\r\\n\\t\\t\\t\\ton:click={() => activeRibbonTab.set(tab.id)}\\r\\n\\t\\t\\t>\\r\\n\\t\\t\\t\\t<span>{tab.icon}</span>\\r\\n\\t\\t\\t\\t<span>{tab.name}</span>\\r\\n\\t\\t\\t</button>\\r\\n\\t\\t{/each}\\r\\n\\t\\t<div class=\\"flex-1\\"></div>\\r\\n\\t\\t<button\\r\\n\\t\\t\\tclass=\\"px-3 py-2 text-gray-600 hover:bg-gray-100 rounded transition-colors\\"\\r\\n\\t\\t\\ton:click={() => showRibbonCustomizer.set(true)}\\r\\n\\t\\t\\ttitle=\\"Customize Ribbon\\"\\r\\n\\t\\t>\\r\\n\\t\\t\\t⚙️\\r\\n\\t\\t</button>\\r\\n\\t</div>\\r\\n\\r\\n\\t<!-- Ribbon Content -->\\r\\n\\t<div class=\\"p-4 min-h-20\\">\\r\\n\\t\\t{#each $ribbonTabs as tab}\\r\\n\\t\\t\\t{#if $activeRibbonTab === tab.id}\\r\\n\\t\\t\\t\\t<div class=\\"flex flex-wrap gap-2\\">\\r\\n\\t\\t\\t\\t\\t{#each tab.tools as tool, toolIndex}\\r\\n\\t\\t\\t\\t\\t\\t<div class=\\"group relative\\">\\r\\n\\t\\t\\t\\t\\t\\t<button\\r\\n\\t\\t\\t\\t\\t\\t\\tclass=\\"flex flex-col items-center justify-center w-12 h-12 p-2 text-sm border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white\\"\\r\\n\\t\\t\\t\\t\\t\\t\\ttitle=\\"{tool.name}{tool.shortcut ? \` (\${tool.shortcut})\` : ''}\\"\\r\\n\\t\\t\\t\\t\\t\\t\\ton:click={() => handleToolClick(tool)}\\r\\n\\t\\t\\t\\t\\t\\t\\tdisabled={(tool.id === 'undo' && !$canUndo) || (tool.id === 'redo' && !$canRedo)}\\r\\n\\r\\n\\t\\t\\t\\t\\t\\t>\\r\\n\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<span class=\\"text-lg\\">{tool.icon}</span>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<span class=\\"text-xs mt-1 truncate w-full\\">{tool.name.split(' ')[0]}</span>\\r\\n\\t\\t\\t\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t\\t\\t\\t<!-- Remove button (shown on hover) -->\\r\\n\\t\\t\\t\\t\\t\\t\\t<button\\r\\n\\t\\t\\t\\t\\t\\t\\t\\tclass=\\"absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600\\"\\r\\n\\t\\t\\t\\t\\t\\t\\t\\ton:click={() => dispatchAction('removeToolFromRibbon', { tabId: tab.id, toolIndex })}\\r\\n\\t\\t\\t\\t\\t\\t\\t\\ttitle=\\"Remove from ribbon\\"\\r\\n\\t\\t\\t\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t×\\r\\n\\t\\t\\t\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t\\t\\t{/each}\\r\\n\\t\\t\\t\\t\\t<!-- Drop zone for new tools -->\\r\\n\\t\\t\\t\\t\\t<div\\r\\n\\t\\t\\t\\t\\t\\tclass=\\"w-12 h-12 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 hover:border-gray-500 hover:text-gray-600 transition-colors cursor-pointer\\"\\r\\n\\t\\t\\t\\t\\t\\ttitle=\\"Drop tools here\\"\\r\\n\\t\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t\\t+\\r\\n\\t\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t{/if}\\r\\n\\t\\t{/each}\\r\\n\\t</div>\\r\\n</div>\\r\\n\\r\\n<style>\\r\\n\\t/* Ensure proper spacing and alignment */\\r\\n\\t.group:hover .group-hover\\\\:opacity-100 {\\r\\n\\t\\topacity: 1;\\r\\n\\t}\\r\\n</style>\\r\\n"],"names":[],"mappings":"AAwNC,qBAAM,MAAM,CAAC,wCAA0B,CACtC,OAAO,CAAE,CACV"}`
 };
 const SpreadsheetRibbon = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let $ribbonTabs, $$unsubscribe_ribbonTabs;
   let $activeRibbonTab, $$unsubscribe_activeRibbonTab;
+  let $canUndo, $$unsubscribe_canUndo;
+  let $canRedo, $$unsubscribe_canRedo;
   $$unsubscribe_ribbonTabs = subscribe(ribbonTabs, (value) => $ribbonTabs = value);
   $$unsubscribe_activeRibbonTab = subscribe(activeRibbonTab, (value) => $activeRibbonTab = value);
-  let { canUndo = false } = $$props;
-  let { canRedo = false } = $$props;
+  $$unsubscribe_canUndo = subscribe(canUndo, (value) => $canUndo = value);
+  $$unsubscribe_canRedo = subscribe(canRedo, (value) => $canRedo = value);
   createEventDispatcher();
-  if ($$props.canUndo === void 0 && $$bindings.canUndo && canUndo !== void 0) $$bindings.canUndo(canUndo);
-  if ($$props.canRedo === void 0 && $$bindings.canRedo && canRedo !== void 0) $$bindings.canRedo(canRedo);
-  $$result.css.add(css$2);
+  $$result.css.add(css$1);
   $$unsubscribe_ribbonTabs();
   $$unsubscribe_activeRibbonTab();
+  $$unsubscribe_canUndo();
+  $$unsubscribe_canRedo();
   return ` <div class="bg-white border-b border-gray-200"> <div class="flex border-b border-gray-200">${each($ribbonTabs, (tab, tabIndex) => {
     return `<button class="${"px-4 py-2 text-sm font-medium border-r border-gray-200 hover:bg-gray-50 transition-colors flex items-center space-x-2 " + escape(
       activeRibbonTab === tab.id ? "bg-blue-50 text-blue-700 border-b-2 border-blue-500" : "text-gray-700",
@@ -91,40 +121,9 @@ const SpreadsheetRibbon = create_ssr_component(($$result, $$props, $$bindings, s
     )}"><span>${escape(tab.icon)}</span> <span>${escape(tab.name)}</span> </button>`;
   })} <div class="flex-1"></div> <button class="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded transition-colors" title="Customize Ribbon" data-svelte-h="svelte-1lppj72">⚙️</button></div>  <div class="p-4 min-h-20">${each($ribbonTabs, (tab) => {
     return `${$activeRibbonTab === tab.id ? `<div class="flex flex-wrap gap-2">${each(tab.tools, (tool, toolIndex) => {
-      return `<div class="group relative svelte-1rf0shy"><button class="flex flex-col items-center justify-center w-12 h-12 p-2 text-sm border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white" title="${escape(tool.name, true) + escape(tool.shortcut ? ` (${tool.shortcut})` : "", true)}" ${tool.id === "undo" && !canUndo || tool.id === "redo" && !canRedo ? "disabled" : ""}><span class="text-lg">${escape(tool.icon)}</span> <span class="text-xs mt-1 truncate w-full">${escape(tool.name.split(" ")[0])}</span></button>  <button class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 svelte-1rf0shy" title="Remove from ribbon" data-svelte-h="svelte-1wv2qzp">×</button> </div>`;
+      return `<div class="group relative svelte-1rf0shy"><button class="flex flex-col items-center justify-center w-12 h-12 p-2 text-sm border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white" title="${escape(tool.name, true) + escape(tool.shortcut ? ` (${tool.shortcut})` : "", true)}" ${tool.id === "undo" && !$canUndo || tool.id === "redo" && !$canRedo ? "disabled" : ""}><span class="text-lg">${escape(tool.icon)}</span> <span class="text-xs mt-1 truncate w-full">${escape(tool.name.split(" ")[0])}</span></button>  <button class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 svelte-1rf0shy" title="Remove from ribbon" data-svelte-h="svelte-1wv2qzp">×</button> </div>`;
     })}  <div class="w-12 h-12 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 hover:border-gray-500 hover:text-gray-600 transition-colors cursor-pointer" title="Drop tools here" data-svelte-h="svelte-tsyjhf">+</div> </div>` : ``}`;
   })}</div> </div>`;
-});
-const css$1 = {
-  code: "input.svelte-qenbhy:focus{box-shadow:0 0 0 2px rgba(59, 130, 246, 0.5)}",
-  map: `{"version":3,"file":"SpreadsheetToolbar.svelte","sources":["SpreadsheetToolbar.svelte"],"sourcesContent":["<script>\\r\\n\\timport {\\r\\n\\t\\tcreateSpreadsheet,\\r\\n\\t\\texportSpreadsheetToExcel,\\r\\n\\t\\timportExcelToSpreadsheet,\\r\\n\\t\\tformatApiError\\r\\n\\t} from '../api.js';\\r\\n\\r\\n\\timport {\\r\\n\\t\\tworkbookName,\\r\\n\\t\\thasUnsavedChanges,\\r\\n\\t\\tisSaving,\\r\\n\\t\\tsaveStatus,\\r\\n\\t\\tmode,\\r\\n\\t\\tshowPivotTableBuilder,\\r\\n\\t\\tshowDataPrepTools,\\r\\n\\t\\tshowFindReplace,\\r\\n\\t\\tshowFormulaHelp,\\r\\n\\t\\tspreadsheetData,\\r\\n\\t\\tcellFormats,\\r\\n\\t\\tcurrentWorkbook\\r\\n\\t} from '../stores/spreadsheet-store.js';\\r\\n\\r\\n\\t// File operations\\r\\n\\tasync function saveSpreadsheet() {\\r\\n\\t\\tif ($isSaving) return;\\r\\n\\r\\n\\t\\tisSaving.set(true);\\r\\n\\t\\tsaveStatus.set('Saving...');\\r\\n\\r\\n\\t\\ttry {\\r\\n\\t\\t\\tconst data = $spreadsheetData;\\r\\n\\t\\t\\tconst spreadsheetDataObj = {\\r\\n\\t\\t\\t\\tname: $workbookName,\\r\\n\\t\\t\\t\\tdata: {},\\r\\n\\t\\t\\t\\tformulas: {}\\r\\n\\t\\t\\t};\\r\\n\\r\\n\\t\\t\\t// Convert data array to cell reference format\\r\\n\\t\\t\\tfor (let row = 0; row < data.length; row++) {\\r\\n\\t\\t\\t\\tfor (let col = 0; col < data[row].length; col++) {\\r\\n\\t\\t\\t\\t\\tconst value = data[row][col];\\r\\n\\t\\t\\t\\t\\tif (value !== '') {\\r\\n\\t\\t\\t\\t\\t\\tconst cellRef = getCellId(row, col);\\r\\n\\t\\t\\t\\t\\t\\tspreadsheetDataObj.data[cellRef] = value;\\r\\n\\r\\n\\t\\t\\t\\t\\t\\tif (value.startsWith('=')) {\\r\\n\\t\\t\\t\\t\\t\\t\\tspreadsheetDataObj.formulas[cellRef] = value;\\r\\n\\t\\t\\t\\t\\t\\t}\\r\\n\\t\\t\\t\\t\\t}\\r\\n\\t\\t\\t\\t}\\r\\n\\t\\t\\t}\\r\\n\\r\\n\\t\\t\\tif ($currentWorkbook) {\\r\\n\\t\\t\\t\\t// Update existing spreadsheet\\r\\n\\t\\t\\t\\tawait updateSpreadsheetCell($currentWorkbook.id, {\\r\\n\\t\\t\\t\\t\\tcell_reference: 'A1', // Just a placeholder for now\\r\\n\\t\\t\\t\\t\\tvalue: spreadsheetDataObj,\\r\\n\\t\\t\\t\\t\\tformula: ''\\r\\n\\t\\t\\t\\t});\\r\\n\\t\\t\\t} else {\\r\\n\\t\\t\\t\\t// Create new spreadsheet\\r\\n\\t\\t\\t\\tconst result = await createSpreadsheet({ name: $workbookName });\\r\\n\\t\\t\\t\\tcurrentWorkbook.set(result);\\r\\n\\t\\t\\t}\\r\\n\\r\\n\\t\\t\\tsaveStatus.set('Saved');\\r\\n\\t\\t\\thasUnsavedChanges.set(false);\\r\\n\\r\\n\\t\\t\\tsetTimeout(() => {\\r\\n\\t\\t\\t\\tsaveStatus.set('');\\r\\n\\t\\t\\t}, 2000);\\r\\n\\r\\n\\t\\t} catch (error) {\\r\\n\\t\\t\\tsaveStatus.set('Save failed');\\r\\n\\t\\t\\tconsole.error('Save error:', error);\\r\\n\\t\\t} finally {\\r\\n\\t\\t\\tisSaving.set(false);\\r\\n\\t\\t}\\r\\n\\t}\\r\\n\\r\\n\\t// Export to Excel using backend\\r\\n\\tasync function exportToExcel() {\\r\\n\\t\\tif (!$currentWorkbook) {\\r\\n\\t\\t\\talert('Please save the spreadsheet first before exporting to Excel.');\\r\\n\\t\\t\\treturn;\\r\\n\\t\\t}\\r\\n\\r\\n\\t\\ttry {\\r\\n\\t\\t\\tconst excelBlob = await exportSpreadsheetToExcel($currentWorkbook.id);\\r\\n\\t\\t\\tconst url = URL.createObjectURL(excelBlob);\\r\\n\\t\\t\\tconst a = document.createElement('a');\\r\\n\\t\\t\\ta.href = url;\\r\\n\\t\\t\\ta.download = \`\${$workbookName || 'spreadsheet'}.xlsx\`;\\r\\n\\t\\t\\ta.click();\\r\\n\\t\\t\\tURL.revokeObjectURL(url);\\r\\n\\t\\t} catch (error) {\\r\\n\\t\\t\\tconsole.error('Export error:', error);\\r\\n\\t\\t\\talert('Failed to export to Excel: ' + formatApiError(error));\\r\\n\\t\\t}\\r\\n\\t}\\r\\n\\r\\n\\t// Share spreadsheet (placeholder for now)\\r\\n\\tfunction shareSpreadsheet() {\\r\\n\\t\\talert('Sharing functionality will be implemented soon!');\\r\\n\\t}\\r\\n\\r\\n\\t// Import from file\\r\\n\\tfunction importFromFile(event) {\\r\\n\\t\\tconst file = event.target.files[0];\\r\\n\\t\\tif (!file) return;\\r\\n\\r\\n\\t\\t// This would be handled by the parent component\\r\\n\\t\\t// For now, just trigger a custom event\\r\\n\\t\\tdispatch('import', { file });\\r\\n\\t}\\r\\n\\r\\n\\t// Helper function (should be imported from utils)\\r\\n\\tfunction getCellId(row, col) {\\r\\n\\t\\tconst cols = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));\\r\\n\\t\\treturn \`\${cols[col]}\${row + 1}\`;\\r\\n\\t}\\r\\n\\r\\n\\t// Dispatch events to parent\\r\\n\\timport { createEventDispatcher } from 'svelte';\\r\\n\\tconst dispatch = createEventDispatcher();\\r\\n\\r\\n\\t// Menu close handler\\r\\n\\tfunction closeAllMenus() {\\r\\n\\t\\tdispatch('closeMenus');\\r\\n\\t}\\r\\n<\/script>\\r\\n\\r\\n<!-- Professional Toolbar -->\\r\\n<div class=\\"bg-white border-b border-gray-200 px-4 py-2\\">\\r\\n\\t<div class=\\"flex items-center justify-between\\">\\r\\n\\t\\t<!-- Left side - File operations -->\\r\\n\\t\\t<div class=\\"flex items-center space-x-2\\">\\r\\n\\t\\t\\t<input\\r\\n\\t\\t\\t\\tbind:value={$workbookName}\\r\\n\\t\\t\\t\\tplaceholder=\\"Workbook name...\\"\\r\\n\\t\\t\\t\\tmaxlength=\\"400\\"\\r\\n\\t\\t\\t\\tclass=\\"text-lg font-semibold bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1\\"\\r\\n\\t\\t\\t\\ton:input={() => hasUnsavedChanges.set(true)}\\r\\n\\t\\t\\t/>\\r\\n\\t\\t\\t{#if $hasUnsavedChanges}\\r\\n\\t\\t\\t\\t<span class=\\"text-sm text-orange-600\\">•</span>\\r\\n\\t\\t\\t{/if}\\r\\n\\t\\t\\t<span class=\\"text-sm text-gray-500\\">{$saveStatus}</span>\\r\\n\\t\\t</div>\\r\\n\\r\\n\\t\\t<!-- Right side - Tools and actions -->\\r\\n\\t\\t<div class=\\"flex items-center space-x-2\\">\\r\\n\\t\\t\\t<!-- Data Import/Export -->\\r\\n\\t\\t\\t<div class=\\"flex items-center space-x-1 mr-4\\">\\r\\n\\t\\t\\t\\t<label class=\\"px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 cursor-pointer\\" title=\\"Import Excel/CSV\\">\\r\\n\\t\\t\\t\\t\\t📥 Import\\r\\n\\t\\t\\t\\t\\t<input type=\\"file\\" accept=\\".xlsx,.xls,.csv\\" class=\\"hidden\\" on:change={importFromFile} />\\r\\n\\t\\t\\t\\t</label>\\r\\n\\t\\t\\t\\t<button class=\\"px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700\\" on:click={exportToExcel} title=\\"Export to Excel\\">\\r\\n\\t\\t\\t\\t\\t📤 Excel\\r\\n\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t</div>\\r\\n\\r\\n\\t\\t\\t<!-- Advanced Features (only show in advanced mode) -->\\r\\n\\t\\t\\t{#if $mode === 'advanced'}\\r\\n\\t\\t\\t\\t<div class=\\"flex items-center space-x-1 mr-4 border-l border-gray-300 pl-4\\">\\r\\n\\t\\t\\t\\t\\t<button class=\\"px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700\\" title=\\"Insert Chart\\">\\r\\n\\t\\t\\t\\t\\t\\t📈 Chart\\r\\n\\t\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t\\t<button class=\\"px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700\\" title=\\"Data Analysis\\">\\r\\n\\t\\t\\t\\t\\t\\t📊 Analysis\\r\\n\\t\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t\\t<button\\r\\n\\t\\t\\t\\t\\t\\tclass=\\"px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700\\"\\r\\n\\t\\t\\t\\t\\t\\ton:click={() => showPivotTableBuilder.set(true)}\\r\\n\\t\\t\\t\\t\\t\\ttitle=\\"Create Pivot Table\\"\\r\\n\\t\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t\\t📋 Pivot Table\\r\\n\\t\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t\\t<button\\r\\n\\t\\t\\t\\t\\t\\tclass=\\"px-3 py-1 bg-teal-600 text-white text-sm rounded hover:bg-teal-700\\"\\r\\n\\t\\t\\t\\t\\t\\ton:click={() => showDataPrepTools.set(true)}\\r\\n\\t\\t\\t\\t\\t\\ttitle=\\"Data Preparation Tools\\"\\r\\n\\t\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t\\t🔧 Data Prep\\r\\n\\t\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t\\t<button\\r\\n\\t\\t\\t\\t\\t\\tclass=\\"px-3 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700\\"\\r\\n\\t\\t\\t\\t\\t\\ton:click={() => showFormulaHelp.set(true)}\\r\\n\\t\\t\\t\\t\\t\\ttitle=\\"Formula Help\\"\\r\\n\\t\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t\\t🔢 Functions\\r\\n\\t\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t{/if}\\r\\n\\r\\n\\t\\t\\t<!-- Save/Share -->\\r\\n\\t\\t\\t<div class=\\"flex items-center space-x-1\\">\\r\\n\\t\\t\\t\\t<button\\r\\n\\t\\t\\t\\t\\tclass=\\"px-4 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50\\"\\r\\n\\t\\t\\t\\t\\tdisabled={$isSaving}\\r\\n\\t\\t\\t\\t\\ton:click={saveSpreadsheet}\\r\\n\\t\\t\\t\\t\\ttitle=\\"Save Workbook\\"\\r\\n\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t{$isSaving ? '💾 Saving...' : '💾 Save'}\\r\\n\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t<button\\r\\n\\t\\t\\t\\t\\tclass=\\"px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700\\"\\r\\n\\t\\t\\t\\t\\ton:click={shareSpreadsheet}\\r\\n\\t\\t\\t\\t\\ttitle=\\"Share Workbook\\"\\r\\n\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t👥 Share\\r\\n\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t</div>\\r\\n\\t\\t</div>\\r\\n\\t</div>\\r\\n</div>\\r\\n\\r\\n<style>\\r\\n\\tinput:focus {\\r\\n\\t\\tbox-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);\\r\\n\\t}\\r\\n</style>\\r\\n"],"names":[],"mappings":"AA4NC,mBAAK,MAAO,CACX,UAAU,CAAE,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,GAAG,CAAC,KAAK,EAAE,CAAC,CAAC,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,GAAG,CAC7C"}`
-};
-const SpreadsheetToolbar = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let $workbookName, $$unsubscribe_workbookName;
-  let $$unsubscribe_currentWorkbook;
-  let $$unsubscribe_spreadsheetData;
-  let $isSaving, $$unsubscribe_isSaving;
-  let $hasUnsavedChanges, $$unsubscribe_hasUnsavedChanges;
-  let $saveStatus, $$unsubscribe_saveStatus;
-  let $mode, $$unsubscribe_mode;
-  $$unsubscribe_workbookName = subscribe(workbookName, (value) => $workbookName = value);
-  $$unsubscribe_currentWorkbook = subscribe(currentWorkbook, (value) => value);
-  $$unsubscribe_spreadsheetData = subscribe(spreadsheetData, (value) => value);
-  $$unsubscribe_isSaving = subscribe(isSaving, (value) => $isSaving = value);
-  $$unsubscribe_hasUnsavedChanges = subscribe(hasUnsavedChanges, (value) => $hasUnsavedChanges = value);
-  $$unsubscribe_saveStatus = subscribe(saveStatus, (value) => $saveStatus = value);
-  $$unsubscribe_mode = subscribe(mode, (value) => $mode = value);
-  createEventDispatcher();
-  $$result.css.add(css$1);
-  $$unsubscribe_workbookName();
-  $$unsubscribe_currentWorkbook();
-  $$unsubscribe_spreadsheetData();
-  $$unsubscribe_isSaving();
-  $$unsubscribe_hasUnsavedChanges();
-  $$unsubscribe_saveStatus();
-  $$unsubscribe_mode();
-  return ` <div class="bg-white border-b border-gray-200 px-4 py-2"><div class="flex items-center justify-between"> <div class="flex items-center space-x-2"><input placeholder="Workbook name..." maxlength="400" class="text-lg font-semibold bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1 svelte-qenbhy"${add_attribute("value", $workbookName, 0)}> ${$hasUnsavedChanges ? `<span class="text-sm text-orange-600" data-svelte-h="svelte-j3vvr2">•</span>` : ``} <span class="text-sm text-gray-500">${escape($saveStatus)}</span></div>  <div class="flex items-center space-x-2"> <div class="flex items-center space-x-1 mr-4"><label class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 cursor-pointer" title="Import Excel/CSV">📥 Import
-					<input type="file" accept=".xlsx,.xls,.csv" class="hidden svelte-qenbhy"></label> <button class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700" title="Export to Excel" data-svelte-h="svelte-1bpdfnp">📤 Excel</button></div>  ${$mode === "advanced" ? `<div class="flex items-center space-x-1 mr-4 border-l border-gray-300 pl-4"><button class="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700" title="Insert Chart" data-svelte-h="svelte-qqsb81">📈 Chart</button> <button class="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700" title="Data Analysis" data-svelte-h="svelte-1w0x9jk">📊 Analysis</button> <button class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700" title="Create Pivot Table" data-svelte-h="svelte-16zlps3">📋 Pivot Table</button> <button class="px-3 py-1 bg-teal-600 text-white text-sm rounded hover:bg-teal-700" title="Data Preparation Tools" data-svelte-h="svelte-11x7ytx">🔧 Data Prep</button> <button class="px-3 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700" title="Formula Help" data-svelte-h="svelte-5lba7e">🔢 Functions</button></div>` : ``}  <div class="flex items-center space-x-1"><button class="px-4 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50" ${$isSaving ? "disabled" : ""} title="Save Workbook">${escape($isSaving ? "💾 Saving..." : "💾 Save")}</button> <button class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700" title="Share Workbook" data-svelte-h="svelte-1mtm6fh">👥 Share</button></div></div></div> </div>`;
 });
 const css = {
   code: "td.svelte-1aqqtc9{margin:0;padding:0}input.svelte-1aqqtc9:focus{outline:none;box-shadow:inset 0 0 0 2px rgba(59, 130, 246, 0.5)}",
@@ -163,7 +162,7 @@ const SpreadsheetGrid = create_ssr_component(($$result, $$props, $$bindings, slo
   $$unsubscribe_fillPreviewCells = subscribe(fillPreviewCells, (value) => $fillPreviewCells = value);
   $$unsubscribe_formulaBar = subscribe(formulaBar, (value) => $formulaBar = value);
   $$unsubscribe_showFillHandle = subscribe(showFillHandle, (value) => $showFillHandle = value);
-  const mode2 = "simple";
+  const mode = "simple";
   function getDisplayValue(row, col) {
     const value = $spreadsheetData[row]?.[col] || "";
     if (value.startsWith("=")) {
@@ -239,7 +238,7 @@ const SpreadsheetGrid = create_ssr_component(($$result, $$props, $$bindings, slo
     return true;
   }
   createEventDispatcher();
-  if ($$props.mode === void 0 && $$bindings.mode && mode2 !== void 0) $$bindings.mode(mode2);
+  if ($$props.mode === void 0 && $$bindings.mode && mode !== void 0) $$bindings.mode(mode);
   $$result.css.add(css);
   columns = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
   rows = Array.from({ length: 100 }, (_, i) => i + 1);
@@ -283,6 +282,51 @@ const SpreadsheetGrid = create_ssr_component(($$result, $$props, $$bindings, slo
       ) + " hover:bg-gray-50 transition-colors svelte-1aqqtc9"}"${add_attribute("style", getCellStyle($cellFormats.get(getCellId(rowIndex, colIndex))), 0)}>${$editingCell?.row === rowIndex && $editingCell?.col === colIndex ? `<input class="w-full h-full px-2 py-1 text-sm border-none outline-none bg-white svelte-1aqqtc9"${add_attribute("value", $formulaBar, 0)}>` : `<div class="w-full h-full px-2 py-1 text-sm overflow-hidden whitespace-nowrap select-none">${escape(formatCellValue(getDisplayValue(rowIndex, colIndex), rowIndex, colIndex))}</div>  ${$selectedCell?.row === rowIndex && $selectedCell?.col === colIndex && !$editingCell && $showFillHandle ? `<div class="absolute bottom-0 right-0 w-2 h-2 bg-blue-500 border border-white cursor-crosshair z-10" title="Drag to auto-fill adjacent cells" role="button" tabindex="0"></div>` : ``}`} </td>`;
     })} </tr>` : ``}`;
   })}</tbody></table> </div>`;
+});
+const SheetTabs = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let $sheets, $$unsubscribe_sheets;
+  let $activeSheetId, $$unsubscribe_activeSheetId;
+  let $$unsubscribe_sheetCounter;
+  $$unsubscribe_sheets = subscribe(sheets, (value) => $sheets = value);
+  $$unsubscribe_activeSheetId = subscribe(activeSheetId, (value) => $activeSheetId = value);
+  $$unsubscribe_sheetCounter = subscribe(sheetCounter, (value) => value);
+  createEventDispatcher();
+  let editingSheetId = null;
+  let editingSheetName = "";
+  $$unsubscribe_sheets();
+  $$unsubscribe_activeSheetId();
+  $$unsubscribe_sheetCounter();
+  return ` <div class="bg-gray-100 border-t border-gray-300 flex items-center"> <div class="flex items-center overflow-x-auto">${each($sheets, (sheet) => {
+    return `<div class="${"group relative flex items-center min-w-24 max-w-40 px-3 py-2 border-r border-gray-300 cursor-pointer transition-colors " + escape(
+      $activeSheetId === sheet.id ? "bg-white border-t-2 border-t-blue-500 text-gray-900 font-medium" : "bg-gray-100 hover:bg-gray-200 text-gray-600",
+      true
+    )}">${editingSheetId === sheet.id ? `<input type="text" class="w-full px-1 py-0.5 text-sm border border-blue-500 rounded focus:outline-none" autofocus${add_attribute("value", editingSheetName, 0)}>` : `<span class="truncate text-sm flex-1">${escape(sheet.name)}</span>  <div class="flex items-center space-x-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity"><button class="p-0.5 rounded hover:bg-gray-300 text-gray-500" title="Rename Sheet" data-svelte-h="svelte-oo27c0">✏️</button> ${$sheets.length > 1 ? `<button class="p-0.5 rounded hover:bg-red-100 text-red-500" title="Delete Sheet" data-svelte-h="svelte-ueq4y3">×
+							</button>` : ``} </div>`} </div>`;
+  })}</div>  <button class="flex items-center justify-center w-8 h-8 mx-2 rounded hover:bg-gray-200 text-gray-600 transition-colors" title="Add New Sheet" data-svelte-h="svelte-15scmxs">+</button></div>`;
+});
+function formatNumber(num) {
+  if (num === null || num === void 0) return "-";
+  if (Number.isInteger(num)) return num.toString();
+  return num.toFixed(2);
+}
+const SpreadsheetStatusBar = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let $selectedCell, $$unsubscribe_selectedCell;
+  let $statusBarInfo, $$unsubscribe_statusBarInfo;
+  let $sheets, $$unsubscribe_sheets;
+  let $activeSheetId, $$unsubscribe_activeSheetId;
+  let $zoomLevel, $$unsubscribe_zoomLevel;
+  $$unsubscribe_selectedCell = subscribe(selectedCell, (value) => $selectedCell = value);
+  $$unsubscribe_statusBarInfo = subscribe(statusBarInfo, (value) => $statusBarInfo = value);
+  $$unsubscribe_sheets = subscribe(sheets, (value) => $sheets = value);
+  $$unsubscribe_activeSheetId = subscribe(activeSheetId, (value) => $activeSheetId = value);
+  $$unsubscribe_zoomLevel = subscribe(zoomLevel, (value) => $zoomLevel = value);
+  createEventDispatcher();
+  $$unsubscribe_selectedCell();
+  $$unsubscribe_statusBarInfo();
+  $$unsubscribe_sheets();
+  $$unsubscribe_activeSheetId();
+  $$unsubscribe_zoomLevel();
+  return ` <div class="bg-gray-100 border-t border-gray-300 px-3 py-1.5 flex items-center justify-between text-sm"> <div class="flex items-center space-x-4">${$selectedCell ? `<span class="text-gray-600 font-medium">${escape(getCellId($selectedCell.row, $selectedCell.col))}</span>` : ``} ${$statusBarInfo.selectedCount > 0 ? `<div class="flex items-center space-x-3 text-gray-600"><span>Count: <strong class="text-gray-800">${escape($statusBarInfo.selectedCount)}</strong></span> <span>Sum: <strong class="text-gray-800">${escape(formatNumber($statusBarInfo.sum))}</strong></span> <span>Avg: <strong class="text-gray-800">${escape(formatNumber($statusBarInfo.average))}</strong></span> ${$statusBarInfo.min !== null ? `<span>Min: <strong class="text-gray-800">${escape(formatNumber($statusBarInfo.min))}</strong></span>` : ``} ${$statusBarInfo.max !== null ? `<span>Max: <strong class="text-gray-800">${escape(formatNumber($statusBarInfo.max))}</strong></span>` : ``}</div>` : ``}</div>  <div class="flex items-center space-x-2"><span class="text-gray-500 text-xs">${escape($sheets.find((s) => s.id === $activeSheetId)?.name || "Sheet1")}</span></div>  <div class="flex items-center space-x-2"><button class="p-1 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Zoom Out" data-svelte-h="svelte-m7l0fl">−</button> <div class="flex items-center space-x-1"><input type="number"${add_attribute("value", $zoomLevel, 0)} min="50" max="200" class="w-14 px-1 py-0.5 text-center text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"> <span class="text-gray-600" data-svelte-h="svelte-19z6mdy">%</span></div> <button class="p-1 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Zoom In" data-svelte-h="svelte-5832v6">+</button> <button class="px-2 py-1 text-xs rounded hover:bg-gray-200 transition-colors text-gray-600 ml-2" title="Reset Zoom" data-svelte-h="svelte-19tne6a">100%</button></div></div>`;
 });
 const SpreadsheetModals = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let $showContextMenu, $$unsubscribe_showContextMenu;
@@ -440,19 +484,31 @@ function handleUndoRedoKeyboard(event, onUndo, onRedo) {
   return false;
 }
 const Spreadsheet = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let $$unsubscribe_cellFormats;
-  let $$unsubscribe_spreadsheetData;
-  $$unsubscribe_cellFormats = subscribe(cellFormats, (value) => value);
-  $$unsubscribe_spreadsheetData = subscribe(spreadsheetData, (value) => value);
-  const mode2 = "simple";
-  const selectedTemplate = null;
+  let $spreadsheetData, $$unsubscribe_spreadsheetData;
+  let $selectedCells, $$unsubscribe_selectedCells;
+  let $cellFormats, $$unsubscribe_cellFormats;
+  $$unsubscribe_spreadsheetData = subscribe(spreadsheetData, (value) => $spreadsheetData = value);
+  $$unsubscribe_selectedCells = subscribe(selectedCells, (value) => $selectedCells = value);
+  $$unsubscribe_cellFormats = subscribe(cellFormats, (value) => $cellFormats = value);
+  let { mode = "simple" } = $$props;
+  let { selectedTemplate = null } = $$props;
   createEventDispatcher();
   let spreadsheetHistory = new SpreadsheetHistory();
-  let canUndo = false;
-  let canRedo = false;
+  let debouncedHistoryPush;
   function updateHistoryState() {
-    canUndo = spreadsheetHistory.canUndo();
-    canRedo = spreadsheetHistory.canRedo();
+    canUndo.set(spreadsheetHistory.canUndo());
+    canRedo.set(spreadsheetHistory.canRedo());
+  }
+  function saveToHistory(actionType = "cellChange") {
+    const currentData = $spreadsheetData;
+    const currentFormats = $cellFormats;
+    debouncedHistoryPush({
+      data: currentData,
+      formats: currentFormats,
+      actionType,
+      timestamp: Date.now()
+    });
+    updateHistoryState();
   }
   function handleUndo() {
     const state = spreadsheetHistory.undo();
@@ -478,14 +534,78 @@ const Spreadsheet = create_ssr_component(($$result, $$props, $$bindings, slots) 
   onDestroy(() => {
     document.removeEventListener("keydown", handleGlobalKeyDown);
   });
-  if ($$props.mode === void 0 && $$bindings.mode && mode2 !== void 0) $$bindings.mode(mode2);
+  if ($$props.mode === void 0 && $$bindings.mode && mode !== void 0) $$bindings.mode(mode);
   if ($$props.selectedTemplate === void 0 && $$bindings.selectedTemplate && selectedTemplate !== void 0) $$bindings.selectedTemplate(selectedTemplate);
-  $$unsubscribe_cellFormats();
+  {
+    {
+      const cells = Array.from($selectedCells);
+      const data = $spreadsheetData;
+      let sum = 0;
+      let count = 0;
+      let min = null;
+      let max = null;
+      let hasNumericValues = false;
+      cells.forEach((cellId) => {
+        const match = cellId.match(/([A-Z]+)(\d+)/);
+        if (match) {
+          const col = match[1].charCodeAt(0) - 65;
+          const row = parseInt(match[2]) - 1;
+          const value = data[row]?.[col];
+          const numValue = parseFloat(value);
+          if (!isNaN(numValue) && value !== "") {
+            sum += numValue;
+            count++;
+            hasNumericValues = true;
+            if (min === null || numValue < min) min = numValue;
+            if (max === null || numValue > max) max = numValue;
+          }
+        }
+      });
+      statusBarInfo.set({
+        selectedCount: cells.length,
+        sum: hasNumericValues ? sum : 0,
+        average: hasNumericValues && count > 0 ? sum / count : 0,
+        min: hasNumericValues ? min : null,
+        max: hasNumericValues ? max : null
+      });
+    }
+  }
+  {
+    if (selectedTemplate && selectedTemplate.data) {
+      console.log("Applying template:", selectedTemplate.name);
+      console.log("Template data:", selectedTemplate.data);
+      const templateData = selectedTemplate.data;
+      const numRows = templateData.length;
+      const numCols = Math.max(...templateData.map((row) => row.length));
+      const newData = Array(Math.max(100, numRows)).fill().map(() => Array(Math.max(26, numCols)).fill(""));
+      templateData.forEach((row, rowIndex) => {
+        row.forEach((cellValue, colIndex) => {
+          if (cellValue !== void 0 && cellValue !== null) {
+            newData[rowIndex][colIndex] = String(cellValue);
+          }
+        });
+      });
+      spreadsheetData.set(newData);
+      console.log("Template applied successfully, new data length:", newData.length);
+      if (selectedTemplate.styles) {
+        console.log("Applying template styles:", selectedTemplate.styles);
+        const stylesMap = /* @__PURE__ */ new Map();
+        Object.entries(selectedTemplate.styles).forEach(([range, style]) => {
+          stylesMap.set(range, style);
+        });
+        cellFormats.set(stylesMap);
+      }
+      setTimeout(() => saveToHistory("templateApply"), 0);
+    }
+  }
   $$unsubscribe_spreadsheetData();
-  return `<div class="flex flex-col h-full"> ${validate_component(SpreadsheetMenuBar, "SpreadsheetMenuBar").$$render($$result, {}, {}, {})}  ${validate_component(SpreadsheetRibbon, "SpreadsheetRibbon").$$render($$result, { canUndo, canRedo }, {}, {})}  ${validate_component(SpreadsheetToolbar, "SpreadsheetToolbar").$$render($$result, {}, {}, {})}  ${validate_component(FormulaBar, "FormulaBar").$$render($$result, {}, {}, {})}  ${validate_component(SpreadsheetGrid, "SpreadsheetGrid").$$render($$result, {}, {}, {})}</div>  ${validate_component(SpreadsheetModals, "SpreadsheetModals").$$render($$result, {}, {}, {})}`;
+  $$unsubscribe_selectedCells();
+  $$unsubscribe_cellFormats();
+  return `<div class="flex flex-col h-full bg-white"> ${validate_component(QuickAccessToolbar, "QuickAccessToolbar").$$render($$result, {}, {}, {})}  ${validate_component(SpreadsheetMenuBar, "SpreadsheetMenuBar").$$render($$result, {}, {}, {})}  ${validate_component(SpreadsheetRibbon, "SpreadsheetRibbon").$$render($$result, {}, {}, {})}  ${validate_component(FormulaBar, "FormulaBar").$$render($$result, {}, {}, {})}  <div class="flex-1 overflow-hidden relative">${validate_component(SpreadsheetGrid, "SpreadsheetGrid").$$render($$result, {}, {}, {})}</div>  ${validate_component(SheetTabs, "SheetTabs").$$render($$result, {}, {}, {})}  ${validate_component(SpreadsheetStatusBar, "SpreadsheetStatusBar").$$render($$result, {}, {}, {})}</div>  ${validate_component(SpreadsheetModals, "SpreadsheetModals").$$render($$result, {}, {}, {})}`;
 });
 export {
   Spreadsheet as S,
+  selectedCells as a,
   formulaBar as f,
   isFormulaRangeSelecting as i,
   selectedCell as s

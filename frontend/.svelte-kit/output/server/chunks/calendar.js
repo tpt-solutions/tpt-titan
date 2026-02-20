@@ -25,6 +25,9 @@ function subscribe(store, ...callbacks) {
   const unsub = store.subscribe(...callbacks);
   return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
 }
+function null_to_empty(value) {
+  return value == null ? "" : value;
+}
 function custom_event(type, detail, { bubbles = false, cancelable = false } = {}) {
   return new CustomEvent(type, { detail, bubbles, cancelable });
 }
@@ -3522,9 +3525,10 @@ const CalendarView = create_ssr_component(($$result, $$props, $$bindings, slots)
   })}</div></div>` : ``}</div>`;
 });
 export {
-  templates as A,
-  templateCategories as B,
+  currentFolder as A,
+  templates as B,
   CalendarView as C,
+  templateCategories as D,
   add_attribute as a,
   escape as b,
   create_ssr_component as c,
@@ -3545,10 +3549,10 @@ export {
   readable as r,
   subscribe as s,
   currentDate as t,
-  emailAccounts as u,
+  null_to_empty as u,
   validate_component as v,
   writable as w,
-  emails as x,
-  selectedEmail as y,
-  currentFolder as z
+  emailAccounts as x,
+  emails as y,
+  selectedEmail as z
 };

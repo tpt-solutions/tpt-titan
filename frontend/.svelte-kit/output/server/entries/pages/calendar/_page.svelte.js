@@ -4,9 +4,9 @@ import "../../../chunks/svelte-kit.js";
 import "@sveltejs/kit/internal/server";
 import { E as EventForm } from "../../../chunks/forms.js";
 const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let { params = null } = $$props;
   let { data = null } = $$props;
   let { form = null } = $$props;
+  let { params = null } = $$props;
   let showEventForm = false;
   let editingEvent = null;
   let selectedDate = null;
@@ -62,9 +62,9 @@ const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     date = newDate;
     loadEvents();
   }
-  if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   if ($$props.data === void 0 && $$bindings.data && data !== void 0) $$bindings.data(data);
   if ($$props.form === void 0 && $$bindings.form && form !== void 0) $$bindings.form(form);
+  if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   return `${$$result.head += `<!-- HEAD_svelte-1qavwmb_START -->${$$result.title = `<title>Calendar - TPT Titan</title>`, ""}<!-- HEAD_svelte-1qavwmb_END -->`, ""} <div class="container mx-auto px-4 py-8"><div class="flex justify-between items-center mb-8"><h1 class="text-3xl font-bold text-gray-900 dark:text-white" data-svelte-h="svelte-3a3xx5">Calendar</h1> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2" data-svelte-h="svelte-1b56j32"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
 			New Event</button></div>  ${validate_component(CalendarView, "CalendarView").$$render(
     $$result,

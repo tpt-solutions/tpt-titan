@@ -1,4 +1,4 @@
-import { c as create_ssr_component, f as createEventDispatcher, a as add_attribute, b as escape, d as each, v as validate_component } from "../../../chunks/calendar.js";
+import { c as create_ssr_component, f as createEventDispatcher, a as add_attribute, b as escape, d as each, u as null_to_empty, v as validate_component } from "../../../chunks/calendar.js";
 import "jspdf";
 const TextEditorToolbar = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let { documentTitle: documentTitle2 = "Untitled Document" } = $$props;
@@ -32,9 +32,451 @@ const TextEditorToolbar = create_ssr_component(($$result, $$props, $$bindings, s
 						<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10 pointer-events-none">📊 Document Analysis
 							<div class="text-xs text-gray-300 mt-1">Readability, sentiment &amp; key phrases</div> <div class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div></div></button></div></div></div></div></div>`;
 });
+class MathService {
+  constructor() {
+    this.baseURL = "/api/v1";
+  }
+  // Get auth token from localStorage
+  getAuthToken() {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("token") || "";
+    }
+    return "";
+  }
+  // Get headers for API requests
+  getHeaders() {
+    const token = this.getAuthToken();
+    return {
+      "Content-Type": "application/json",
+      "Authorization": token ? `Bearer ${token}` : ""
+    };
+  }
+  /**
+   * Convert natural language math expression to LaTeX/MathML
+   * @param {string} expression - Natural language expression (e.g., "integral of x squared dx")
+   * @param {string} fromFormat - Input format: "text", "latex", "mathml"
+   * @param {string} toFormat - Output format: "latex", "mathml", "svg"
+   * @returns {Promise<Object>} Converted expression with all formats
+   */
+  async convertExpression(expression, fromFormat = "text", toFormat = "latex") {
+    try {
+      const response = await fetch(`${this.baseURL}/math/convert`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          expression,
+          from_format: fromFormat,
+          to_format: toFormat
+        })
+      });
+      if (!response.ok) {
+        console.warn("Math API unavailable, using local conversion");
+        return this.localConvert(expression);
+      }
+      const result = await response.json();
+      return {
+        original: result.original,
+        converted: result.converted,
+        format: result.format,
+        success: true
+      };
+    } catch (error) {
+      console.error("Math conversion error:", error);
+      return this.localConvert(expression);
+    }
+  }
+  /**
+   * Validate a mathematical expression
+   * @param {string} expression - Math expression to validate
+   * @returns {Promise<Object>} Validation result
+   */
+  async validateExpression(expression) {
+    try {
+      const response = await fetch(`${this.baseURL}/math/validate`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({ expression })
+      });
+      if (!response.ok) {
+        return this.localValidate(expression);
+      }
+      const result = await response.json();
+      return {
+        valid: result.valid,
+        message: result.message
+      };
+    } catch (error) {
+      console.error("Validation error:", error);
+      return this.localValidate(expression);
+    }
+  }
+  /**
+   * Optimize a mathematical expression
+   * @param {string} expression - Expression to optimize
+   * @returns {Promise<Object>} Optimized expression
+   */
+  async optimizeExpression(expression) {
+    try {
+      const response = await fetch(`${this.baseURL}/math/optimize`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({ expression })
+      });
+      if (!response.ok) {
+        return { original: expression, optimized: expression };
+      }
+      const result = await response.json();
+      return {
+        original: result.original,
+        optimized: result.optimized
+      };
+    } catch (error) {
+      console.error("Optimization error:", error);
+      return { original: expression, optimized: expression };
+    }
+  }
+  /**
+   * Get available mathematical functions
+   * @param {string} category - Function category (optional)
+   * @returns {Promise<Array>} List of functions
+   */
+  async getFunctions(category = "") {
+    try {
+      const url = category ? `${this.baseURL}/math/functions?category=${category}` : `${this.baseURL}/math/functions`;
+      const response = await fetch(url, {
+        headers: this.getHeaders()
+      });
+      if (!response.ok) {
+        return this.getDefaultFunctions();
+      }
+      const result = await response.json();
+      return result.functions || [];
+    } catch (error) {
+      console.error("Get functions error:", error);
+      return this.getDefaultFunctions();
+    }
+  }
+  /**
+   * Get mathematical symbols
+   * @param {string} category - Symbol category (optional)
+   * @returns {Promise<Array>} List of symbols
+   */
+  async getSymbols(category = "") {
+    try {
+      const url = category ? `${this.baseURL}/math/symbols?category=${category}` : `${this.baseURL}/math/symbols`;
+      const response = await fetch(url, {
+        headers: this.getHeaders()
+      });
+      if (!response.ok) {
+        return this.getDefaultSymbols();
+      }
+      const result = await response.json();
+      return result.symbols || [];
+    } catch (error) {
+      console.error("Get symbols error:", error);
+      return this.getDefaultSymbols();
+    }
+  }
+  /**
+   * Get equation templates
+   * @param {string} category - Template category (optional)
+   * @returns {Promise<Array>} List of templates
+   */
+  async getTemplates(category = "") {
+    try {
+      const url = category ? `${this.baseURL}/math/templates?category=${category}` : `${this.baseURL}/math/templates`;
+      const response = await fetch(url, {
+        headers: this.getHeaders()
+      });
+      if (!response.ok) {
+        return this.getDefaultTemplates();
+      }
+      const result = await response.json();
+      return result.templates || [];
+    } catch (error) {
+      console.error("Get templates error:", error);
+      return this.getDefaultTemplates();
+    }
+  }
+  /**
+   * Search equations
+   * @param {string} query - Search query
+   * @returns {Promise<Array>} Matching equations
+   */
+  async searchEquations(query) {
+    try {
+      const response = await fetch(`${this.baseURL}/math/templates/search?q=${encodeURIComponent(query)}`, {
+        headers: this.getHeaders()
+      });
+      if (!response.ok) {
+        return [];
+      }
+      const result = await response.json();
+      return result.templates || [];
+    } catch (error) {
+      console.error("Search equations error:", error);
+      return [];
+    }
+  }
+  /**
+   * Export equation to different format
+   * @param {Object} expression - Math expression object
+   * @param {string} format - Export format: "latex", "mathml", "svg", "png", "pdf"
+   * @returns {Promise<Blob>} Exported data as blob
+   */
+  async exportEquation(expression, format = "latex") {
+    try {
+      const response = await fetch(`${this.baseURL}/math/export`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          expression,
+          format
+        })
+      });
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+      return await response.blob();
+    } catch (error) {
+      console.error("Export error:", error);
+      throw error;
+    }
+  }
+  /**
+   * Local conversion fallback when API is unavailable
+   * @param {string} text - Natural language text
+   * @returns {Object} Converted expression
+   */
+  localConvert(text) {
+    const expressions = {
+      // Integrals
+      "integral of (.+?) d(x|y|z|t|u|v|w)": (match, expr, var_) => `\\int ${expr} \\, d${var_}`,
+      "integral from (.+?) to (.+?) of (.+?) d(x|y|z|t|u|v|w)": (match, from, to, expr, var_) => `\\int_{${from}}^{${to}} ${expr} \\, d${var_}`,
+      // Fractions
+      "fraction (.+?) over (.+)": (match, num, den) => `\\frac{${num}}{${den}}`,
+      "(.+?) divided by (.+)": (match, num, den) => `\\frac{${num}}{${den}}`,
+      // Roots
+      "square root of (.+)": (match, expr) => `\\sqrt{${expr}}`,
+      "cube root of (.+)": (match, expr) => `\\sqrt[3]{${expr}}`,
+      "nth root of (.+?) with n=(.+)": (match, expr, n) => `\\sqrt[${n}]{${expr}}`,
+      // Powers
+      "(.+?) squared": (match, base) => `${base}^{2}`,
+      "(.+?) cubed": (match, base) => `${base}^{3}`,
+      "(.+?) to the power of (.+)": (match, base, exp) => `${base}^{${exp}}`,
+      "e to the power of (.+)": (match, exp) => `e^{${exp}}`,
+      // Sums and products
+      "sum from (.+?)=(.+?) to (.+?) of (.+)": (match, var_, from, to, expr) => `\\sum_{${var_}=${from}}^{${to}} ${expr}`,
+      "sum from (.+?) to (.+?) of (.+)": (match, from, to, expr) => `\\sum_{${from}}^{${to}} ${expr}`,
+      "product from (.+?)=(.+?) to (.+?) of (.+)": (match, var_, from, to, expr) => `\\prod_{${var_}=${from}}^{${to}} ${expr}`,
+      // Limits
+      "limit as (.+?) approaches (.+?) of (.+)": (match, var_, val, expr) => `\\lim_{${var_} \\to ${val}} ${expr}`,
+      // Greek letters
+      "\\balpha\\b": "\\alpha",
+      "\\bbeta\\b": "\\beta",
+      "\\bgamma\\b": "\\gamma",
+      "\\bdelta\\b": "\\delta",
+      "\\bepsilon\\b": "\\epsilon",
+      "\\btheta\\b": "\\theta",
+      "\\blambda\\b": "\\lambda",
+      "\\bmu\\b": "\\mu",
+      "\\bpi\\b": "\\pi",
+      "\\bsigma\\b": "\\sigma",
+      "\\bomega\\b": "\\omega",
+      // Operators
+      "\\bplus or minus\\b": "\\pm",
+      "\\btimes\\b": "\\times",
+      "\\bdivided by\\b": "\\div",
+      "\\binfinity\\b": "\\infty",
+      "\\binfty\\b": "\\infty",
+      "\\btherefore\\b": "\\therefore",
+      "\\bbecause\\b": "\\because",
+      // Functions
+      "\\bsin\\b": "\\sin",
+      "\\bcos\\b": "\\cos",
+      "\\btan\\b": "\\tan",
+      "\\blog\\b": "\\log",
+      "\\bln\\b": "\\ln",
+      "\\bexp\\b": "\\exp",
+      "\\bsqrt\\b": "\\sqrt"
+    };
+    let latex = text;
+    let converted = false;
+    for (const [pattern, replacement] of Object.entries(expressions)) {
+      const regex = new RegExp(pattern, "gi");
+      if (regex.test(latex)) {
+        latex = latex.replace(regex, replacement);
+        converted = true;
+      }
+    }
+    const mathml = this.latexToMathML(latex);
+    return {
+      original: text,
+      converted: latex,
+      format: "latex",
+      latex,
+      mathml,
+      success: converted,
+      source: "local"
+    };
+  }
+  /**
+   * Simple LaTeX to MathML conversion
+   * @param {string} latex - LaTeX expression
+   * @returns {string} MathML
+   */
+  latexToMathML(latex) {
+    let mathml = latex.replace(/\\int/g, "<mo>&#x222B;</mo>").replace(/\\sum/g, "<mo>&#x2211;</mo>").replace(/\\prod/g, "<mo>&#x220F;</mo>").replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "<mfrac><mrow>$1</mrow><mrow>$2</mrow></mfrac>").replace(/\\sqrt\{([^}]+)\}/g, "<msqrt><mrow>$1</mrow></msqrt>").replace(/\\sqrt\[(\d+)\]\{([^}]+)\}/g, "<mroot><mrow>$2</mrow><mn>$1</mn></mroot>").replace(/\^(\{[^}]+\}|\d+)/g, "<msup><mi></mi><mn>$1</mn></msup>").replace(/\\alpha/g, "<mi>&#x03B1;</mi>").replace(/\\beta/g, "<mi>&#x03B2;</mi>").replace(/\\gamma/g, "<mi>&#x03B3;</mi>").replace(/\\delta/g, "<mi>&#x03B4;</mi>").replace(/\\pi/g, "<mi>&#x03C0;</mi>").replace(/\\sigma/g, "<mi>&#x03C3;</mi>").replace(/\\omega/g, "<mi>&#x03C9;</mi>").replace(/\\pm/g, "<mo>&#x00B1;</mo>").replace(/\\times/g, "<mo>&#x00D7;</mo>").replace(/\\div/g, "<mo>&#x00F7;</mo>").replace(/\\infty/g, "<mi>&#x221E;</mi>");
+    return `<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow>${mathml}</mrow></math>`;
+  }
+  /**
+   * Local validation fallback
+   * @param {string} expression - Expression to validate
+   * @returns {Object} Validation result
+   */
+  localValidate(expression) {
+    if (!expression || expression.trim() === "") {
+      return { valid: false, message: "Expression is empty" };
+    }
+    const openCount = (expression.match(/\(/g) || []).length;
+    const closeCount = (expression.match(/\)/g) || []).length;
+    if (openCount !== closeCount) {
+      return { valid: false, message: "Unbalanced parentheses" };
+    }
+    const openBrace = (expression.match(/\{/g) || []).length;
+    const closeBrace = (expression.match(/\}/g) || []).length;
+    if (openBrace !== closeBrace) {
+      return { valid: false, message: "Unbalanced braces" };
+    }
+    return { valid: true, message: "Expression appears valid" };
+  }
+  /**
+   * Default functions when API is unavailable
+   * @returns {Array} Default functions
+   */
+  getDefaultFunctions() {
+    return [
+      { name: "sum", category: "aggregation", description: "Sum of numbers", syntax: "SUM(a, b, ...)" },
+      { name: "average", category: "aggregation", description: "Average of numbers", syntax: "AVERAGE(a, b, ...)" },
+      { name: "sin", category: "trigonometric", description: "Sine function", syntax: "SIN(x)" },
+      { name: "cos", category: "trigonometric", description: "Cosine function", syntax: "COS(x)" },
+      { name: "tan", category: "trigonometric", description: "Tangent function", syntax: "TAN(x)" },
+      { name: "sqrt", category: "basic", description: "Square root", syntax: "SQRT(x)" },
+      { name: "power", category: "basic", description: "Power function", syntax: "POWER(base, exp)" },
+      { name: "log", category: "logarithmic", description: "Logarithm", syntax: "LOG(x, [base])" },
+      { name: "ln", category: "logarithmic", description: "Natural logarithm", syntax: "LN(x)" },
+      { name: "exp", category: "exponential", description: "Exponential function", syntax: "EXP(x)" },
+      { name: "integral", category: "calculus", description: "Integration", syntax: "\\int f(x) dx" },
+      { name: "derivative", category: "calculus", description: "Differentiation", syntax: "\\frac{d}{dx} f(x)" }
+    ];
+  }
+  /**
+   * Default symbols when API is unavailable
+   * @returns {Array} Default symbols
+   */
+  getDefaultSymbols() {
+    return [
+      { symbol: "\\pi", name: "Pi", category: "greek", unicode: "π" },
+      { symbol: "\\alpha", name: "Alpha", category: "greek", unicode: "α" },
+      { symbol: "\\beta", name: "Beta", category: "greek", unicode: "β" },
+      { symbol: "\\gamma", name: "Gamma", category: "greek", unicode: "γ" },
+      { symbol: "\\delta", name: "Delta", category: "greek", unicode: "δ" },
+      { symbol: "\\theta", name: "Theta", category: "greek", unicode: "θ" },
+      { symbol: "\\sigma", name: "Sigma", category: "greek", unicode: "σ" },
+      { symbol: "\\omega", name: "Omega", category: "greek", unicode: "ω" },
+      { symbol: "\\infty", name: "Infinity", category: "operators", unicode: "∞" },
+      { symbol: "\\sum", name: "Summation", category: "operators", unicode: "∑" },
+      { symbol: "\\int", name: "Integral", category: "operators", unicode: "∫" },
+      { symbol: "\\pm", name: "Plus-Minus", category: "operators", unicode: "±" },
+      { symbol: "\\times", name: "Times", category: "operators", unicode: "×" },
+      { symbol: "\\div", name: "Divided by", category: "operators", unicode: "÷" }
+    ];
+  }
+  /**
+   * Default templates when API is unavailable
+   * @returns {Array} Default templates
+   */
+  getDefaultTemplates() {
+    return [
+      {
+        id: "pythagorean",
+        name: "Pythagorean Theorem",
+        category: "geometry",
+        latex: "a^{2} + b^{2} = c^{2}",
+        description: "The square of the hypotenuse equals the sum of the squares of the other two sides"
+      },
+      {
+        id: "quadratic",
+        name: "Quadratic Formula",
+        category: "algebra",
+        latex: "x = \\frac{-b \\pm \\sqrt{b^{2} - 4ac}}{2a}",
+        description: "Solutions to the quadratic equation ax² + bx + c = 0"
+      },
+      {
+        id: "euler",
+        name: "Euler's Identity",
+        category: "complex_analysis",
+        latex: "e^{i\\pi} + 1 = 0",
+        description: "Euler's famous identity linking e, i, π, 0, and 1"
+      },
+      {
+        id: "einstein",
+        name: "Mass-Energy Equivalence",
+        category: "physics",
+        latex: "E = mc^{2}",
+        description: "Einstein's famous equation relating mass and energy"
+      },
+      {
+        id: "integral",
+        name: "Gaussian Integral",
+        category: "calculus",
+        latex: "\\int_{-\\infty}^{\\infty} e^{-x^{2}} dx = \\sqrt{\\pi}",
+        description: "The integral of the Gaussian function over the entire real line"
+      }
+    ];
+  }
+  /**
+   * Parse natural language math and return all formats
+   * @param {string} text - Natural language input
+   * @returns {Promise<Object>} Parsed math with all representations
+   */
+  async parseNaturalMath(text) {
+    try {
+      const result = await this.convertExpression(text, "text", "latex");
+      if (result.success) {
+        return {
+          text,
+          latex: result.latex || result.converted,
+          mathml: result.mathml,
+          format: "latex",
+          source: result.source || "api"
+        };
+      }
+    } catch (error) {
+      console.warn("Backend parse failed, using local:", error);
+    }
+    const local = this.localConvert(text);
+    return {
+      text,
+      latex: local.latex,
+      mathml: local.mathml,
+      format: "latex",
+      source: "local"
+    };
+  }
+  /**
+   * Render LaTeX to HTML using KaTeX-style rendering
+   * @param {string} latex - LaTeX expression
+   * @returns {string} HTML representation
+   */
+  renderToHTML(latex) {
+    return latex.replace(/\\int/g, "∫").replace(/\\sum/g, "∑").replace(/\\prod/g, "∏").replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '<span class="fraction"><span class="num">$1</span><span class="den">$2</span></span>').replace(/\\sqrt\{([^}]+)\}/g, "√($1)").replace(/\^(\{[^}]+\}|\d+)/g, "<sup>$1</sup>").replace(/_(\{[^}]+\}|\d+)/g, "<sub>$1</sub>").replace(/\\alpha/g, "α").replace(/\\beta/g, "β").replace(/\\gamma/g, "γ").replace(/\\delta/g, "δ").replace(/\\pi/g, "π").replace(/\\sigma/g, "σ").replace(/\\omega/g, "ω").replace(/\\pm/g, "±").replace(/\\times/g, "×").replace(/\\div/g, "÷").replace(/\\infty/g, "∞");
+  }
+}
+const mathService = new MathService();
 const css$2 = {
-  code: "textarea.svelte-f67yl2{min-height:1.5em}",
-  map: `{"version":3,"file":"TextEditorBlockEditor.svelte","sources":["TextEditorBlockEditor.svelte"],"sourcesContent":["<!-- frontend/src/lib/components/TextEditorBlockEditor.svelte -->\\r\\n<script>\\r\\n\\timport { createEventDispatcher } from 'svelte';\\r\\n\\r\\n\\texport let blocks = [];\\r\\n\\texport let selectedBlockIndex = 0;\\r\\n\\r\\n\\tconst dispatch = createEventDispatcher();\\r\\n\\r\\n\\tconst blockTypes = {\\r\\n\\t\\ttext: { icon: '📝', placeholder: 'Type something...' },\\r\\n\\t\\theading1: { icon: 'H1', placeholder: 'Heading 1' },\\r\\n\\t\\theading2: { icon: 'H2', placeholder: 'Heading 2' },\\r\\n\\t\\theading3: { icon: 'H3', placeholder: 'Heading 3' },\\r\\n\\t\\tlist: { icon: '•', placeholder: 'List item' },\\r\\n\\t\\tquote: { icon: '\\"', placeholder: 'Quote' },\\r\\n\\t\\tcode: { icon: '</>', placeholder: 'Code block' },\\r\\n\\t\\tmath: { icon: '∫', placeholder: 'Math expression (e.g., integral of x squared dx)' },\\r\\n\\t\\ttable: { icon: '📊', placeholder: 'Create a table' },\\r\\n\\t\\timage: { icon: '🖼️', placeholder: 'Add an image' }\\r\\n\\t};\\r\\n\\r\\n\\tfunction getBlockStyles(blockType) {\\r\\n\\t\\tconst styles = {\\r\\n\\t\\t\\theading1: 'text-3xl font-bold mb-4',\\r\\n\\t\\t\\theading2: 'text-2xl font-semibold mb-3',\\r\\n\\t\\t\\theading3: 'text-xl font-medium mb-2',\\r\\n\\t\\t\\ttext: 'text-base mb-2',\\r\\n\\t\\t\\tlist: 'text-base mb-1 ml-4',\\r\\n\\t\\t\\tquote: 'text-base mb-2 pl-4 border-l-4 border-gray-300 italic',\\r\\n\\t\\t\\tcode: 'text-sm font-mono bg-gray-100 p-3 rounded mb-2',\\r\\n\\t\\t\\tmath: 'text-base mb-2 font-serif bg-purple-50 p-2 rounded border border-purple-200',\\r\\n\\t\\t\\ttable: 'text-base mb-2',\\r\\n\\t\\t\\timage: 'text-base mb-2'\\r\\n\\t\\t};\\r\\n\\t\\treturn styles[blockType] || styles.text;\\r\\n\\t}\\r\\n\\r\\n\\tfunction parseMathExpression(text) {\\r\\n\\t\\tconst expressions = {\\r\\n\\t\\t\\t'integral of ([^ ]+) dx': '\\\\\\\\int $1 \\\\\\\\, dx',\\r\\n\\t\\t\\t'integral from ([^ ]+) to ([^ ]+) of ([^ ]+) d([^ ]+)': '\\\\\\\\int_{$1}^{$2} $3 \\\\\\\\, d$4',\\r\\n\\t\\t\\t'fraction ([^ ]+) over ([^ ]+)': '\\\\\\\\frac{$1}{$2}',\\r\\n\\t\\t\\t'square root of ([^ ]+)': '\\\\\\\\sqrt{$1}',\\r\\n\\t\\t\\t'sum from ([^=]+)=([^ ]+) to ([^ ]+)': '\\\\\\\\sum_{$1=$2}^{$3}',\\r\\n\\t\\t\\t'sum from ([^ ]+) to ([^ ]+) of ([^ ]+)': '\\\\\\\\sum_{$1}^{$2} $3',\\r\\n\\t\\t\\t'alpha': '\\\\\\\\alpha',\\r\\n\\t\\t\\t'beta': '\\\\\\\\beta',\\r\\n\\t\\t\\t'gamma': '\\\\\\\\gamma',\\r\\n\\t\\t\\t'delta': '\\\\\\\\delta',\\r\\n\\t\\t\\t'pi': '\\\\\\\\pi',\\r\\n\\t\\t\\t'sigma': '\\\\\\\\sigma',\\r\\n\\t\\t\\t'omega': '\\\\\\\\omega',\\r\\n\\t\\t\\t'plus or minus': '\\\\\\\\pm',\\r\\n\\t\\t\\t'times': '\\\\\\\\times',\\r\\n\\t\\t\\t'divided by': '\\\\\\\\div',\\r\\n\\t\\t\\t'therefore': '\\\\\\\\therefore',\\r\\n\\t\\t\\t'because': '\\\\\\\\because'\\r\\n\\t\\t};\\r\\n\\r\\n\\t\\tlet result = text;\\r\\n\\t\\tfor (const [pattern, replacement] of Object.entries(expressions)) {\\r\\n\\t\\t\\tconst regex = new RegExp(pattern, 'gi');\\r\\n\\t\\t\\tresult = result.replace(regex, replacement);\\r\\n\\t\\t}\\r\\n\\t\\treturn result;\\r\\n\\t}\\r\\n\\r\\n\\tfunction renderBlockContent(block) {\\r\\n\\t\\tif (block.type === 'math') {\\r\\n\\t\\t\\treturn parseMathExpression(block.content);\\r\\n\\t\\t}\\r\\n\\t\\treturn block.content;\\r\\n\\t}\\r\\n\\r\\n\\tfunction handleKeyDown(event, blockIndex) {\\r\\n\\t\\tconst { key } = event;\\r\\n\\r\\n\\t\\tif (key === 'Enter' && !event.shiftKey) {\\r\\n\\t\\t\\tevent.preventDefault();\\r\\n\\t\\t\\tdispatch('addBlock', blockIndex);\\r\\n\\t\\t} else if (key === 'Backspace' && blocks[blockIndex].content === '') {\\r\\n\\t\\t\\tevent.preventDefault();\\r\\n\\t\\t\\tdispatch('deleteBlock', blockIndex);\\r\\n\\t\\t}\\r\\n\\t}\\r\\n\\r\\n\\tfunction autoResize(node) {\\r\\n\\t\\tconst resize = () => {\\r\\n\\t\\t\\tnode.style.height = 'auto';\\r\\n\\t\\t\\tnode.style.height = node.scrollHeight + 'px';\\r\\n\\t\\t};\\r\\n\\r\\n\\t\\tnode.addEventListener('input', resize);\\r\\n\\t\\tnode.addEventListener('focus', resize);\\r\\n\\t\\tsetTimeout(resize, 0);\\r\\n\\r\\n\\t\\treturn {\\r\\n\\t\\t\\tdestroy() {\\r\\n\\t\\t\\t\\tnode.removeEventListener('input', resize);\\r\\n\\t\\t\\t\\tnode.removeEventListener('focus', resize);\\r\\n\\t\\t\\t}\\r\\n\\t\\t};\\r\\n\\t}\\r\\n<\/script>\\r\\n\\r\\n<div class=\\"space-y-2\\">\\r\\n\\t{#each blocks as block, index}\\r\\n\\t\\t<div\\r\\n\\t\\t\\tclass=\\"group relative {selectedBlockIndex === index ? 'ring-2 ring-blue-500 rounded' : ''}\\"\\r\\n\\t\\t\\ton:click={() => dispatch('selectBlock', index)}\\r\\n\\t\\t>\\r\\n\\t\\t\\t<!-- Block Type Indicator -->\\r\\n\\t\\t\\t<div class=\\"absolute -left-8 top-1 opacity-0 group-hover:opacity-100 transition-opacity\\">\\r\\n\\t\\t\\t\\t<span class=\\"text-xs text-gray-400\\">{blockTypes[block.type]?.icon || '📝'}</span>\\r\\n\\t\\t\\t</div>\\r\\n\\r\\n\\t\\t\\t<!-- Block Content -->\\r\\n\\t\\t\\t{#if block.type === 'image'}\\r\\n\\t\\t\\t\\t<div class=\\"border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500 hover:border-blue-400 transition-colors cursor-pointer\\">\\r\\n\\t\\t\\t\\t\\t<svg class=\\"w-12 h-12 mx-auto mb-3 text-gray-300\\" fill=\\"none\\" stroke=\\"currentColor\\" viewBox=\\"0 0 24 24\\">\\r\\n\\t\\t\\t\\t\\t\\t<path stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\" stroke-width=\\"2\\" d=\\"M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\\"></path>\\r\\n\\t\\t\\t\\t\\t</svg>\\r\\n\\t\\t\\t\\t\\t<p>Click to add an image</p>\\r\\n\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t{:else if block.type === 'table'}\\r\\n\\t\\t\\t\\t<div class=\\"border border-gray-300 rounded overflow-hidden\\">\\r\\n\\t\\t\\t\\t\\t<table class=\\"w-full\\">\\r\\n\\t\\t\\t\\t\\t\\t<thead class=\\"bg-gray-50\\">\\r\\n\\t\\t\\t\\t\\t\\t\\t<tr>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<th class=\\"border border-gray-300 p-2 text-left\\">Column 1</th>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<th class=\\"border border-gray-300 p-2 text-left\\">Column 2</th>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<th class=\\"border border-gray-300 p-2 text-left\\">Column 3</th>\\r\\n\\t\\t\\t\\t\\t\\t\\t</tr>\\r\\n\\t\\t\\t\\t\\t\\t</thead>\\r\\n\\t\\t\\t\\t\\t\\t<tbody>\\r\\n\\t\\t\\t\\t\\t\\t\\t<tr>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<td class=\\"border border-gray-300 p-2\\">Data 1</td>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<td class=\\"border border-gray-300 p-2\\">Data 2</td>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<td class=\\"border border-gray-300 p-2\\">Data 3</td>\\r\\n\\t\\t\\t\\t\\t\\t\\t</tr>\\r\\n\\t\\t\\t\\t\\t\\t</tbody>\\r\\n\\t\\t\\t\\t\\t</table>\\r\\n\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t{:else}\\r\\n\\t\\t\\t\\t<div class={getBlockStyles(block.type)}>\\r\\n\\t\\t\\t\\t\\t{#if block.type === 'list'}\\r\\n\\t\\t\\t\\t\\t\\t<span class=\\"mr-2\\">•</span>\\r\\n\\t\\t\\t\\t\\t{:else if block.type === 'quote'}\\r\\n\\t\\t\\t\\t\\t\\t<span class=\\"mr-2 text-gray-400\\">\\"</span>\\r\\n\\t\\t\\t\\t\\t{/if}\\r\\n\\r\\n\\t\\t\\t\\t\\t{#if selectedBlockIndex === index}\\r\\n\\t\\t\\t\\t\\t\\t<textarea\\r\\n\\t\\t\\t\\t\\t\\t\\tbind:value={block.content}\\r\\n\\t\\t\\t\\t\\t\\t\\tplaceholder={blockTypes[block.type]?.placeholder || 'Start typing...'}\\r\\n\\t\\t\\t\\t\\t\\t\\tclass=\\"w-full bg-transparent border-none outline-none resize-none {block.type === 'code' ? 'font-mono' : ''}\\"\\r\\n\\t\\t\\t\\t\\t\\t\\trows=\\"1\\"\\r\\n\\t\\t\\t\\t\\t\\t\\ton:input={(e) => {\\r\\n\\t\\t\\t\\t\\t\\t\\t\\te.target.style.height = 'auto';\\r\\n\\t\\t\\t\\t\\t\\t\\t\\te.target.style.height = e.target.scrollHeight + 'px';\\r\\n\\t\\t\\t\\t\\t\\t\\t\\tdispatch('contentChange', { index, content: e.target.value });\\r\\n\\t\\t\\t\\t\\t\\t\\t}}\\r\\n\\t\\t\\t\\t\\t\\t\\ton:keydown={(e) => handleKeyDown(e, index)}\\r\\n\\t\\t\\t\\t\\t\\t\\ton:focus={() => dispatch('selectBlock', index)}\\r\\n\\t\\t\\t\\t\\t\\t\\tuse:autoResize\\r\\n\\t\\t\\t\\t\\t\\t/>\\r\\n\\t\\t\\t\\t\\t{:else}\\r\\n\\t\\t\\t\\t\\t\\t<div\\r\\n\\t\\t\\t\\t\\t\\t\\tclass=\\"cursor-text\\"\\r\\n\\t\\t\\t\\t\\t\\t\\ton:click={() => dispatch('selectBlock', index)}\\r\\n\\t\\t\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t\\t\\t{#if block.type === 'math'}\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<span class=\\"font-serif\\">\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t\\t{renderBlockContent(block) || blockTypes[block.type]?.placeholder}\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t</span>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t{#if block.content}\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t\\t<span class=\\"ml-2 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded\\">\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\tMath\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t\\t</span>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t{/if}\\r\\n\\t\\t\\t\\t\\t\\t\\t{:else}\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t{block.content || blockTypes[block.type]?.placeholder}\\r\\n\\t\\t\\t\\t\\t\\t\\t{/if}\\r\\n\\t\\t\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t\\t\\t{/if}\\r\\n\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t{/if}\\r\\n\\r\\n\\t\\t\\t<!-- Block Actions (visible on hover) -->\\r\\n\\t\\t\\t<div class=\\"absolute -right-8 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-1\\">\\r\\n\\t\\t\\t\\t<button\\r\\n\\t\\t\\t\\t\\tclass=\\"w-6 h-6 bg-gray-100 hover:bg-gray-200 rounded text-xs\\"\\r\\n\\t\\t\\t\\t\\ttitle=\\"Add block below\\"\\r\\n\\t\\t\\t\\t\\ton:click|stopPropagation={() => dispatch('addBlock', index)}\\r\\n\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t+\\r\\n\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t{#if blocks.length > 1}\\r\\n\\t\\t\\t\\t\\t<button\\r\\n\\t\\t\\t\\t\\t\\tclass=\\"w-6 h-6 bg-red-100 hover:bg-red-200 rounded text-xs text-red-600\\"\\r\\n\\t\\t\\t\\t\\t\\ttitle=\\"Delete block\\"\\r\\n\\t\\t\\t\\t\\t\\ton:click|stopPropagation={() => dispatch('deleteBlock', index)}\\r\\n\\t\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t\\t×\\r\\n\\t\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t{/if}\\r\\n\\t\\t\\t</div>\\r\\n\\t\\t</div>\\r\\n\\t{/each}\\r\\n</div>\\r\\n\\r\\n<style>\\r\\n\\ttextarea {\\r\\n\\t\\tmin-height: 1.5em;\\r\\n\\t}\\r\\n</style>\\r\\n"],"names":[],"mappings":"AAqNC,sBAAS,CACR,UAAU,CAAE,KACb"}`
+  code: "textarea.svelte-167pkpq{min-height:1.5em}.math-display.svelte-167pkpq{min-height:1.5em;padding:0.25rem 0}.math-rendered.svelte-167pkpq .fraction{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 0.2em}.math-rendered.svelte-167pkpq .fraction .num{border-bottom:1px solid currentColor;padding:0 0.2em}.math-rendered.svelte-167pkpq .fraction .den{padding:0 0.2em}.math-rendered.svelte-167pkpq sup{font-size:0.75em;vertical-align:super;line-height:0}.math-rendered.svelte-167pkpq sub{font-size:0.75em;vertical-align:sub;line-height:0}",
+  map: `{"version":3,"file":"TextEditorBlockEditor.svelte","sources":["TextEditorBlockEditor.svelte"],"sourcesContent":["<!-- frontend/src/lib/components/TextEditorBlockEditor.svelte -->\\r\\n<script>\\r\\n\\timport { createEventDispatcher, onMount } from 'svelte';\\r\\n\\timport mathService from '$lib/services/math.js';\\r\\n\\r\\n\\texport let blocks = [];\\r\\n\\texport let selectedBlockIndex = 0;\\r\\n\\r\\n\\tconst dispatch = createEventDispatcher();\\r\\n\\r\\n\\t// Track math conversion state\\r\\n\\tlet mathConversions = {};\\r\\n\\tlet convertingMath = {};\\r\\n\\r\\n\\r\\n\\tconst blockTypes = {\\r\\n\\t\\ttext: { icon: '📝', placeholder: 'Type something...' },\\r\\n\\t\\theading1: { icon: 'H1', placeholder: 'Heading 1' },\\r\\n\\t\\theading2: { icon: 'H2', placeholder: 'Heading 2' },\\r\\n\\t\\theading3: { icon: 'H3', placeholder: 'Heading 3' },\\r\\n\\t\\tlist: { icon: '•', placeholder: 'List item' },\\r\\n\\t\\tquote: { icon: '\\"', placeholder: 'Quote' },\\r\\n\\t\\tcode: { icon: '</>', placeholder: 'Code block' },\\r\\n\\t\\tmath: { icon: '∫', placeholder: 'Math expression (e.g., integral of x squared dx)' },\\r\\n\\t\\ttable: { icon: '📊', placeholder: 'Create a table' },\\r\\n\\t\\timage: { icon: '🖼️', placeholder: 'Add an image' }\\r\\n\\t};\\r\\n\\r\\n\\tfunction getBlockStyles(blockType) {\\r\\n\\t\\tconst styles = {\\r\\n\\t\\t\\theading1: 'text-3xl font-bold mb-4',\\r\\n\\t\\t\\theading2: 'text-2xl font-semibold mb-3',\\r\\n\\t\\t\\theading3: 'text-xl font-medium mb-2',\\r\\n\\t\\t\\ttext: 'text-base mb-2',\\r\\n\\t\\t\\tlist: 'text-base mb-1 ml-4',\\r\\n\\t\\t\\tquote: 'text-base mb-2 pl-4 border-l-4 border-gray-300 italic',\\r\\n\\t\\t\\tcode: 'text-sm font-mono bg-gray-100 p-3 rounded mb-2',\\r\\n\\t\\t\\tmath: 'text-base mb-2 font-serif bg-purple-50 p-2 rounded border border-purple-200',\\r\\n\\t\\t\\ttable: 'text-base mb-2',\\r\\n\\t\\t\\timage: 'text-base mb-2'\\r\\n\\t\\t};\\r\\n\\t\\treturn styles[blockType] || styles.text;\\r\\n\\t}\\r\\n\\r\\n\\tasync function parseMathExpression(text) {\\r\\n\\t\\tif (!text || text.trim() === '') return '';\\r\\n\\t\\t\\r\\n\\t\\t// Use the math service for superior natural language processing\\r\\n\\t\\ttry {\\r\\n\\t\\t\\tconst result = await mathService.parseNaturalMath(text);\\r\\n\\t\\t\\treturn result.latex || text;\\r\\n\\t\\t} catch (error) {\\r\\n\\t\\t\\tconsole.error('Math parsing error:', error);\\r\\n\\t\\t\\treturn text;\\r\\n\\t\\t}\\r\\n\\t}\\r\\n\\r\\n\\tasync function convertMathBlock(blockIndex) {\\r\\n\\t\\tconst block = blocks[blockIndex];\\r\\n\\t\\tif (!block || block.type !== 'math' || !block.content) return;\\r\\n\\t\\t\\r\\n\\t\\tconst content = block.content.trim();\\r\\n\\t\\tif (!content) return;\\r\\n\\t\\t\\r\\n\\t\\t// Check cache first\\r\\n\\t\\tif (mathConversions[content]) {\\r\\n\\t\\t\\tblocks[blockIndex].mathData = mathConversions[content];\\r\\n\\t\\t\\tblocks = [...blocks];\\r\\n\\t\\t\\treturn;\\r\\n\\t\\t}\\r\\n\\t\\t\\r\\n\\t\\tconvertingMath[blockIndex] = true;\\r\\n\\t\\t\\r\\n\\t\\ttry {\\r\\n\\t\\t\\tconst result = await mathService.parseNaturalMath(content);\\r\\n\\t\\t\\tmathConversions[content] = result;\\r\\n\\t\\t\\tblocks[blockIndex].mathData = result;\\r\\n\\t\\t\\tblocks = [...blocks];\\r\\n\\t\\t} catch (error) {\\r\\n\\t\\t\\tconsole.error('Math conversion error:', error);\\r\\n\\t\\t} finally {\\r\\n\\t\\t\\tconvertingMath[blockIndex] = false;\\r\\n\\t\\t}\\r\\n\\t}\\r\\n\\r\\n\\tfunction renderBlockContent(block) {\\r\\n\\t\\tif (block.type === 'math' && block.mathData) {\\r\\n\\t\\t\\treturn block.mathData.latex || block.content;\\r\\n\\t\\t}\\r\\n\\t\\treturn block.content;\\r\\n\\t}\\r\\n\\r\\n\\tfunction renderMathHTML(block) {\\r\\n\\t\\tif (block.type === 'math' && block.mathData) {\\r\\n\\t\\t\\treturn mathService.renderToHTML(block.mathData.latex);\\r\\n\\t\\t}\\r\\n\\t\\treturn block.content;\\r\\n\\t}\\r\\n\\r\\n\\t// Convert math when block loses focus\\r\\n\\tfunction handleMathBlur(blockIndex) {\\r\\n\\t\\tconvertMathBlock(blockIndex);\\r\\n\\t}\\r\\n\\r\\n\\r\\n\\tfunction handleKeyDown(event, blockIndex) {\\r\\n\\t\\tconst { key } = event;\\r\\n\\r\\n\\t\\tif (key === 'Enter' && !event.shiftKey) {\\r\\n\\t\\t\\tevent.preventDefault();\\r\\n\\t\\t\\tdispatch('addBlock', blockIndex);\\r\\n\\t\\t} else if (key === 'Backspace' && blocks[blockIndex].content === '') {\\r\\n\\t\\t\\tevent.preventDefault();\\r\\n\\t\\t\\tdispatch('deleteBlock', blockIndex);\\r\\n\\t\\t}\\r\\n\\t}\\r\\n\\r\\n\\tfunction autoResize(node) {\\r\\n\\t\\tconst resize = () => {\\r\\n\\t\\t\\tnode.style.height = 'auto';\\r\\n\\t\\t\\tnode.style.height = node.scrollHeight + 'px';\\r\\n\\t\\t};\\r\\n\\r\\n\\t\\tnode.addEventListener('input', resize);\\r\\n\\t\\tnode.addEventListener('focus', resize);\\r\\n\\t\\tsetTimeout(resize, 0);\\r\\n\\r\\n\\t\\treturn {\\r\\n\\t\\t\\tdestroy() {\\r\\n\\t\\t\\t\\tnode.removeEventListener('input', resize);\\r\\n\\t\\t\\t\\tnode.removeEventListener('focus', resize);\\r\\n\\t\\t\\t}\\r\\n\\t\\t};\\r\\n\\t}\\r\\n<\/script>\\r\\n\\r\\n<div class=\\"space-y-2\\">\\r\\n\\t{#each blocks as block, index}\\r\\n\\t\\t<div\\r\\n\\t\\t\\tclass=\\"group relative {selectedBlockIndex === index ? 'ring-2 ring-blue-500 rounded' : ''}\\"\\r\\n\\t\\t\\ton:click={() => dispatch('selectBlock', index)}\\r\\n\\t\\t>\\r\\n\\t\\t\\t<!-- Block Type Indicator -->\\r\\n\\t\\t\\t<div class=\\"absolute -left-8 top-1 opacity-0 group-hover:opacity-100 transition-opacity\\">\\r\\n\\t\\t\\t\\t<span class=\\"text-xs text-gray-400\\">{blockTypes[block.type]?.icon || '📝'}</span>\\r\\n\\t\\t\\t</div>\\r\\n\\r\\n\\t\\t\\t<!-- Block Content -->\\r\\n\\t\\t\\t{#if block.type === 'image'}\\r\\n\\t\\t\\t\\t<div class=\\"border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500 hover:border-blue-400 transition-colors cursor-pointer\\">\\r\\n\\t\\t\\t\\t\\t<svg class=\\"w-12 h-12 mx-auto mb-3 text-gray-300\\" fill=\\"none\\" stroke=\\"currentColor\\" viewBox=\\"0 0 24 24\\">\\r\\n\\t\\t\\t\\t\\t\\t<path stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\" stroke-width=\\"2\\" d=\\"M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\\"></path>\\r\\n\\t\\t\\t\\t\\t</svg>\\r\\n\\t\\t\\t\\t\\t<p>Click to add an image</p>\\r\\n\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t{:else if block.type === 'table'}\\r\\n\\t\\t\\t\\t<div class=\\"border border-gray-300 rounded overflow-hidden\\">\\r\\n\\t\\t\\t\\t\\t<table class=\\"w-full\\">\\r\\n\\t\\t\\t\\t\\t\\t<thead class=\\"bg-gray-50\\">\\r\\n\\t\\t\\t\\t\\t\\t\\t<tr>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<th class=\\"border border-gray-300 p-2 text-left\\">Column 1</th>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<th class=\\"border border-gray-300 p-2 text-left\\">Column 2</th>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<th class=\\"border border-gray-300 p-2 text-left\\">Column 3</th>\\r\\n\\t\\t\\t\\t\\t\\t\\t</tr>\\r\\n\\t\\t\\t\\t\\t\\t</thead>\\r\\n\\t\\t\\t\\t\\t\\t<tbody>\\r\\n\\t\\t\\t\\t\\t\\t\\t<tr>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<td class=\\"border border-gray-300 p-2\\">Data 1</td>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<td class=\\"border border-gray-300 p-2\\">Data 2</td>\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<td class=\\"border border-gray-300 p-2\\">Data 3</td>\\r\\n\\t\\t\\t\\t\\t\\t\\t</tr>\\r\\n\\t\\t\\t\\t\\t\\t</tbody>\\r\\n\\t\\t\\t\\t\\t</table>\\r\\n\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t{:else}\\r\\n\\t\\t\\t\\t<div class={getBlockStyles(block.type)}>\\r\\n\\t\\t\\t\\t\\t{#if block.type === 'list'}\\r\\n\\t\\t\\t\\t\\t\\t<span class=\\"mr-2\\">•</span>\\r\\n\\t\\t\\t\\t\\t{:else if block.type === 'quote'}\\r\\n\\t\\t\\t\\t\\t\\t<span class=\\"mr-2 text-gray-400\\">\\"</span>\\r\\n\\t\\t\\t\\t\\t{/if}\\r\\n\\r\\n\\t\\t\\t\\t\\t{#if selectedBlockIndex === index}\\r\\n\\t\\t\\t\\t\\t\\t<textarea\\r\\n\\t\\t\\t\\t\\t\\t\\tbind:value={block.content}\\r\\n\\t\\t\\t\\t\\t\\t\\tplaceholder={blockTypes[block.type]?.placeholder || 'Start typing...'}\\r\\n\\t\\t\\t\\t\\t\\t\\tclass=\\"w-full bg-transparent border-none outline-none resize-none {block.type === 'code' ? 'font-mono' : ''} {block.type === 'math' ? 'font-serif' : ''}\\"\\r\\n\\t\\t\\t\\t\\t\\t\\trows=\\"1\\"\\r\\n\\t\\t\\t\\t\\t\\t\\ton:input={(e) => {\\r\\n\\t\\t\\t\\t\\t\\t\\t\\te.target.style.height = 'auto';\\r\\n\\t\\t\\t\\t\\t\\t\\t\\te.target.style.height = e.target.scrollHeight + 'px';\\r\\n\\t\\t\\t\\t\\t\\t\\t\\tdispatch('contentChange', { index, content: e.target.value });\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t// Clear math data when editing\\r\\n\\t\\t\\t\\t\\t\\t\\t\\tif (block.type === 'math') {\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t\\tblock.mathData = null;\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t}\\r\\n\\t\\t\\t\\t\\t\\t\\t}}\\r\\n\\t\\t\\t\\t\\t\\t\\ton:keydown={(e) => handleKeyDown(e, index)}\\r\\n\\t\\t\\t\\t\\t\\t\\ton:focus={() => dispatch('selectBlock', index)}\\r\\n\\t\\t\\t\\t\\t\\t\\ton:blur={() => {\\r\\n\\t\\t\\t\\t\\t\\t\\t\\tif (block.type === 'math') {\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t\\thandleMathBlur(index);\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t}\\r\\n\\t\\t\\t\\t\\t\\t\\t}}\\r\\n\\t\\t\\t\\t\\t\\t\\tuse:autoResize\\r\\n\\t\\t\\t\\t\\t\\t/>\\r\\n\\r\\n\\t\\t\\t\\t\\t{:else}\\r\\n\\t\\t\\t\\t\\t\\t<div\\r\\n\\t\\t\\t\\t\\t\\t\\tclass=\\"cursor-text\\"\\r\\n\\t\\t\\t\\t\\t\\t\\ton:click={() => dispatch('selectBlock', index)}\\r\\n\\t\\t\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t{#if block.type === 'math'}\\r\\n\\t\\t\\t\\t\\t\\t<div class=\\"math-display font-serif text-lg\\">\\r\\n\\t\\t\\t\\t\\t\\t\\t{#if convertingMath[index]}\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<span class=\\"text-gray-400 italic\\">Converting...</span>\\r\\n\\t\\t\\t\\t\\t\\t\\t{:else if block.mathData}\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<span class=\\"math-rendered\\" title=\\"LaTeX: {block.mathData.latex}\\">\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t\\t{@html renderMathHTML(block)}\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t</span>\\r\\n\\t\\t\\t\\t\\t\\t\\t{:else}\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t<span class=\\"text-gray-600\\">{block.content || blockTypes[block.type]?.placeholder}</span>\\r\\n\\t\\t\\t\\t\\t\\t\\t{/if}\\r\\n\\t\\t\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t\\t\\t\\t{#if block.mathData}\\r\\n\\t\\t\\t\\t\\t\\t\\t<span class=\\"ml-2 text-xs text-green-600 bg-green-50 px-2 py-1 rounded border border-green-200\\">\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t✓ Math\\r\\n\\t\\t\\t\\t\\t\\t\\t</span>\\r\\n\\t\\t\\t\\t\\t\\t{:else if block.content}\\r\\n\\t\\t\\t\\t\\t\\t\\t<span class=\\"ml-2 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded\\">\\r\\n\\t\\t\\t\\t\\t\\t\\t\\tPress Enter to convert\\r\\n\\t\\t\\t\\t\\t\\t\\t</span>\\r\\n\\t\\t\\t\\t\\t\\t{/if}\\r\\n\\r\\n\\t\\t\\t\\t\\t\\t\\t{:else}\\r\\n\\t\\t\\t\\t\\t\\t\\t\\t{block.content || blockTypes[block.type]?.placeholder}\\r\\n\\t\\t\\t\\t\\t\\t\\t{/if}\\r\\n\\t\\t\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t\\t\\t{/if}\\r\\n\\t\\t\\t\\t</div>\\r\\n\\t\\t\\t{/if}\\r\\n\\r\\n\\t\\t\\t<!-- Block Actions (visible on hover) -->\\r\\n\\t\\t\\t<div class=\\"absolute -right-8 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-1\\">\\r\\n\\t\\t\\t\\t<button\\r\\n\\t\\t\\t\\t\\tclass=\\"w-6 h-6 bg-gray-100 hover:bg-gray-200 rounded text-xs\\"\\r\\n\\t\\t\\t\\t\\ttitle=\\"Add block below\\"\\r\\n\\t\\t\\t\\t\\ton:click|stopPropagation={() => dispatch('addBlock', index)}\\r\\n\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t+\\r\\n\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t{#if blocks.length > 1}\\r\\n\\t\\t\\t\\t\\t<button\\r\\n\\t\\t\\t\\t\\t\\tclass=\\"w-6 h-6 bg-red-100 hover:bg-red-200 rounded text-xs text-red-600\\"\\r\\n\\t\\t\\t\\t\\t\\ttitle=\\"Delete block\\"\\r\\n\\t\\t\\t\\t\\t\\ton:click|stopPropagation={() => dispatch('deleteBlock', index)}\\r\\n\\t\\t\\t\\t\\t>\\r\\n\\t\\t\\t\\t\\t\\t×\\r\\n\\t\\t\\t\\t\\t</button>\\r\\n\\t\\t\\t\\t{/if}\\r\\n\\t\\t\\t</div>\\r\\n\\t\\t</div>\\r\\n\\t{/each}\\r\\n</div>\\r\\n\\r\\n<style>\\r\\n\\ttextarea {\\r\\n\\t\\tmin-height: 1.5em;\\r\\n\\t}\\r\\n\\r\\n\\t.math-display {\\r\\n\\t\\tmin-height: 1.5em;\\r\\n\\t\\tpadding: 0.25rem 0;\\r\\n\\t}\\r\\n\\r\\n\\t.math-rendered :global(.fraction) {\\r\\n\\t\\tdisplay: inline-flex;\\r\\n\\t\\tflex-direction: column;\\r\\n\\t\\tvertical-align: middle;\\r\\n\\t\\ttext-align: center;\\r\\n\\t\\tmargin: 0 0.2em;\\r\\n\\t}\\r\\n\\r\\n\\t.math-rendered :global(.fraction .num) {\\r\\n\\t\\tborder-bottom: 1px solid currentColor;\\r\\n\\t\\tpadding: 0 0.2em;\\r\\n\\t}\\r\\n\\r\\n\\t.math-rendered :global(.fraction .den) {\\r\\n\\t\\tpadding: 0 0.2em;\\r\\n\\t}\\r\\n\\r\\n\\t.math-rendered :global(sup) {\\r\\n\\t\\tfont-size: 0.75em;\\r\\n\\t\\tvertical-align: super;\\r\\n\\t\\tline-height: 0;\\r\\n\\t}\\r\\n\\r\\n\\t.math-rendered :global(sub) {\\r\\n\\t\\tfont-size: 0.75em;\\r\\n\\t\\tvertical-align: sub;\\r\\n\\t\\tline-height: 0;\\r\\n\\t}\\r\\n</style>\\r\\n"],"names":[],"mappings":"AA0QC,uBAAS,CACR,UAAU,CAAE,KACb,CAEA,4BAAc,CACb,UAAU,CAAE,KAAK,CACjB,OAAO,CAAE,OAAO,CAAC,CAClB,CAEA,6BAAc,CAAS,SAAW,CACjC,OAAO,CAAE,WAAW,CACpB,cAAc,CAAE,MAAM,CACtB,cAAc,CAAE,MAAM,CACtB,UAAU,CAAE,MAAM,CAClB,MAAM,CAAE,CAAC,CAAC,KACX,CAEA,6BAAc,CAAS,cAAgB,CACtC,aAAa,CAAE,GAAG,CAAC,KAAK,CAAC,YAAY,CACrC,OAAO,CAAE,CAAC,CAAC,KACZ,CAEA,6BAAc,CAAS,cAAgB,CACtC,OAAO,CAAE,CAAC,CAAC,KACZ,CAEA,6BAAc,CAAS,GAAK,CAC3B,SAAS,CAAE,MAAM,CACjB,cAAc,CAAE,KAAK,CACrB,WAAW,CAAE,CACd,CAEA,6BAAc,CAAS,GAAK,CAC3B,SAAS,CAAE,MAAM,CACjB,cAAc,CAAE,GAAG,CACnB,WAAW,CAAE,CACd"}`
 };
 function getBlockStyles(blockType) {
   const styles = {
@@ -51,44 +493,11 @@ function getBlockStyles(blockType) {
   };
   return styles[blockType] || styles.text;
 }
-function parseMathExpression(text) {
-  const expressions = {
-    "integral of ([^ ]+) dx": "\\int $1 \\, dx",
-    "integral from ([^ ]+) to ([^ ]+) of ([^ ]+) d([^ ]+)": "\\int_{$1}^{$2} $3 \\, d$4",
-    "fraction ([^ ]+) over ([^ ]+)": "\\frac{$1}{$2}",
-    "square root of ([^ ]+)": "\\sqrt{$1}",
-    "sum from ([^=]+)=([^ ]+) to ([^ ]+)": "\\sum_{$1=$2}^{$3}",
-    "sum from ([^ ]+) to ([^ ]+) of ([^ ]+)": "\\sum_{$1}^{$2} $3",
-    "alpha": "\\alpha",
-    "beta": "\\beta",
-    "gamma": "\\gamma",
-    "delta": "\\delta",
-    "pi": "\\pi",
-    "sigma": "\\sigma",
-    "omega": "\\omega",
-    "plus or minus": "\\pm",
-    "times": "\\times",
-    "divided by": "\\div",
-    "therefore": "\\therefore",
-    "because": "\\because"
-  };
-  let result = text;
-  for (const [pattern, replacement] of Object.entries(expressions)) {
-    const regex = new RegExp(pattern, "gi");
-    result = result.replace(regex, replacement);
-  }
-  return result;
-}
-function renderBlockContent(block) {
-  if (block.type === "math") {
-    return parseMathExpression(block.content);
-  }
-  return block.content;
-}
 const TextEditorBlockEditor = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let { blocks = [] } = $$props;
   let { selectedBlockIndex = 0 } = $$props;
   createEventDispatcher();
+  let convertingMath = {};
   const blockTypes = {
     text: {
       icon: "📝",
@@ -110,6 +519,12 @@ const TextEditorBlockEditor = create_ssr_component(($$result, $$props, $$binding
     },
     image: { icon: "🖼️", placeholder: "Add an image" }
   };
+  function renderMathHTML(block) {
+    if (block.type === "math" && block.mathData) {
+      return mathService.renderToHTML(block.mathData.latex);
+    }
+    return block.content;
+  }
   if ($$props.blocks === void 0 && $$bindings.blocks && blocks !== void 0) $$bindings.blocks(blocks);
   if ($$props.selectedBlockIndex === void 0 && $$bindings.selectedBlockIndex && selectedBlockIndex !== void 0) $$bindings.selectedBlockIndex(selectedBlockIndex);
   $$result.css.add(css$2);
@@ -117,8 +532,9 @@ const TextEditorBlockEditor = create_ssr_component(($$result, $$props, $$binding
     return `<div class="${"group relative " + escape(
       selectedBlockIndex === index ? "ring-2 ring-blue-500 rounded" : "",
       true
-    )}"> <div class="absolute -left-8 top-1 opacity-0 group-hover:opacity-100 transition-opacity"><span class="text-xs text-gray-400">${escape(blockTypes[block.type]?.icon || "📝")}</span></div>  ${block.type === "image" ? `<div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500 hover:border-blue-400 transition-colors cursor-pointer" data-svelte-h="svelte-1w4p42z"><svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> <p>Click to add an image</p> </div>` : `${block.type === "table" ? `<div class="border border-gray-300 rounded overflow-hidden" data-svelte-h="svelte-14cxxhb"><table class="w-full"><thead class="bg-gray-50"><tr><th class="border border-gray-300 p-2 text-left">Column 1</th> <th class="border border-gray-300 p-2 text-left">Column 2</th> <th class="border border-gray-300 p-2 text-left">Column 3</th> </tr></thead> <tbody><tr><td class="border border-gray-300 p-2">Data 1</td> <td class="border border-gray-300 p-2">Data 2</td> <td class="border border-gray-300 p-2">Data 3</td></tr> </tbody></table> </div>` : `<div${add_attribute("class", getBlockStyles(block.type), 0)}>${block.type === "list" ? `<span class="mr-2" data-svelte-h="svelte-1mk8fyn">•</span>` : `${block.type === "quote" ? `<span class="mr-2 text-gray-400" data-svelte-h="svelte-qvh2wb">&quot;</span>` : ``}`} ${selectedBlockIndex === index ? `<textarea${add_attribute("placeholder", blockTypes[block.type]?.placeholder || "Start typing...", 0)} class="${"w-full bg-transparent border-none outline-none resize-none " + escape(block.type === "code" ? "font-mono" : "", true) + " svelte-f67yl2"}" rows="1">${escape(block.content || "")}</textarea>` : `<div class="cursor-text">${block.type === "math" ? `<span class="font-serif">${escape(renderBlockContent(block) || blockTypes[block.type]?.placeholder)}</span> ${block.content ? `<span class="ml-2 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded" data-svelte-h="svelte-1vgl4kf">Math
-									</span>` : ``}` : `${escape(block.content || blockTypes[block.type]?.placeholder)}`} </div>`} </div>`}`}  <div class="absolute -right-8 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-1"><button class="w-6 h-6 bg-gray-100 hover:bg-gray-200 rounded text-xs" title="Add block below" data-svelte-h="svelte-200pkv">+</button> ${blocks.length > 1 ? `<button class="w-6 h-6 bg-red-100 hover:bg-red-200 rounded text-xs text-red-600" title="Delete block" data-svelte-h="svelte-1d8x68u">×
+    )}"> <div class="absolute -left-8 top-1 opacity-0 group-hover:opacity-100 transition-opacity"><span class="text-xs text-gray-400">${escape(blockTypes[block.type]?.icon || "📝")}</span></div>  ${block.type === "image" ? `<div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500 hover:border-blue-400 transition-colors cursor-pointer" data-svelte-h="svelte-1w4p42z"><svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> <p>Click to add an image</p> </div>` : `${block.type === "table" ? `<div class="border border-gray-300 rounded overflow-hidden" data-svelte-h="svelte-14cxxhb"><table class="w-full"><thead class="bg-gray-50"><tr><th class="border border-gray-300 p-2 text-left">Column 1</th> <th class="border border-gray-300 p-2 text-left">Column 2</th> <th class="border border-gray-300 p-2 text-left">Column 3</th> </tr></thead> <tbody><tr><td class="border border-gray-300 p-2">Data 1</td> <td class="border border-gray-300 p-2">Data 2</td> <td class="border border-gray-300 p-2">Data 3</td></tr> </tbody></table> </div>` : `<div class="${escape(null_to_empty(getBlockStyles(block.type)), true) + " svelte-167pkpq"}">${block.type === "list" ? `<span class="mr-2" data-svelte-h="svelte-1mk8fyn">•</span>` : `${block.type === "quote" ? `<span class="mr-2 text-gray-400" data-svelte-h="svelte-qvh2wb">&quot;</span>` : ``}`} ${selectedBlockIndex === index ? `<textarea${add_attribute("placeholder", blockTypes[block.type]?.placeholder || "Start typing...", 0)} class="${"w-full bg-transparent border-none outline-none resize-none " + escape(block.type === "code" ? "font-mono" : "", true) + " " + escape(block.type === "math" ? "font-serif" : "", true) + " svelte-167pkpq"}" rows="1">${escape(block.content || "")}</textarea>` : `<div class="cursor-text">${block.type === "math" ? `<div class="math-display font-serif text-lg svelte-167pkpq">${convertingMath[index] ? `<span class="text-gray-400 italic" data-svelte-h="svelte-ikoeps">Converting...</span>` : `${block.mathData ? `<span class="math-rendered svelte-167pkpq" title="${"LaTeX: " + escape(block.mathData.latex, true)}"><!-- HTML_TAG_START -->${renderMathHTML(block)}<!-- HTML_TAG_END --> </span>` : `<span class="text-gray-600">${escape(block.content || blockTypes[block.type]?.placeholder)}</span>`}`}</div> ${block.mathData ? `<span class="ml-2 text-xs text-green-600 bg-green-50 px-2 py-1 rounded border border-green-200" data-svelte-h="svelte-f9ed8x">✓ Math
+							</span>` : `${block.content ? `<span class="ml-2 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded" data-svelte-h="svelte-76ydxc">Press Enter to convert
+							</span>` : ``}`}` : `${escape(block.content || blockTypes[block.type]?.placeholder)}`} </div>`} </div>`}`}  <div class="absolute -right-8 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-1"><button class="w-6 h-6 bg-gray-100 hover:bg-gray-200 rounded text-xs" title="Add block below" data-svelte-h="svelte-200pkv">+</button> ${blocks.length > 1 ? `<button class="w-6 h-6 bg-red-100 hover:bg-red-200 rounded text-xs text-red-600" title="Delete block" data-svelte-h="svelte-1d8x68u">×
 					</button>` : ``}</div> </div>`;
   })} </div>`;
 });
@@ -317,13 +733,13 @@ const TextEditor = create_ssr_component(($$result, $$props, $$bindings, slots) =
 });
 let documentTitle = "Untitled Document";
 const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  const params = null;
   const data = null;
   const form = null;
+  const params = null;
   let editorMode = "blocks";
-  if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   if ($$props.data === void 0 && $$bindings.data && data !== void 0) $$bindings.data(data);
   if ($$props.form === void 0 && $$bindings.form && form !== void 0) $$bindings.form(form);
+  if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   let $$settled;
   let $$rendered;
   let previous_head = $$result.head;

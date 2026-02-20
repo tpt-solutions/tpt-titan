@@ -647,14 +647,16 @@
 	{isGeneratingSummary}
 	{canUndo}
 	{canRedo}
+	{editorMode}
 	on:titleChange={(e) => { documentTitle = e.detail; markAsChanged(); }}
 	on:save={saveDocument}
 	on:export={handleExport}
-
+	on:modeChange={(e) => { editorMode = e.detail; }}
 	on:newDocument={createNewDocument}
 	on:openDocumentList={loadDocumentList}
 	on:openVersionHistory={loadVersionHistory}
 	on:openMathHelp={() => showMathHelp = true}
+	on:openFindReplace={() => showFindReplaceDialog = true}
 	on:readAloud={readAloud}
 	on:aiSuggest={getAIWritingSuggestions}
 	on:aiContinue={continueWriting}
@@ -663,6 +665,7 @@
 	on:undo={undo}
 	on:redo={redo}
 />
+
 
 <!-- ── Global Keyboard Handler ───────────────────────────────────── -->
 <svelte:window on:keydown={handleGlobalKeyDown} />

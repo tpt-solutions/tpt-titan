@@ -2,15 +2,29 @@ import { c as create_ssr_component, e as emailSearchQuery, a as add_attribute, b
 class SpeechService {
   constructor() {
     this.baseURL = "/api/v1";
+    this.modelsCache = null;
+  }
+  // Get auth token from localStorage
+  getAuthToken() {
+    return localStorage.getItem("auth_token") || localStorage.getItem("token");
+  }
+  // Get default headers with auth
+  getHeaders() {
+    const token = this.getAuthToken();
+    const headers = {
+      "Content-Type": "application/json"
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    return headers;
   }
   // Text-to-Speech operations
   async textToSpeech(text, modelId, options = {}) {
     try {
       const response = await fetch(`${this.baseURL}/speech/tts`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify({
           text,
           model_id: modelId,
@@ -44,8 +58,14 @@ class SpeechService {
         language: options.language || "en",
         audio_format: options.audioFormat || "wav"
       }));
+      const token = this.getAuthToken();
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
       const response = await fetch(`${this.baseURL}/speech/stt`, {
         method: "POST",
+        headers,
         body: formData
       });
       if (!response.ok) {
@@ -60,94 +80,77 @@ class SpeechService {
   }
   // Get available speech models
   async getAvailableModels(modelType = "tts") {
+    if (this.modelsCache) {
+      return this.modelsCache;
+    }
     try {
-      const response = await fetch(`${this.baseURL}/speech/models?type=${modelType}`);
+      const token = this.getAuthToken();
+      if (!token) {
+        console.warn("No auth token available for speech models request");
+        return this.getDefaultModels();
+      }
+      const response = await fetch(`${this.baseURL}/speech/models?type=${modelType}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
       if (!response.ok) {
+        if (response.status === 404) {
+          console.warn("Speech models endpoint not found, using defaults");
+          return this.getDefaultModels();
+        }
         throw new Error(`Failed to get models: ${response.statusText}`);
       }
       const result = await response.json();
-      return result.models || [];
+      this.modelsCache = result.models || this.getDefaultModels();
+      return this.modelsCache;
     } catch (error) {
       console.error("Get models error:", error);
-      throw error;
+      return this.getDefaultModels();
     }
   }
-  // Get speech request status
-  async getRequestStatus(requestId) {
-    try {
-      const response = await fetch(`${this.baseURL}/speech/requests/${requestId}`);
-      if (!response.ok) {
-        throw new Error(`Failed to get status: ${response.statusText}`);
+  // Get default speech models when API is unavailable
+  getDefaultModels() {
+    return [
+      {
+        id: "openai-tts",
+        name: "OpenAI TTS",
+        provider: "openai",
+        type: "tts",
+        description: "High-quality text-to-speech",
+        languages: ["en", "es", "fr", "de", "it", "pt", "nl", "ja", "zh"]
+      },
+      {
+        id: "openai-whisper",
+        name: "OpenAI Whisper",
+        provider: "openai",
+        type: "stt",
+        description: "Accurate speech-to-text",
+        languages: ["en", "es", "fr", "de", "it", "pt", "nl", "ja", "zh"]
+      },
+      {
+        id: "elevenlabs",
+        name: "ElevenLabs",
+        provider: "elevenlabs",
+        type: "tts",
+        description: "Premium voice synthesis",
+        languages: ["en", "es", "fr", "de", "it", "pt", "pl", "hi"]
+      },
+      {
+        id: "piper",
+        name: "Piper (Local)",
+        provider: "piper",
+        type: "tts",
+        description: "Fast local TTS",
+        languages: ["en", "de", "es", "fr", "it", "nl", "ru", "uk"]
       }
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      console.error("Get status error:", error);
-      throw error;
-    }
+    ];
   }
-  // Get user's speech settings
-  async getSpeechSettings() {
-    try {
-      const response = await fetch(`${this.baseURL}/speech/settings`);
-      if (!response.ok) {
-        throw new Error(`Failed to get settings: ${response.statusText}`);
-      }
-      const result = await response.json();
-      return result.settings;
-    } catch (error) {
-      console.error("Get settings error:", error);
-      throw error;
-    }
+  // Clear models cache
+  clearCache() {
+    this.modelsCache = null;
   }
-  // Update user's speech settings
-  async updateSpeechSettings(settings) {
-    try {
-      const response = await fetch(`${this.baseURL}/speech/settings`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ settings })
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to update settings: ${response.statusText}`);
-      }
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      console.error("Update settings error:", error);
-      throw error;
-    }
-  }
-  // Voice recording utilities
-  startRecording(onDataAvailable, onError) {
-    try {
-      navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-        const mediaRecorder = new MediaRecorder(stream, {
-          mimeType: "audio/webm;codecs=opus"
-        });
-        const audioChunks = [];
-        mediaRecorder.ondataavailable = (event) => {
-          audioChunks.push(event.data);
-        };
-        mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-          onDataAvailable(audioBlob);
-        };
-        mediaRecorder.onerror = (error) => {
-          onError(error);
-        };
-        mediaRecorder.start();
-        return mediaRecorder;
-      }).catch((error) => {
-        onError(error);
-      });
-    } catch (error) {
-      onError(error);
-    }
-  }
-  // Convert audio blob to WAV format (basic implementation)
+  // Convert audio blob to WAV format
   async convertToWav(audioBlob) {
     return new Promise((resolve, reject) => {
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();

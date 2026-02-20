@@ -7,6 +7,8 @@
 	// Accept framework-provided props to avoid warnings
 	export const data = null;
 	export const form = null;
+	export const params = null;
+
 
 	let isLoading = false;
 	let loadingMessage = 'Loading application...';

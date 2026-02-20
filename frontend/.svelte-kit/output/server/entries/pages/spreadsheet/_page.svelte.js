@@ -1,4 +1,4 @@
-import { c as create_ssr_component, s as subscribe, A as templates, f as createEventDispatcher, d as each, a as add_attribute, b as escape, B as templateCategories, v as validate_component } from "../../../chunks/calendar.js";
+import { c as create_ssr_component, s as subscribe, B as templates, f as createEventDispatcher, d as each, a as add_attribute, b as escape, D as templateCategories, v as validate_component } from "../../../chunks/calendar.js";
 import { S as Spreadsheet } from "../../../chunks/spreadsheet.js";
 const css = {
   code: ".line-clamp-2.svelte-1b0ih1q{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}",
@@ -32,15 +32,15 @@ const TemplateSelector = create_ssr_component(($$result, $$props, $$bindings, sl
   })}</div>`}</div>  <div class="border-t border-gray-200 p-6 bg-gray-50"><div class="flex items-center justify-between text-sm text-gray-600"><span>${escape(filteredTemplates.length)} templates available</span> <span data-svelte-h="svelte-otxq4l">💡 Tip: Templates include formulas and formatting</span></div></div></div></div>` : ``}`;
 });
 const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  const params = null;
   const data = null;
   const form = null;
+  const params = null;
   let mode = "simple";
   let showTemplates = true;
   let selectedTemplate = null;
-  if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   if ($$props.data === void 0 && $$bindings.data && data !== void 0) $$bindings.data(data);
   if ($$props.form === void 0 && $$bindings.form && form !== void 0) $$bindings.form(form);
+  if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   return `${$$result.head += `<!-- HEAD_svelte-1vw7kc9_START -->${$$result.title = `<title>Spreadsheet - TPT Titan</title>`, ""}<!-- HEAD_svelte-1vw7kc9_END -->`, ""} <div class="h-screen flex flex-col bg-white"> <header class="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-gray-50"><div class="flex items-center space-x-4"><h1 class="text-xl font-semibold text-gray-900" data-svelte-h="svelte-w3nl27">Spreadsheet</h1> <div class="flex items-center space-x-2"><button class="${"px-3 py-1 text-sm rounded-md transition-colors " + escape(
     "bg-blue-100 text-blue-700",
     true

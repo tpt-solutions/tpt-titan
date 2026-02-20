@@ -9,6 +9,8 @@
 	// Accept framework-provided props to avoid warnings
 	export let data = null;
 	export let form = null;
+	export let params = null;
+
 
 	let showComposer = false;
 	let emailAccountsList = [];

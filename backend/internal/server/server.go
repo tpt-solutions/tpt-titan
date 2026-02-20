@@ -413,8 +413,38 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 				})
 			}
 
-			// Math routes - TODO: Implement
-			// mathGroup := protected.Group("/math")
+			// Math routes - Natural Math Input System
+			mathGroup := protected.Group("/math")
+			{
+				// Expression operations
+				mathGroup.POST("/validate", routes.ValidateExpression)
+				mathGroup.POST("/optimize", routes.OptimizeExpression)
+				mathGroup.POST("/convert", routes.ConvertExpression)
+				mathGroup.GET("/functions", routes.GetMathematicalFunctions)
+				mathGroup.GET("/symbols", routes.GetMathematicalSymbols)
+				mathGroup.GET("/constants", routes.GetMathematicalConstants)
+				mathGroup.GET("/theorems", routes.GetMathematicalTheorems)
+
+				// Handwriting recognition
+				mathGroup.POST("/recognize", routes.RecognizeHandwriting)
+				mathGroup.POST("/recognize-image", routes.RecognizeEquationFromImage)
+
+				// Equation templates
+				mathGroup.GET("/templates", routes.GetEquationTemplates)
+				mathGroup.POST("/templates", routes.SaveEquationTemplate)
+				mathGroup.GET("/templates/search", routes.SearchEquations)
+				mathGroup.GET("/templates/categories", routes.GetEquationTemplateCategories)
+
+				// Canvas operations
+				mathGroup.POST("/canvas", routes.SaveMathCanvas)
+				mathGroup.GET("/canvas", routes.GetMathCanvases)
+				mathGroup.POST("/canvas/generate-image", routes.GenerateEquationImage)
+
+				// Export operations
+				mathGroup.POST("/export", routes.ExportEquation)
+				mathGroup.POST("/export/batch", routes.BatchExportEquations)
+			}
+
 
 			// Document export routes - TODO: Implement
 			// exportGroup := protected.Group("/export")

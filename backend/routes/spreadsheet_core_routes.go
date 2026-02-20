@@ -10,9 +10,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"tpt-titan/backend/config"
-	"tpt-titan/backend/services"
+	"gorm.io/gorm"
 )
+
+
 
 // CreateSpreadsheet creates a new spreadsheet
 func CreateSpreadsheet(c *gin.Context) {
@@ -37,8 +38,14 @@ func CreateSpreadsheet(c *gin.Context) {
 		return
 	}
 
-	// Get database connection
-	db := c.MustGet("db").(*sql.DB)
+	// Get database connection from GORM
+	gormDB := c.MustGet("db").(*gorm.DB)
+	db, err := gormDB.DB()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get database connection"})
+		return
+	}
+
 
 	// Create spreadsheet in database
 	spreadsheetID := uuid.New()
@@ -89,7 +96,14 @@ func GetSpreadsheet(c *gin.Context) {
 		return
 	}
 
-	db := c.MustGet("db").(*sql.DB)
+	// Get database connection from GORM
+	gormDB := c.MustGet("db").(*gorm.DB)
+	db, err := gormDB.DB()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get database connection"})
+		return
+	}
+
 
 	// Get spreadsheet metadata
 	var spreadsheet struct {
@@ -192,7 +206,14 @@ func UpdateSpreadsheetCell(c *gin.Context) {
 		return
 	}
 
-	db := c.MustGet("db").(*sql.DB)
+	// Get database connection from GORM
+	gormDB := c.MustGet("db").(*gorm.DB)
+	db, err := gormDB.DB()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get database connection"})
+		return
+	}
+
 
 	// Determine data type and convert value to string
 	var valueStr, dataType string
@@ -412,8 +433,15 @@ func UnlockSpreadsheetCells(c *gin.Context) {
 		return
 	}
 
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
 	spreadsheetIDStr := c.Param("id")
-	_, err := uuid.Parse(spreadsheetIDStr)
+
+	spreadsheetID, err := uuid.Parse(spreadsheetIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid spreadsheet ID"})
 		return
@@ -431,9 +459,13 @@ func UnlockSpreadsheetCells(c *gin.Context) {
 	// In a real implementation, release locks
 	c.JSON(http.StatusOK, gin.H{
 		"message":          "Cells unlocked successfully",
+		"spreadsheet_id":   spreadsheetID,
 		"unlocked_cells":   req.CellReferences,
+		"unlocked_by":      userID,
 	})
 }
+
+
 
 func isValidCellReference(ref string) bool {
 	ref = strings.ToUpper(strings.TrimSpace(ref))

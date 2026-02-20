@@ -10,6 +10,8 @@
 	// Accept framework-provided props to avoid warnings
 	export const data = null;
 	export const form = null;
+	export const params = null;
+
 
 	let currentView = 'list'; // 'list' or 'builder'
 	let selectedForm = null;

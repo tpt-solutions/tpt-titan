@@ -6,6 +6,8 @@
 	// Accept framework-provided props to avoid warnings
 	export const data = null;
 	export const form = null;
+	export const params = null;
+
 
 
 	let mode = 'simple'; // 'simple' or 'advanced'

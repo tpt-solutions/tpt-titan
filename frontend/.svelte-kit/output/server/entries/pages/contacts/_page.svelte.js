@@ -25,9 +25,9 @@ const ContactList = create_ssr_component(($$result, $$props, $$bindings, slots) 
   })}</div>`}</div>`;
 });
 const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let { params = null } = $$props;
   let { data = null } = $$props;
   let { form = null } = $$props;
+  let { params = null } = $$props;
   let showForm = false;
   let editingContact = null;
   let searchQuery = "";
@@ -57,9 +57,9 @@ const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     editingContact = null;
     loadContacts();
   }
-  if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   if ($$props.data === void 0 && $$bindings.data && data !== void 0) $$bindings.data(data);
   if ($$props.form === void 0 && $$bindings.form && form !== void 0) $$bindings.form(form);
+  if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   return `${$$result.head += `<!-- HEAD_svelte-1m7vk1k_START -->${$$result.title = `<title>Contacts - TPT Titan</title>`, ""}<!-- HEAD_svelte-1m7vk1k_END -->`, ""} <div class="container mx-auto px-4 py-8"><div class="flex justify-between items-center mb-8"><h1 class="text-3xl font-bold text-gray-900 dark:text-white" data-svelte-h="svelte-qbjbfc">Contacts</h1> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2" data-svelte-h="svelte-jwj0yw"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
 			Add Contact</button></div>  <div class="mb-6"><div class="flex gap-2"><input type="text" placeholder="Search contacts..." class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"${add_attribute("value", searchQuery, 0)}> <button class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2" data-svelte-h="svelte-1v0alkm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
 				Search</button></div></div>  ${validate_component(ContactList, "ContactList").$$render($$result, { handleEditContact }, {}, {})}  ${showForm ? `${validate_component(ContactForm, "ContactForm").$$render(

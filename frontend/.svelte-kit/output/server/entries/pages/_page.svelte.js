@@ -103,10 +103,8 @@ const AppSelector = create_ssr_component(($$result, $$props, $$bindings, slots) 
   })}</div> <div class="text-center"><button class="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed" ${""}>${`Launch ${escape(apps.find((a) => a.id === selectedApp)?.name)}`}</button> <p class="text-sm text-gray-500 mt-4" data-svelte-h="svelte-310lrl">You can change your default app anytime from the app menu</p></div></div>`;
 });
 const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  const params = null;
   const data = null;
   const form = null;
-  if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   if ($$props.data === void 0 && $$bindings.data && data !== void 0) $$bindings.data(data);
   if ($$props.form === void 0 && $$bindings.form && form !== void 0) $$bindings.form(form);
   return `${$$result.head += `<!-- HEAD_svelte-135yy8d_START -->${$$result.title = `<title>TPT Titan - Open Source Office Suite</title>`, ""}<meta name="description" content="Complete open source alternative to Microsoft Office 365"><!-- HEAD_svelte-135yy8d_END -->`, ""} ${`<div class="min-h-screen bg-gray-50 py-8"><div class="container mx-auto px-4"><header class="text-center mb-8" data-svelte-h="svelte-19mocrq"><h1 class="text-5xl font-bold text-gray-900 mb-4">Welcome to <span class="text-blue-600">TPT Titan</span></h1> <p class="text-xl text-gray-600 max-w-2xl mx-auto mb-6">A complete open source alternative to Microsoft Office 365.

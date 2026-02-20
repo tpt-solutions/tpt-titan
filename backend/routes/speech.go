@@ -2,13 +2,19 @@ package routes
 
 import (
 	"encoding/base64"
+	"fmt"
+	"io"
 	"net/http"
+	"tpt-titan/backend/config"
 	"tpt-titan/backend/models"
 	"tpt-titan/backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+
+
 
 // SpeechRequestPayload represents the payload for TTS requests
 type SpeechRequestPayload struct {
@@ -182,12 +188,12 @@ func SpeechToText(c *gin.Context) {
 	defer file.Close()
 
 	// Read audio data
-	audioData := make([]byte, file.Size)
-	_, err = file.Read(audioData)
+	audioData, err := io.ReadAll(file)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read audio file"})
 		return
 	}
+
 
 	// Get form parameters
 	modelIDStr := c.PostForm("model_id")
