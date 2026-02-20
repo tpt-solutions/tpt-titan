@@ -324,3 +324,6 @@ func TestEncryptWithPassphrase_OutputLongerThanSalt(t *testing.T) {
 		t.Errorf("encrypted output too short: got %d bytes, want >= %d", len(ct), minExpected)
 	}
 }
+		t.Errorf("encrypted output should be longer than just the salt: got %d bytes", len(ct))
+	}
+}
