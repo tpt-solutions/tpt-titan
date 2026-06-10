@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher, onMount } from 'svelte';
-  import { api } from '$lib/api.js';
+  import { apiGet, apiPost, apiPut } from '$lib/api.js';
 
   export let workflowId = null; // null for new workflow, ID for editing
   export let initialData = null;
@@ -80,7 +80,7 @@
   onMount(async () => {
     // Load available connectors
     try {
-      const response = await api.get('/workflows/connectors');
+      const response = await apiGet('/workflows/connectors');
       connectors = response.connectors || [];
     } catch (error) {
       console.error('Failed to load connectors:', error);
@@ -99,7 +99,7 @@
 
   async function loadWorkflow(id) {
     try {
-      const response = await api.get(`/workflows/${id}`);
+      const response = await apiGet(`/workflows/${id}`);
       workflow = response.workflow;
       if (workflow.canvasData && typeof workflow.canvasData === 'string') {
         workflow.canvasData = JSON.parse(workflow.canvasData);
@@ -249,9 +249,9 @@
 
       let response;
       if (workflow.id) {
-        response = await api.put(`/workflows/${workflow.id}`, workflowData);
+        response = await apiPut(`/workflows/${workflow.id}`, workflowData);
       } else {
-        response = await api.post('/workflows', workflowData);
+        response = await apiPost('/workflows', workflowData);
       }
 
       workflow.id = response.workflow.id;
@@ -268,7 +268,7 @@
     }
 
     try {
-      const response = await api.post(`/workflows/${workflow.id}/execute`);
+      const response = await apiPost(`/workflows/${workflow.id}/execute`);
       dispatch('executed', { execution: response });
     } catch (error) {
       console.error('Failed to execute workflow:', error);

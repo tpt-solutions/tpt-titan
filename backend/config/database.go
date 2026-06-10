@@ -82,21 +82,53 @@ func migrateDatabase(db *gorm.DB) error {
 
 	// Add all models here
 	if err := db.AutoMigrate(
+		// Core auth
 		&models.User{},
+		// Encrypted document/form/task storage
 		&models.EncryptedDocument{},
 		&models.EncryptedForm{},
 		&models.EncryptedFormResponse{},
 		&models.EncryptedEmail{},
 		&models.EncryptedTask{},
+		// Encryption key management
 		&models.KeyBackup{},
 		&models.RecoveryShare{},
 		&models.HardwareKey{},
 		&models.RecoveryAttempt{},
+		// AI models and usage
 		&models.AIModel{},
 		&models.AITask{},
 		&models.AIRequest{},
 		&models.AIUsage{},
 		&models.AIUpgradeCheck{},
+		// Chat
+		&models.ChatRoom{},
+		&models.ChatParticipant{},
+		&models.ChatMessage{},
+		&models.MessageReaction{},
+		&models.UserStatus{},
+		// Voice notes
+		&models.VoiceNote{},
+		&models.VoiceAnnotation{},
+		// Calendar
+		&models.Calendar{},
+		&models.Event{},
+		&models.EventAttendee{},
+		// Contacts
+		&models.Contact{},
+		// Email
+		&models.EmailAccount{},
+		&models.Email{},
+		// File sync
+		&models.SyncDevice{},
+		&models.SyncFolder{},
+		&models.FileVersion{},
+		// Workflows
+		&models.Workflow{},
+		&models.WorkflowNode{},
+		&models.WorkflowConnection{},
+		&models.WorkflowExecution{},
+		&models.WorkflowTemplate{},
 	); err != nil {
 		return fmt.Errorf("failed to migrate: %w", err)
 	}

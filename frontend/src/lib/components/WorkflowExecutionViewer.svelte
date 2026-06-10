@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher, onMount } from 'svelte';
-  import { api } from '$lib/api.js';
+  import { apiGet } from '$lib/api.js';
 
   export let executionId = null;
   export let workflowId = null;
@@ -30,7 +30,7 @@
   async function loadExecution(id) {
     isLoading = true;
     try {
-      const response = await api.get(`/workflows/executions/${id}`);
+      const response = await apiGet(`/workflows/executions/${id}`);
       execution = response.execution;
       selectedExecution = execution;
     } catch (error) {
@@ -44,7 +44,7 @@
   async function loadWorkflowExecutions() {
     isLoading = true;
     try {
-      const response = await api.get(`/workflows/${workflowId}/executions`);
+      const response = await apiGet(`/workflows/${workflowId}/executions`);
       executions = response.executions || [];
     } catch (error) {
       console.error('Failed to load executions:', error);

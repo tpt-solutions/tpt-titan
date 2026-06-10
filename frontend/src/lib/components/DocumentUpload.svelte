@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
-  import { api } from '$lib/api.js';
+  import { apiPost } from '$lib/api.js';
 
   export let accept = '*/*';
   export let multiple = false;
@@ -193,7 +193,7 @@
         uploadProgress[file.name].progress = 50;
 
         // Upload file
-        const response = await api.post('/documents/upload', uploadData);
+        const response = await apiPost('/documents/upload', uploadData);
         uploadProgress[file.name] = {
           status: 'completed',
           progress: 100,

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,9 +16,26 @@ import (
 	"tpt-titan/backend/services"
 )
 
+func isAllowedOrigin(origin string) bool {
+	allowed := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if allowed == "" {
+		allowed = "http://localhost:3000,http://localhost:5173"
+	}
+	for _, o := range strings.Split(allowed, ",") {
+		if strings.TrimSpace(o) == origin {
+			return true
+		}
+	}
+	return false
+}
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow connections from any origin in development
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true // same-origin or non-browser client
+		}
+		return isAllowedOrigin(origin)
 	},
 }
 

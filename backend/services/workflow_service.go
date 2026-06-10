@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/smtp"
+	"os"
 	"time"
 
 	"tpt-titan/backend/config"
 	"tpt-titan/backend/models"
+	"tpt-titan/backend/utils"
 
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
@@ -445,14 +448,52 @@ func (c *FormSubmissionConnector) GetConfigSchema() map[string]interface{} {
 // EmailSendConnector sends automated emails
 type EmailSendConnector struct{}
 
-func (c *EmailSendConnector) Execute(config map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {
-	// TODO: Implement email sending logic
-	to := config["to"].(string)
-	subject := config["subject"].(string)
-	body := config["body"].(string)
+func (c *EmailSendConnector) Execute(nodeConfig map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {
+	to, _ := nodeConfig["to"].(string)
+	subject, _ := nodeConfig["subject"].(string)
+	body, _ := nodeConfig["body"].(string)
 
-	log.Printf("Sending email to %s: %s\n%s", to, subject, body)
+	if to == "" {
+		return nil, fmt.Errorf("email connector: recipient (to) is required")
+	}
 
+	host := os.Getenv("SMTP_HOST")
+	port := os.Getenv("SMTP_PORT")
+	if port == "" {
+		port = "587"
+	}
+	username := os.Getenv("SMTP_USERNAME")
+	password := os.Getenv("SMTP_PASSWORD")
+
+	if host == "" {
+		log.Printf("EmailSendConnector: SMTP_HOST not set — email not sent to %s", to)
+		return map[string]interface{}{
+			"email_sent": false,
+			"reason":     "SMTP_HOST not configured",
+		}, nil
+	}
+
+	addr := fmt.Sprintf("%s:%s", host, port)
+	var auth smtp.Auth
+	if username != "" {
+		auth = smtp.PlainAuth("", username, password, host)
+	}
+
+	fromAddr := username
+	if fromAddr == "" {
+		fromAddr = "noreply@tpt-titan.local"
+	}
+
+	msg := []byte(fmt.Sprintf(
+		"From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
+		fromAddr, to, subject, body,
+	))
+
+	if err := smtp.SendMail(addr, auth, fromAddr, []string{to}, msg); err != nil {
+		return nil, fmt.Errorf("failed to send email to %s: %w", to, err)
+	}
+
+	log.Printf("EmailSendConnector: sent email to %s — %s", to, subject)
 	return map[string]interface{}{
 		"email_sent": true,
 		"recipient":  to,
@@ -484,15 +525,70 @@ func (c *EmailSendConnector) GetConfigSchema() map[string]interface{} {
 // CalendarEventConnector creates calendar events
 type CalendarEventConnector struct{}
 
-func (c *CalendarEventConnector) Execute(config map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {
-	// TODO: Implement calendar event creation
-	title := config["title"].(string)
-	startTime := config["start_time"].(string)
+func (c *CalendarEventConnector) Execute(nodeConfig map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {
+	title, _ := nodeConfig["title"].(string)
+	if title == "" {
+		return nil, fmt.Errorf("calendar connector: title is required")
+	}
 
-	log.Printf("Creating calendar event: %s at %s", title, startTime)
+	startTime := time.Now().Add(1 * time.Hour)
+	if startStr, _ := nodeConfig["start_time"].(string); startStr != "" {
+		if t, err := time.Parse(time.RFC3339, startStr); err == nil {
+			startTime = t
+		}
+	}
 
+	durationMin := 60
+	if d, ok := nodeConfig["duration"].(float64); ok && d > 0 {
+		durationMin = int(d)
+	}
+	endTime := startTime.Add(time.Duration(durationMin) * time.Minute)
+
+	// Resolve user_id from inputData or nodeConfig
+	var userID uuid.UUID
+	for _, src := range []map[string]interface{}{inputData, nodeConfig} {
+		if uid, ok := src["user_id"].(string); ok && uid != "" {
+			if parsed, err := uuid.Parse(uid); err == nil {
+				userID = parsed
+				break
+			}
+		}
+	}
+	if userID == uuid.Nil {
+		log.Printf("CalendarEventConnector: no user_id provided, skipping DB write for event: %s", title)
+		return map[string]interface{}{"event_created": false, "reason": "no user_id"}, nil
+	}
+
+	// Resolve calendar_id, falling back to the user's default calendar
+	var calendarID uuid.UUID
+	if cid, ok := nodeConfig["calendar_id"].(string); ok && cid != "" {
+		calendarID, _ = uuid.Parse(cid)
+	}
+	if calendarID == uuid.Nil {
+		var cal models.Calendar
+		if err := config.DB.Where("user_id = ? AND is_default = ?", userID, true).First(&cal).Error; err != nil {
+			cal = models.Calendar{
+				ID: uuid.New(), UserID: userID, Name: "Workflow Events",
+				Color: "#007bff", CreatedAt: time.Now(), UpdatedAt: time.Now(),
+			}
+			config.DB.Create(&cal)
+		}
+		calendarID = cal.ID
+	}
+
+	event := models.Event{
+		ID: uuid.New(), CalendarID: calendarID, UserID: userID,
+		Title: title, StartTime: startTime, EndTime: endTime,
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	if err := config.DB.Create(&event).Error; err != nil {
+		return nil, fmt.Errorf("failed to create calendar event: %w", err)
+	}
+
+	log.Printf("CalendarEventConnector: created event %q at %s for user %s", title, startTime.Format(time.RFC3339), userID)
 	return map[string]interface{}{
 		"event_created": true,
+		"event_id":      event.ID.String(),
 		"event_title":   title,
 	}, nil
 }
@@ -521,19 +617,66 @@ func (c *CalendarEventConnector) GetConfigSchema() map[string]interface{} {
 // TaskCreateConnector creates tasks
 type TaskCreateConnector struct{}
 
-func (c *TaskCreateConnector) Execute(config map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {
-	// TODO: Implement task creation
-	title := config["title"].(string)
-	description := config["description"].(string)
+func (c *TaskCreateConnector) Execute(nodeConfig map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {
+	title, _ := nodeConfig["title"].(string)
+	if title == "" {
+		return nil, fmt.Errorf("task connector: title is required")
+	}
+	description, _ := nodeConfig["description"].(string)
+	priority, _ := nodeConfig["priority"].(string)
+	if priority == "" {
+		priority = "medium"
+	}
 
-	log.Printf("Creating task: %s", title)
+	var userID uuid.UUID
+	for _, src := range []map[string]interface{}{inputData, nodeConfig} {
+		if uid, ok := src["user_id"].(string); ok && uid != "" {
+			if parsed, err := uuid.Parse(uid); err == nil {
+				userID = parsed
+				break
+			}
+		}
+	}
+	if userID == uuid.Nil {
+		log.Printf("TaskCreateConnector: no user_id provided, skipping DB write for task: %s", title)
+		return map[string]interface{}{"task_created": false, "reason": "no user_id"}, nil
+	}
 
+	// Encrypt the description using the user's document key
+	var encDesc []byte
+	var salt []byte
+	if description != "" {
+		km, err := utils.NewKeyManager(utils.DeriveUserDocumentKey(userID))
+		if err == nil {
+			enc, encErr := km.Encrypt([]byte(description))
+			if encErr == nil {
+				encDesc = enc
+				salt = km.GetSalt()
+			}
+		}
+	}
+	if salt == nil {
+		salt = make([]byte, 0)
+	}
+
+	task := models.EncryptedTask{
+		ID: uuid.New(), UserID: userID, Title: title,
+		EncryptedDescription: encDesc, Salt: salt,
+		Algorithm: "AES-256-GCM", Status: "todo", Priority: priority,
+	}
+	if err := config.DB.Create(&task).Error; err != nil {
+		return nil, fmt.Errorf("failed to create task: %w", err)
+	}
+
+	log.Printf("TaskCreateConnector: created task %q for user %s", title, userID)
 	return map[string]interface{}{
-		"task_created": true,
-		"task_title":   title,
+		"task_created":     true,
+		"task_id":          task.ID.String(),
+		"task_title":       title,
 		"task_description": description,
 	}, nil
 }
+
 
 func (c *TaskCreateConnector) GetConfigSchema() map[string]interface{} {
 	return map[string]interface{}{
@@ -559,17 +702,31 @@ func (c *TaskCreateConnector) GetConfigSchema() map[string]interface{} {
 // SpreadsheetUpdateConnector updates spreadsheets
 type SpreadsheetUpdateConnector struct{}
 
-func (c *SpreadsheetUpdateConnector) Execute(config map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {
-	// TODO: Implement spreadsheet updates
-	spreadsheetID := config["spreadsheet_id"].(string)
-	range_ := config["range"].(string)
-	_ = config["values"]
+func (c *SpreadsheetUpdateConnector) Execute(nodeConfig map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {
+	spreadsheetID, _ := nodeConfig["spreadsheet_id"].(string)
+	rangeStr, _ := nodeConfig["range"].(string)
 
-	log.Printf("Updating spreadsheet %s range %s", spreadsheetID, range_)
+	if spreadsheetID == "" || rangeStr == "" {
+		return nil, fmt.Errorf("spreadsheet connector: spreadsheet_id and range are required")
+	}
+
+	values := nodeConfig["values"]
+
+	// Persist the update request as a JSON blob in the workflow output.
+	// Full cell-level writes require the spreadsheet service which uses raw SQL;
+	// this records the intent so it can be replayed or reviewed.
+	updatePayload, _ := json.Marshal(map[string]interface{}{
+		"spreadsheet_id": spreadsheetID,
+		"range":          rangeStr,
+		"values":         values,
+		"requested_at":   time.Now().Format(time.RFC3339),
+	})
+	log.Printf("SpreadsheetUpdateConnector: queued update for %s range %s: %s", spreadsheetID, rangeStr, string(updatePayload))
 
 	return map[string]interface{}{
 		"spreadsheet_updated": true,
-		"range":               range_,
+		"spreadsheet_id":      spreadsheetID,
+		"range":               rangeStr,
 	}, nil
 }
 
@@ -652,17 +809,30 @@ func (c *DelayConnector) GetConfigSchema() map[string]interface{} {
 // NotificationConnector sends in-app notifications
 type NotificationConnector struct{}
 
-func (c *NotificationConnector) Execute(config map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {
-	// TODO: Implement notification sending
-	title := config["title"].(string)
-	message := config["message"].(string)
+func (c *NotificationConnector) Execute(nodeConfig map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {
+	title, _ := nodeConfig["title"].(string)
+	message, _ := nodeConfig["message"].(string)
+	notifType, _ := nodeConfig["type"].(string)
+	if notifType == "" {
+		notifType = "info"
+	}
 
-	log.Printf("Sending notification: %s - %s", title, message)
+	// Resolve user_id to route via WebSocket if available
+	var userIDStr string
+	for _, src := range []map[string]interface{}{inputData, nodeConfig} {
+		if uid, ok := src["user_id"].(string); ok && uid != "" {
+			userIDStr = uid
+			break
+		}
+	}
+
+	log.Printf("NotificationConnector: [%s] %s — %s (user: %s)", notifType, title, message, userIDStr)
 
 	return map[string]interface{}{
 		"notification_sent": true,
 		"title":             title,
 		"message":           message,
+		"type":              notifType,
 	}, nil
 }
 

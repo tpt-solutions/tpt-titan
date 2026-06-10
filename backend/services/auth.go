@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/smtp"
+	"os"
 	"strings"
 	"time"
 
@@ -410,8 +412,11 @@ func (as *AuthService) RequestPasswordReset(email string) error {
 		return fmt.Errorf("failed to create password reset token: %w", err)
 	}
 
-	// TODO: Send email with reset link
-	log.Printf("Password reset requested for email: %s", email)
+	// Send password reset email
+	if err := sendPasswordResetEmail(email, token); err != nil {
+		// Log the error but don't fail the request — token is already stored
+		log.Printf("Warning: failed to send password reset email to %s: %v", email, err)
+	}
 
 	return nil
 }
@@ -628,6 +633,55 @@ func generateSecureToken() string {
 	bytes := make([]byte, 32)
 	rand.Read(bytes)
 	return base32.StdEncoding.EncodeToString(bytes)
+}
+
+// sendPasswordResetEmail sends a password-reset link to the user using SMTP env config.
+func sendPasswordResetEmail(toEmail, token string) error {
+	host := os.Getenv("SMTP_HOST")
+	port := os.Getenv("SMTP_PORT")
+	if port == "" {
+		port = "587"
+	}
+	username := os.Getenv("SMTP_USERNAME")
+	password := os.Getenv("SMTP_PASSWORD")
+	appURL := os.Getenv("APP_URL")
+	if appURL == "" {
+		appURL = "http://localhost:3000"
+	}
+
+	if host == "" {
+		return fmt.Errorf("SMTP_HOST not configured")
+	}
+
+	fromAddr := username
+	if fromAddr == "" {
+		fromAddr = "noreply@tpt-titan.local"
+	}
+
+	resetLink := fmt.Sprintf("%s/auth/reset-password?token=%s", appURL, token)
+	body := fmt.Sprintf(
+		"Hi,\r\n\r\nA password reset was requested for your TPT Titan account.\r\n\r\n"+
+			"Click the link below to reset your password (expires in 1 hour):\r\n%s\r\n\r\n"+
+			"If you did not request this, ignore this email.\r\n",
+		resetLink,
+	)
+
+	msg := []byte(fmt.Sprintf(
+		"From: %s\r\nTo: %s\r\nSubject: Reset your TPT Titan password\r\n"+
+			"MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
+		fromAddr, toEmail, body,
+	))
+
+	addr := fmt.Sprintf("%s:%s", host, port)
+	var auth smtp.Auth
+	if username != "" {
+		auth = smtp.PlainAuth("", username, password, host)
+	}
+
+	if err := smtp.SendMail(addr, auth, fromAddr, []string{toEmail}, msg); err != nil {
+		return fmt.Errorf("smtp.SendMail: %w", err)
+	}
+	return nil
 }
 
 // Middleware

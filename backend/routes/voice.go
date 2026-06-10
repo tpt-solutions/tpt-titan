@@ -132,7 +132,7 @@ func GetVoiceNote(c *gin.Context) {
 	}
 
 	// Decrypt audio data for playback
-	userPassword := "default_user_password" // TODO: Get from secure user session/key storage
+	userPassword := utils.DeriveUserDocumentKey(userID)
 	km, err := utils.DeriveKeyFromPassword(userPassword, note.Salt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize decryption"})
@@ -217,7 +217,7 @@ func CreateVoiceNote(c *gin.Context) {
 	}
 
 	// Encrypt audio data
-	userPassword := "default_user_password" // TODO: Get from secure user session/key storage
+	userPassword := utils.DeriveUserDocumentKey(userID)
 	km, err := utils.NewKeyManager(userPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize encryption"})
@@ -379,7 +379,7 @@ func GetVoiceAnnotation(c *gin.Context) {
 	}
 
 	// Decrypt audio data for playback
-	userPassword := "default_user_password" // TODO: Get from secure user session/key storage
+	userPassword := utils.DeriveUserDocumentKey(userID)
 	km, err := utils.DeriveKeyFromPassword(userPassword, annotation.Salt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize decryption"})
@@ -468,7 +468,7 @@ func CreateVoiceAnnotation(c *gin.Context) {
 	}
 
 	// Encrypt audio data
-	userPassword := "default_user_password" // TODO: Get from secure user session/key storage
+	userPassword := utils.DeriveUserDocumentKey(userID)
 	km, err := utils.NewKeyManager(userPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize encryption"})

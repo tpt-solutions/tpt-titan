@@ -304,6 +304,17 @@ func FromBase64(data string) (*SecureString, error) {
 	}, nil
 }
 
+// DeriveUserDocumentKey returns encryption key material specific to a user.
+// It combines the user's ID with the server JWT secret so the derived key is
+// both per-user and server-specific — an attacker needs both to recreate it.
+func DeriveUserDocumentKey(userID interface{}) string {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "tpt-titan-default-secret"
+	}
+	return fmt.Sprintf("%s:%s", fmt.Sprint(userID), secret)
+}
+
 // systemEncryptionKey returns a 32-byte system-level encryption key.
 // The ENCRYPTION_KEY env var is used when set; otherwise a stable default is used.
 func systemEncryptionKey() string {

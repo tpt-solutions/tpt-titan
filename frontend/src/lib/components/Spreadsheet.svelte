@@ -33,6 +33,8 @@
 	export let mode = 'simple'; // 'simple' or 'advanced'
 	export let selectedTemplate = null;
 
+	$: modeStore.set(mode);
+
 
 	// Event dispatcher for parent communication
 	const dispatch = createEventDispatcher();
@@ -311,16 +313,16 @@
 
 
 <div class="flex flex-col h-full bg-white">
-	<!-- Quick Access Toolbar -->
-	<QuickAccessToolbar on:action={handleAction} />
+	{#if mode === 'advanced'}
+		<!-- Quick Access Toolbar -->
+		<QuickAccessToolbar on:action={handleAction} />
 
-	<!-- Menu Bar -->
-	<SpreadsheetMenuBar on:action={handleAction} />
+		<!-- Menu Bar -->
+		<SpreadsheetMenuBar on:action={handleAction} />
 
-	<!-- Customizable Ribbon -->
-	<SpreadsheetRibbon 
-		on:action={handleAction}
-	/>
+		<!-- Customizable Ribbon -->
+		<SpreadsheetRibbon on:action={handleAction} />
+	{/if}
 
 	<!-- Formula bar with Name Box -->
 	<FormulaBar on:action={handleAction} />

@@ -1,41 +1,35 @@
 <script>
 	import '../app.css';
-	import Loading from '$lib/components/Loading.svelte';
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
 
 	// Accept framework-provided props to avoid warnings
 	export const data = null;
 	export const form = null;
 	export const params = null;
 
+	let mobileMenuOpen = false;
 
-	let isLoading = false;
-	let loadingMessage = 'Loading application...';
+	$: currentPath = $page.url.pathname;
 
-	// Track route changes for loading states
-	$: currentRoute = $page.url.pathname;
+	function navClass(path) {
+		const active = currentPath === path || (path !== '/' && currentPath.startsWith(path));
+		return `px-3 py-2 rounded-md text-sm font-medium transition-colors ${active ? 'text-blue-600 bg-blue-50' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'}`;
+	}
 
-	onMount(() => {
-		// Listen for navigation events to show loading states
-		let timeoutId;
-
-		const handleRouteChange = () => {
-			isLoading = true;
-			loadingMessage = 'Loading application...';
-
-			// Set a timeout to hide loading if it takes too long
-			timeoutId = setTimeout(() => {
-				isLoading = false;
-			}, 10000); // 10 second timeout
-		};
-
-		// This will be called when route changes
-		// SvelteKit handles the actual navigation
-		return () => {
-			if (timeoutId) clearTimeout(timeoutId);
-		};
-	});
+	const navLinks = [
+		{ href: '/',            label: 'Home' },
+		{ href: '/editor',      label: 'Editor' },
+		{ href: '/spreadsheet', label: 'Spreadsheet' },
+		{ href: '/forms',       label: 'Forms' },
+		{ href: '/database',    label: 'Database' },
+		{ href: '/email',       label: 'Email' },
+		{ href: '/calendar',    label: 'Calendar' },
+		{ href: '/contacts',    label: 'Contacts' },
+		{ href: '/chat',        label: 'Chat' },
+		{ href: '/files',       label: 'Files' },
+		{ href: '/tasks',       label: 'Tasks' },
+		{ href: '/settings',    label: 'Settings' },
+	];
 </script>
 
 <main class="min-h-screen bg-gray-50">
@@ -50,44 +44,51 @@
 					</a>
 				</div>
 
-				<!-- Navigation -->
-				<nav class="hidden md:flex space-x-8">
-					<a href="/" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-						Home
-					</a>
-					<a href="/spreadsheet" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-						Spreadsheet
-					</a>
-					<a href="/forms" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-						Forms
-					</a>
-					<a href="/editor" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-						Text Editor
-					</a>
-					<a href="/contacts" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-						Contacts
-					</a>
-					<a href="/calendar" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-						Calendar
-					</a>
-					<a href="/email" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-						Email
-					</a>
-					<a href="/tasks" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-						Tasks
-					</a>
+				<!-- Desktop Navigation -->
+				<nav class="hidden md:flex flex-wrap gap-1">
+					{#each navLinks as link}
+						<a href={link.href} class={navClass(link.href)}>
+							{link.label}
+						</a>
+					{/each}
 				</nav>
 
 				<!-- Mobile menu button -->
 				<div class="md:hidden">
-					<button class="text-gray-700 hover:text-blue-600 p-2">
-						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-						</svg>
+					<button
+						on:click={() => mobileMenuOpen = !mobileMenuOpen}
+						aria-label="Toggle navigation menu"
+						aria-expanded={mobileMenuOpen}
+						class="text-gray-700 hover:text-blue-600 p-2 rounded-md"
+					>
+						{#if mobileMenuOpen}
+							<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+							</svg>
+						{:else}
+							<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+							</svg>
+						{/if}
 					</button>
 				</div>
 			</div>
 		</div>
+
+		<!-- Mobile dropdown menu -->
+		{#if mobileMenuOpen}
+			<div class="md:hidden border-t border-gray-200 bg-white px-4 py-3 space-y-1">
+				{#each navLinks as link}
+					<a
+						href={link.href}
+						on:click={() => mobileMenuOpen = false}
+						class="block {navClass(link.href)}"
+					>
+						{link.label}
+					</a>
+				{/each}
+			</div>
+		{/if}
 	</header>
 
 	<!-- Main Content -->

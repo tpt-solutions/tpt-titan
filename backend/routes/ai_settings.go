@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"tpt-titan/backend/config"
 	"tpt-titan/backend/models"
 	"tpt-titan/backend/services"
 	"tpt-titan/backend/utils"
@@ -145,23 +146,23 @@ func UpdateAISettings(c *gin.Context) {
 	// Handle API key updates (encrypt them)
 	if requestData.APIKeys != nil {
 		if key, exists := requestData.APIKeys["openai"]; exists && key != "" {
-			encrypted, _ := utils.Encrypt([]byte(key))
+			encrypted, _ := utils.EncryptPassword(key)
 			settings.OpenAIKey = encrypted
 		}
 		if key, exists := requestData.APIKeys["elevenlabs"]; exists && key != "" {
-			encrypted, _ := utils.Encrypt([]byte(key))
+			encrypted, _ := utils.EncryptPassword(key)
 			settings.ElevenLabsKey = encrypted
 		}
 		if key, exists := requestData.APIKeys["replicate"]; exists && key != "" {
-			encrypted, _ := utils.Encrypt([]byte(key))
+			encrypted, _ := utils.EncryptPassword(key)
 			settings.ReplicateKey = encrypted
 		}
 		if key, exists := requestData.APIKeys["assemblyai"]; exists && key != "" {
-			encrypted, _ := utils.Encrypt([]byte(key))
+			encrypted, _ := utils.EncryptPassword(key)
 			settings.AssemblyAIKey = encrypted
 		}
 		if key, exists := requestData.APIKeys["deepgram"]; exists && key != "" {
-			encrypted, _ := utils.Encrypt([]byte(key))
+			encrypted, _ := utils.EncryptPassword(key)
 			settings.DeepgramKey = encrypted
 		}
 	}

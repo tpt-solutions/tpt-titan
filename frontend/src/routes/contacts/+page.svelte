@@ -14,12 +14,16 @@
 	let showForm = false;
 	let editingContact = null;
 	let searchQuery = '';
+	let isLoading = false;
+	let loadError = null;
 
 	onMount(async () => {
 		await loadContacts();
 	});
 
 	async function loadContacts() {
+		isLoading = true;
+		loadError = null;
 		try {
 			const response = await fetch('/api/v1/contacts', {
 				headers: {
@@ -32,9 +36,14 @@
 				contacts.set(data.contacts || []);
 			} else if (response.status === 401) {
 				goto('/auth/login');
+			} else {
+				loadError = `Failed to load contacts (${response.status})`;
 			}
 		} catch (error) {
+			loadError = 'Could not connect to server. Please check your connection.';
 			console.error('Failed to load contacts:', error);
+		} finally {
+			isLoading = false;
 		}
 	}
 
@@ -123,8 +132,29 @@
 		</div>
 	</div>
 
+	<!-- Error banner -->
+	{#if loadError}
+		<div class="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg px-4 py-3 flex items-center gap-3">
+			<svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+			</svg>
+			<span class="text-sm text-red-700 dark:text-red-300">{loadError}</span>
+			<button on:click={loadContacts} class="ml-auto text-sm text-red-600 dark:text-red-400 underline hover:no-underline">Retry</button>
+		</div>
+	{/if}
+
 	<!-- Contact List -->
-	<ContactList {handleEditContact} />
+	{#if isLoading}
+		<div class="flex items-center justify-center py-16 text-gray-400 dark:text-gray-500">
+			<svg class="animate-spin w-8 h-8 mr-3" fill="none" viewBox="0 0 24 24">
+				<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+				<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+			</svg>
+			<span>Loading contacts…</span>
+		</div>
+	{:else}
+		<ContactList {handleEditContact} />
+	{/if}
 
 	<!-- Contact Form Modal -->
 	{#if showForm}

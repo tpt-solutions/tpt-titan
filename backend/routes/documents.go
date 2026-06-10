@@ -80,7 +80,7 @@ func GetDocument(c *gin.Context) {
 	}
 
 	// Decrypt the content
-	userPassword := "default_user_password" // TODO: Get from secure user session/key storage
+	userPassword := utils.DeriveUserDocumentKey(userID)
 	km, err := utils.DeriveKeyFromPassword(userPassword, document.Salt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize decryption"})
@@ -125,9 +125,7 @@ func CreateDocument(c *gin.Context) {
 		return
 	}
 
-	// For now, use a simple password-based encryption
-	// In production, this would use user-specific keys from secure storage
-	userPassword := "default_user_password" // TODO: Get from secure user session/key storage
+	userPassword := utils.DeriveUserDocumentKey(userID)
 
 	// Convert content to JSON for encryption
 	contentJSON, err := json.Marshal(req.Content)
@@ -218,7 +216,7 @@ func UpdateDocument(c *gin.Context) {
 	}
 
 	// Create key manager and encrypt
-	km, err := utils.NewKeyManager("default_user_password") // TODO: Get from secure user session
+	km, err := utils.NewKeyManager(utils.DeriveUserDocumentKey(userID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize encryption"})
 		return
@@ -437,7 +435,7 @@ func UploadDocumentWithAI(c *gin.Context) {
 	}
 
 	// Encrypt and store file data
-	userPassword := "default_user_password" // TODO: Get from secure user session/key storage
+	userPassword := utils.DeriveUserDocumentKey(userID)
 	km, err := utils.NewKeyManager(userPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize encryption"})
@@ -659,7 +657,7 @@ func ProcessDocumentWithAI(c *gin.Context) {
 	}
 
 	// Decrypt file data
-	userPassword := "default_user_password" // TODO: Get from secure user session/key storage
+	userPassword := utils.DeriveUserDocumentKey(userID)
 	km, err := utils.DeriveKeyFromPassword(userPassword, document.Salt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize decryption"})

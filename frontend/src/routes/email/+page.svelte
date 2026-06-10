@@ -17,6 +17,9 @@
 	let emailsList = [];
 	let selectedEmailData = null;
 	let currentFolderValue = 'inbox';
+	let isLoadingAccounts = false;
+	let isLoadingEmails = false;
+	let loadError = null;
 
 	emailAccounts.subscribe(value => emailAccountsList = value);
 	emails.subscribe(value => emailsList = value);
@@ -29,41 +32,48 @@
 	});
 
 	async function loadEmailAccounts() {
+		isLoadingAccounts = true;
+		loadError = null;
 		try {
 			const response = await fetch('/api/v1/email-accounts', {
-				headers: {
-					'Authorization': `Bearer ${localStorage.getItem('token')}`
-				}
+				headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
 			});
-
 			if (response.ok) {
 				const data = await response.json();
 				emailAccounts.set(data.accounts || []);
 			} else if (response.status === 401) {
 				goto('/auth/login');
+			} else {
+				loadError = `Failed to load email accounts (${response.status})`;
 			}
 		} catch (error) {
+			loadError = 'Could not connect to server. Please check your connection.';
 			console.error('Failed to load email accounts:', error);
+		} finally {
+			isLoadingAccounts = false;
 		}
 	}
 
 	async function loadEmails() {
+		isLoadingEmails = true;
 		try {
 			const params = new URLSearchParams();
 			if (currentFolderValue) params.append('folder', currentFolderValue);
-
 			const response = await fetch(`/api/v1/emails?${params}`, {
-				headers: {
-					'Authorization': `Bearer ${localStorage.getItem('token')}`
-				}
+				headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
 			});
-
 			if (response.ok) {
 				const data = await response.json();
 				emails.set(data.emails || []);
+			} else if (response.status === 401) {
+				goto('/auth/login');
+			} else {
+				console.error('Failed to load emails:', response.status);
 			}
 		} catch (error) {
 			console.error('Failed to load emails:', error);
+		} finally {
+			isLoadingEmails = false;
 		}
 	}
 
@@ -111,8 +121,27 @@
 			</button>
 		</div>
 
+		<!-- Error banner -->
+		{#if loadError}
+			<div class="mt-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg px-4 py-3 flex items-center gap-3">
+				<svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+				</svg>
+				<span class="text-sm text-red-700 dark:text-red-300">{loadError}</span>
+				<button on:click={loadEmailAccounts} class="ml-auto text-sm text-red-600 dark:text-red-400 underline hover:no-underline">Retry</button>
+			</div>
+		{/if}
+
 		<!-- Email Accounts -->
-		{#if emailAccountsList.length > 0}
+		{#if isLoadingAccounts}
+			<div class="mt-4 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+				<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+				</svg>
+				Loading email accounts…
+			</div>
+		{:else if emailAccountsList.length > 0}
 			<div class="mt-4 flex items-center space-x-4">
 				<span class="text-sm text-gray-600 dark:text-gray-400">Accounts:</span>
 				<div class="flex space-x-2">
@@ -141,7 +170,18 @@
 	</div>
 
 	<!-- Main Email Interface -->
-	{#if emailAccountsList.length > 0}
+	{#if isLoadingAccounts}
+		<!-- Skeleton while accounts load -->
+		<div class="flex-1 flex items-center justify-center">
+			<div class="text-center text-gray-400 dark:text-gray-500">
+				<svg class="animate-spin mx-auto w-8 h-8 mb-3" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+				</svg>
+				<p class="text-sm">Loading…</p>
+			</div>
+		</div>
+	{:else if emailAccountsList.length > 0}
 		<div class="flex-1 flex overflow-hidden">
 			<!-- Email Inbox Sidebar -->
 			<div class="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
