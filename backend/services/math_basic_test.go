@@ -130,10 +130,10 @@ func TestSpreadsheetMathService_Count(t *testing.T) {
 		args     []float64
 		expected float64
 	}{
-		{"empty args", []float64{}, 0, false},
-		{"single number", []float64{5}, 1, false},
-		{"multiple numbers", []float64{1, 2, 3, 4}, 4, false},
-		{"mixed numbers", []float64{1.5, 2, -3}, 3, false},
+		{"empty args", []float64{}, 0},
+		{"single number", []float64{5}, 1},
+		{"multiple numbers", []float64{1, 2, 3, 4}, 4},
+		{"mixed numbers", []float64{1.5, 2, -3}, 3},
 	}
 
 	for _, tt := range tests {

@@ -1,18 +1,26 @@
 package routes
 
 import (
-	"database/sql"
-	"fmt"
 	"net/http"
-	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"tpt-titan/backend/config"
 	"tpt-titan/backend/services"
 )
+
+// EvaluateFormulaRequest is the payload for evaluating a spreadsheet formula
+type EvaluateFormulaRequest struct {
+	Formula     string                 `json:"formula" binding:"required"`
+	CellContext map[string]interface{} `json:"cell_context,omitempty"`
+}
+
+// EvaluateFormulaResponse is the result of evaluating a spreadsheet formula
+type EvaluateFormulaResponse struct {
+	Result      interface{} `json:"result"`
+	DataType    string      `json:"data_type"`
+	Error       string      `json:"error,omitempty"`
+	DependsOn   []string    `json:"depends_on,omitempty"`
+}
 
 // EvaluateFormula evaluates a spreadsheet formula
 func EvaluateFormula(c *gin.Context) {

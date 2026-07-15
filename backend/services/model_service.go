@@ -24,16 +24,16 @@ type RecommendedModels struct {
 
 // ModelService handles AI model management and recommendations
 type ModelService struct {
-	hardwareService *HardwareService
-	ollamaService   *OllamaService
-	openRouterService *OpenRouterService
+	hardwareService   *HardwareService
+	ollamaService     OllamaClient
+	openRouterService OpenRouterClient
 }
 
 // NewModelService creates a new model service
-func NewModelService(hardwareService *HardwareService, ollamaService *OllamaService, openRouterService *OpenRouterService) *ModelService {
+func NewModelService(hardwareService *HardwareService, ollamaService OllamaClient, openRouterService OpenRouterClient) *ModelService {
 	return &ModelService{
-		hardwareService: hardwareService,
-		ollamaService:   ollamaService,
+		hardwareService:   hardwareService,
+		ollamaService:     ollamaService,
 		openRouterService: openRouterService,
 	}
 }

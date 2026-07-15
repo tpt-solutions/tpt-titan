@@ -1,12 +1,9 @@
 package routes
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"tpt-titan/backend/services"
 )
 
@@ -70,7 +67,7 @@ func ConvertExpression(c *gin.Context) {
 	hrs := services.NewHandwritingRecognitionService("", "", "")
 
 	// Parse the expression first
-	mathExpr, err := hrs.parseMathematicalExpression(req.Expression)
+	mathExpr, err := hrs.ParseMathematicalExpression(req.Expression)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse expression: " + err.Error()})
 		return

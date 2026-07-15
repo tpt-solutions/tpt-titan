@@ -6,7 +6,6 @@ import (
 	"time"
 	"tpt-titan/backend/config"
 	"tpt-titan/backend/models"
-	"tpt-titan/backend/services"
 	"tpt-titan/backend/utils"
 
 	"github.com/gin-gonic/gin"
@@ -176,126 +175,6 @@ func UpdateAISettings(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "AI settings updated successfully"})
 }
 
-// GetSpeechSettings retrieves user's speech settings
-func GetSpeechSettings(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
-		return
-	}
-
-	var settings models.SpeechSettings
-	if err := config.DB.Where("user_id = ?", userID).First(&settings).Error; err != nil {
-		// Create default settings if not found
-		settings = models.SpeechSettings{
-			UserID:             userID.(uuid.UUID),
-			EnableTTS:          true,
-			EnableSTT:          true,
-			DefaultVoice:       "alloy",
-			DefaultLanguage:    "en",
-			TTSSpeed:           1.0,
-			TTSVolume:          1.0,
-			STTLanguage:        "en",
-			AutoPlayTTS:        false,
-			ShowSTTTranscript:  true,
-			KeyboardShortcut:   "ctrl+shift+s",
-		}
-		if err := config.DB.Create(&settings).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create default speech settings"})
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{"settings": settings})
-}
-
-// UpdateSpeechSettings updates user's speech settings
-func UpdateSpeechSettings(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
-		return
-	}
-
-	var requestData struct {
-		EnableTTS         *bool   `json:"enable_tts"`
-		EnableSTT         *bool   `json:"enable_stt"`
-		DefaultTTSModel   *string `json:"default_tts_model"`
-		DefaultSTTModel   *string `json:"default_stt_model"`
-		DefaultVoice      *string `json:"default_voice"`
-		DefaultLanguage   *string `json:"default_language"`
-		TTSSpeed          *float64 `json:"tts_speed"`
-		TTSVolume         *float64 `json:"tts_volume"`
-		STTLanguage       *string `json:"stt_language"`
-		AutoPlayTTS       *bool   `json:"auto_play_tts"`
-		ShowSTTTranscript *bool   `json:"show_stt_transcript"`
-		KeyboardShortcut  *string `json:"keyboard_shortcut"`
-	}
-
-	if err := c.ShouldBindJSON(&requestData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
-		return
-	}
-
-	var settings models.SpeechSettings
-	if err := config.DB.Where("user_id = ?", userID).First(&settings).Error; err != nil {
-		// Create new settings if not found
-		settings = models.SpeechSettings{
-			UserID: userID.(uuid.UUID),
-		}
-	}
-
-	// Update fields if provided
-	if requestData.EnableTTS != nil {
-		settings.EnableTTS = *requestData.EnableTTS
-	}
-	if requestData.EnableSTT != nil {
-		settings.EnableSTT = *requestData.EnableSTT
-	}
-	if requestData.DefaultTTSModel != nil {
-		if modelID, err := uuid.Parse(*requestData.DefaultTTSModel); err == nil {
-			settings.DefaultTTSModel = &modelID
-		}
-	}
-	if requestData.DefaultSTTModel != nil {
-		if modelID, err := uuid.Parse(*requestData.DefaultSTTModel); err == nil {
-			settings.DefaultSTTModel = &modelID
-		}
-	}
-	if requestData.DefaultVoice != nil {
-		settings.DefaultVoice = *requestData.DefaultVoice
-	}
-	if requestData.DefaultLanguage != nil {
-		settings.DefaultLanguage = *requestData.DefaultLanguage
-	}
-	if requestData.TTSSpeed != nil {
-		settings.TTSSpeed = *requestData.TTSSpeed
-	}
-	if requestData.TTSVolume != nil {
-		settings.TTSVolume = *requestData.TTSVolume
-	}
-	if requestData.STTLanguage != nil {
-		settings.STTLanguage = *requestData.STTLanguage
-	}
-	if requestData.AutoPlayTTS != nil {
-		settings.AutoPlayTTS = *requestData.AutoPlayTTS
-	}
-	if requestData.ShowSTTTranscript != nil {
-		settings.ShowSTTTranscript = *requestData.ShowSTTTranscript
-	}
-	if requestData.KeyboardShortcut != nil {
-		settings.KeyboardShortcut = *requestData.KeyboardShortcut
-	}
-
-	// Save or update settings
-	if err := config.DB.Save(&settings).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save speech settings"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Speech settings updated successfully"})
-}
-
 // GetAIUsageStats retrieves user's AI usage statistics
 func GetAIUsageStats(c *gin.Context) {
 	userID, exists := c.Get("userID")
@@ -360,8 +239,7 @@ func GetAIUsageStats(c *gin.Context) {
 
 // TestAPIKey tests if an API key is valid for a provider
 func TestAPIKey(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
+	if _, exists := c.Get("userID"); !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}

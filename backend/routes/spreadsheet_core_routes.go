@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
+	"tpt-titan/backend/config"
 )
 
 
@@ -39,8 +39,7 @@ func CreateSpreadsheet(c *gin.Context) {
 	}
 
 	// Get database connection from GORM
-	gormDB := c.MustGet("db").(*gorm.DB)
-	db, err := gormDB.DB()
+	db, err := config.GetDatabase().DB()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get database connection"})
 		return
@@ -97,8 +96,7 @@ func GetSpreadsheet(c *gin.Context) {
 	}
 
 	// Get database connection from GORM
-	gormDB := c.MustGet("db").(*gorm.DB)
-	db, err := gormDB.DB()
+	db, err := config.GetDatabase().DB()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get database connection"})
 		return
@@ -207,8 +205,7 @@ func UpdateSpreadsheetCell(c *gin.Context) {
 	}
 
 	// Get database connection from GORM
-	gormDB := c.MustGet("db").(*gorm.DB)
-	db, err := gormDB.DB()
+	db, err := config.GetDatabase().DB()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get database connection"})
 		return

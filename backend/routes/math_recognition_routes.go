@@ -1,12 +1,9 @@
 package routes
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"tpt-titan/backend/services"
 )
 

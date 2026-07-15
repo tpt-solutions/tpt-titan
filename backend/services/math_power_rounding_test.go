@@ -1,7 +1,6 @@
 package services
 
 import (
-	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

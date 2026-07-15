@@ -145,7 +145,7 @@ func Register(c *gin.Context) {
 	user := models.User{
 		Email:     req.Email,
 		Username:  req.Username,
-		Password:  string(hashedPassword),
+		PasswordHash: string(hashedPassword),
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		IsActive:  true,
@@ -203,7 +203,7 @@ func Login(c *gin.Context) {
 	}
 
 	// Verify password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}

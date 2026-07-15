@@ -12,13 +12,25 @@ import (
 	"github.com/google/uuid"
 )
 
+// OllamaClient abstracts the Ollama service for testability.
+type OllamaClient interface {
+	ListModels() ([]AIModelInfo, error)
+	PullModel(modelName string) error
+	GenerateResponse(modelName, prompt string) (string, error)
+}
+
+// OpenRouterClient abstracts the OpenRouter service for testability.
+type OpenRouterClient interface {
+	GenerateResponse(modelName, prompt string) (string, error)
+}
+
 // AIService handles AI model operations and orchestration
 type AIService struct {
-	config          *config.AIConfig
-	hardwareService *HardwareService
-	modelService    *ModelService
-	ollamaService   *OllamaService
-	openRouterService *OpenRouterService
+	config            *config.AIConfig
+	hardwareService   *HardwareService
+	modelService      *ModelService
+	ollamaService     OllamaClient
+	openRouterService OpenRouterClient
 }
 
 // NewAIService creates a new AI service instance
@@ -60,6 +72,9 @@ func (s *AIService) ProcessRequest(userID uuid.UUID, taskID uuid.UUID, modelID u
 	}
 
 	// Save to database
+	if config.DB == nil {
+		return nil, fmt.Errorf("database not available")
+	}
 	if err := config.DB.Create(request).Error; err != nil {
 		return nil, fmt.Errorf("failed to create request record: %w", err)
 	}

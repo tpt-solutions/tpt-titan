@@ -16,9 +16,10 @@ import (
 
 // Server represents the TPT Titan server
 type Server struct {
-	config   *config.Config
-	router   *gin.Engine
-	database *gorm.DB
+	config      *config.Config
+	router      *gin.Engine
+	database    *gorm.DB
+	p2pService  *services.P2PService
 }
 
 // NewServer creates a new server instance
@@ -38,6 +39,12 @@ func (s *Server) Initialize() error {
 		return err
 	}
 	s.database = config.GetDatabase()
+
+	// Underlying *sql.DB for services that require raw SQL access
+	sqlDB, err := s.database.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get SQL DB: %w", err)
+	}
 
 	// Initialize cache service if enabled (optional for small teams)
 	var cacheService *services.CacheService
@@ -62,7 +69,7 @@ func (s *Server) Initialize() error {
 	auth.InitAuth(s.config.JWT.Secret)
 
 	// Initialize auth service
-	authService := services.NewAuthService(s.database, s.config.JWT.Secret, cacheService)
+	authService := services.NewAuthService(sqlDB, s.config.JWT.Secret, cacheService)
 
 	// Initialize AI service
 	routes.InitAIService(&s.config.AI)
@@ -77,22 +84,25 @@ func (s *Server) Initialize() error {
 	routes.InitWorkflowAIService(routes.GetAIService())
 
 	// Initialize contact service
-	routes.InitContactService(s.database)
+	routes.InitContactService(sqlDB)
 
 	// Initialize calendar service
-	routes.InitCalendarService(s.database)
+	routes.InitCalendarService(sqlDB)
 
 	// Initialize email service
-	routes.InitEmailService(s.database)
+	routes.InitEmailService(sqlDB)
 
 	// Initialize chat service
-	routes.InitChatService(s.database)
+	routes.InitChatService(sqlDB)
 
 	// Initialize voice service
 	routes.InitVoiceService()
 
+	// Initialize P2P collaboration service
+	s.p2pService = services.NewP2PService(&s.config.P2P)
+
 	// Initialize database optimizer
-	dbOptimizer := services.NewDatabaseOptimizer(s.database)
+	dbOptimizer := services.NewDatabaseOptimizer(sqlDB)
 	dbOptimizer.OptimizeConnectionPool()
 
 	// Initialize monitoring service
@@ -146,7 +156,14 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 	// API routes
 	api := s.router.Group("/api/v1")
 	api.Use(func(c *gin.Context) {
-		c.Set("db", s.database)
+		sqlDB, err := s.database.DB()
+		if err == nil {
+			c.Set("db", sqlDB)
+		} else {
+			c.Set("db", s.database)
+		}
+		c.Set("config", s.config)
+		c.Set("p2p_service", s.p2pService)
 		c.Next()
 	})
 	{
@@ -198,6 +215,33 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 				spreadsheetGroup.POST("/:id/unlock", routes.UnlockSpreadsheetCells)
 			}
 
+			// Spreadsheet formula routes
+			spreadsheetGroup.POST("/evaluate", routes.EvaluateFormula)
+			spreadsheetGroup.GET("/functions", routes.GetAvailableFunctions)
+			spreadsheetGroup.POST("/validate", routes.ValidateFormula)
+
+			// Spreadsheet chart routes
+			spreadsheetGroup.POST("/charts", routes.CreateChart)
+			spreadsheetGroup.GET("/:id/charts", routes.GetCharts)
+			spreadsheetGroup.POST("/charts/suggestions", routes.GenerateChartSuggestion)
+
+			// Spreadsheet Excel import/export routes
+			spreadsheetGroup.POST("/import/excel", routes.ImportExcel)
+			spreadsheetGroup.POST("/:id/export/excel", routes.ExportExcel)
+			spreadsheetGroup.GET("/:id/excel/template", routes.GetExcelTemplate)
+			spreadsheetGroup.GET("/:id/excel/info", routes.GetExcelInfo)
+			spreadsheetGroup.POST("/:id/excel/validate", routes.ValidateExcelFile)
+			spreadsheetGroup.GET("/:id/excel/formats", routes.GetSupportedExcelFormats)
+
+			// Spreadsheet collaboration routes
+			spreadsheetGroup.GET("/:id/collab/mode", routes.GetCollaborationMode)
+			spreadsheetGroup.POST("/:id/collab/mode", routes.SetCollaborationMode)
+			spreadsheetGroup.GET("/:id/collab/peers", routes.GetConnectedPeers)
+			spreadsheetGroup.POST("/:id/collab/peers/connect", routes.ConnectToPeer)
+			spreadsheetGroup.GET("/:id/collab/peers/discovered", routes.GetDiscoveredPeers)
+			spreadsheetGroup.POST("/:id/collab/sync", routes.SyncSpreadsheetWithPeers)
+			spreadsheetGroup.GET("/:id/collab/status", routes.GetCollaborationStatus)
+
 
 			// Basic Form routes
 			formGroup := protected.Group("/forms")
@@ -211,8 +255,47 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 				formGroup.POST("/:id/responses", routes.SubmitFormResponse)
 			}
 
-			// Advanced Form routes - TODO: Implement
-			// formsAdvancedGroup := protected.Group("/forms")
+			// Advanced Form routes
+			formsAdvancedGroup := protected.Group("/forms")
+			{
+				formsAdvancedGroup.GET("/templates", routes.GetFormTemplates)
+				formsAdvancedGroup.POST("/templates", routes.CreateFormTemplate)
+				formsAdvancedGroup.GET("/templates/categories", routes.GetFormTemplateCategories)
+				formsAdvancedGroup.POST("/templates/:id/use", routes.UseFormTemplate)
+
+				formsAdvancedGroup.GET("/:id/relationships", routes.GetFormRelationships)
+				formsAdvancedGroup.POST("/:id/relationships", routes.CreateRelationship)
+				formsAdvancedGroup.POST("/:id/lookup-fields", routes.CreateLookupField)
+				formsAdvancedGroup.GET("/:id/lookup-data", routes.GetLookupData)
+				formsAdvancedGroup.GET("/:id/hierarchy", routes.GetFormHierarchy)
+				formsAdvancedGroup.GET("/:id/related-data", routes.GetRelatedData)
+
+				formsAdvancedGroup.GET("/:id/reports", routes.GetFormReports)
+				formsAdvancedGroup.POST("/:id/reports", routes.CreateReport)
+				formsAdvancedGroup.POST("/:id/reports/execute", routes.ExecuteReport)
+				formsAdvancedGroup.POST("/:id/reports/ad-hoc", routes.GenerateAdHocReport)
+				formsAdvancedGroup.GET("/:id/reports/:reportId/export", routes.ExportReport)
+				formsAdvancedGroup.GET("/:id/dashboards/:dashboardId", routes.GetDashboard)
+				formsAdvancedGroup.POST("/:id/dashboards", routes.CreateDashboard)
+
+				formsAdvancedGroup.GET("/:id/query/tables", routes.GetAvailableTables)
+				formsAdvancedGroup.POST("/:id/query/build", routes.BuildSQL)
+				formsAdvancedGroup.POST("/:id/query/execute", routes.ExecuteVisualQuery)
+				formsAdvancedGroup.POST("/:id/query/validate", routes.ValidateVisualQuery)
+				formsAdvancedGroup.GET("/:id/query/suggestions", routes.GetQuerySuggestions)
+				formsAdvancedGroup.POST("/:id/query/templates", routes.SaveQueryTemplate)
+				formsAdvancedGroup.GET("/:id/query/templates", routes.GetQueryTemplates)
+
+				formsAdvancedGroup.GET("/:id/email-distributions", routes.GetEmailDistributions)
+				formsAdvancedGroup.POST("/:id/email-distributions", routes.CreateEmailDistribution)
+				formsAdvancedGroup.POST("/:id/email-distributions/:distributionId/send", routes.SendFormResponseEmail)
+
+				formsAdvancedGroup.POST("/:id/workflows", routes.CreateFormWorkflow)
+				formsAdvancedGroup.POST("/:id/workflows/start", routes.StartWorkflow)
+				formsAdvancedGroup.POST("/:id/workflows/:workflowId/approve", routes.ProcessApproval)
+				formsAdvancedGroup.GET("/:id/workflows/approvals", routes.GetPendingApprovals)
+				formsAdvancedGroup.POST("/:id/workflows/notification-templates", routes.CreateNotificationTemplate)
+			}
 
 			// Document routes
 			documentGroup := protected.Group("/documents")
@@ -446,12 +529,36 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 			}
 
 
-			// Document export routes - TODO: Implement
-			// exportGroup := protected.Group("/export")
+			// Document export routes
+			exportGroup := protected.Group("/documents/:id/export")
+			{
+				exportGroup.POST("", routes.ExportDocument)
+				exportGroup.GET("/formats", routes.GetDocumentExportFormats)
+				exportGroup.POST("/convert", routes.ConvertDocument)
+				exportGroup.POST("/batch", routes.BatchExportDocuments)
+				exportGroup.GET("/statistics", routes.GetDocumentStatistics)
+				exportGroup.POST("/validate", routes.ValidateDocumentContent)
+				exportGroup.GET("/docx/templates", routes.GetDOCXTemplates)
+				exportGroup.GET("/docx/templates/:templateId", routes.DownloadDOCXTemplate)
+				exportGroup.GET("/docx/features", routes.GetDOCXFeatures)
+			}
 
-			// Admin routes - TODO: Implement
-			// admin := protected.Group("/admin")
-			// admin.Use(services.NewAuthService(config.GetDatabase(), cfg.JWT.Secret, cacheService).RoleMiddleware("admin"))
+			// Admin routes
+			admin := protected.Group("/admin")
+			admin.Use(authService.RoleMiddleware("admin"))
+			{
+				admin.GET("/stats", routes.GetSystemStats)
+				admin.GET("/users", routes.GetUsers)
+				admin.PUT("/users/:id/status", routes.UpdateUserStatus)
+				admin.DELETE("/users/:id", routes.DeleteUser)
+				admin.GET("/logs", routes.GetSystemLogs)
+				admin.GET("/database/stats", routes.GetDatabaseStats)
+				admin.POST("/database/maintenance", routes.RunDatabaseMaintenance)
+				admin.GET("/security/alerts", routes.GetSecurityAlerts)
+				admin.POST("/security/alerts/:id/resolve", routes.ResolveSecurityAlert)
+				admin.GET("/settings", routes.GetSystemSettings)
+				admin.PUT("/settings", routes.UpdateSystemSettings)
+			}
 
 			// Voice notes and annotations routes
 			voiceGroup := protected.Group("/voice")

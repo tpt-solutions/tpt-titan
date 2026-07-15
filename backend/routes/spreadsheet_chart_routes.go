@@ -1,17 +1,10 @@
 package routes
 
 import (
-	"database/sql"
-	"fmt"
 	"net/http"
-	"regexp"
-	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"tpt-titan/backend/config"
-	"tpt-titan/backend/services"
 )
 
 // GenerateChartSuggestion analyzes spreadsheet data and suggests charts
@@ -111,3 +104,55 @@ func GetCharts(c *gin.Context) {
 // analyzeDataForCharts analyzes spreadsheet data and suggests appropriate charts
 func analyzeDataForCharts(data map[string]interface{}, dataRange string, dataTypes map[string]string) []gin.H {
 	suggestions := []gin.H{}
+
+	if len(data) == 0 {
+		return suggestions
+	}
+
+	numericCols := 0
+	categoricalCols := 0
+	for _, t := range dataTypes {
+		switch t {
+		case "number", "float", "integer":
+			numericCols++
+		case "string", "category":
+			categoricalCols++
+		}
+	}
+
+	if categoricalCols > 0 && numericCols > 0 {
+		suggestions = append(suggestions, gin.H{
+			"type":        "bar",
+			"title":       "Category Comparison",
+			"data_range":  dataRange,
+			"confidence":  0.9,
+			"description": "Compare values across categories using a bar chart.",
+		})
+		suggestions = append(suggestions, gin.H{
+			"type":        "pie",
+			"title":       "Category Distribution",
+			"data_range":  dataRange,
+			"confidence":  0.7,
+			"description": "Show the proportion of each category with a pie chart.",
+		})
+	}
+
+	if numericCols >= 2 {
+		suggestions = append(suggestions, gin.H{
+			"type":        "line",
+			"title":       "Trend Analysis",
+			"data_range":  dataRange,
+			"confidence":  0.8,
+			"description": "Plot numeric series over an axis using a line chart.",
+		})
+		suggestions = append(suggestions, gin.H{
+			"type":        "scatter",
+			"title":       "Correlation",
+			"data_range":  dataRange,
+			"confidence":  0.6,
+			"description": "Inspect correlation between two numeric series with a scatter plot.",
+		})
+	}
+
+	return suggestions
+}

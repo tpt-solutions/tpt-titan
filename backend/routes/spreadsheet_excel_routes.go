@@ -1,23 +1,18 @@
 package routes
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"tpt-titan/backend/config"
 	"tpt-titan/backend/services"
 )
 
 // ImportExcel imports data from an Excel file
 func ImportExcel(c *gin.Context) {
-	userIDInterface, exists := c.Get("user_id")
-	if !exists {
+	if _, exists := c.Get("user_id"); !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}

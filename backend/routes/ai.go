@@ -32,10 +32,17 @@ type AIModelPayload struct {
 }
 
 var aiService *services.AIService
+var aiConfig *config.AIConfig
 
 // InitAIService initializes the AI service (called from main)
 func InitAIService(cfg *config.AIConfig) {
+	aiConfig = cfg
 	aiService = services.NewAIService(cfg)
+}
+
+// GetAIService returns the initialized AI service instance
+func GetAIService() *services.AIService {
+	return aiService
 }
 
 // GetAIModels returns all available AI models for the user
@@ -169,7 +176,7 @@ func GetAIRequestStatus(c *gin.Context) {
 
 // ListOllamaModels lists available models from Ollama
 func ListOllamaModels(c *gin.Context) {
-	client := services.NewOllamaClient(aiService.Config.OllamaHost, aiService.Config.OllamaPort)
+	client := services.NewOllamaService(aiConfig.OllamaHost, aiConfig.OllamaPort)
 	models, err := client.ListModels()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list Ollama models: " + err.Error()})
@@ -187,7 +194,7 @@ func PullOllamaModel(c *gin.Context) {
 		return
 	}
 
-	client := services.NewOllamaClient(aiService.Config.OllamaHost, aiService.Config.OllamaPort)
+	client := services.NewOllamaService(aiConfig.OllamaHost, aiConfig.OllamaPort)
 	err := client.PullModel(modelName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to pull model: " + err.Error()})
@@ -299,8 +306,7 @@ func ApplyUpgrade(c *gin.Context) {
 
 // DetectHardware detects and returns system hardware capabilities
 func DetectHardware(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
+	if _, exists := c.Get("user_id"); !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -316,8 +322,7 @@ func DetectHardware(c *gin.Context) {
 
 // GetRecommendedModels returns model recommendations based on hardware
 func GetRecommendedModels(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
+	if _, exists := c.Get("user_id"); !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}

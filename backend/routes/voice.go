@@ -2,9 +2,9 @@ package routes
 
 import (
 	"encoding/base64"
-	"encoding/json"
+	"fmt"
 	"net/http"
-	"strconv"
+
 	"tpt-titan/backend/config"
 	"tpt-titan/backend/models"
 	"tpt-titan/backend/services"
@@ -133,13 +133,13 @@ func GetVoiceNote(c *gin.Context) {
 
 	// Decrypt audio data for playback
 	userPassword := utils.DeriveUserDocumentKey(userID)
-	km, err := utils.DeriveKeyFromPassword(userPassword, note.Salt)
+	km, err := utils.NewKeyManager(userPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize decryption"})
 		return
 	}
 
-	audioData, err := km.Decrypt(note.EncryptedAudioData)
+	audioData, err := km.Decrypt(note.AudioData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decrypt audio data"})
 		return
@@ -191,7 +191,7 @@ func CreateVoiceNote(c *gin.Context) {
 		models, err := speechService.GetAvailableModels(userID.(uuid.UUID), "stt")
 		if err == nil && len(models) > 0 {
 			// Create a temporary speech request for transcription
-			request, err := speechService.SpeechToText(userID.(uuid.UUID), audioData, models[0].ID, services.SpeechOptions{
+			_, err := speechService.SpeechToText(userID.(uuid.UUID), audioData, models[0].ID, services.SpeechOptions{
 				Language:    "en",
 				AudioFormat: req.AudioFormat,
 			})
@@ -230,9 +230,7 @@ func CreateVoiceNote(c *gin.Context) {
 		return
 	}
 
-	note.EncryptedAudioData = encryptedAudio
-	note.Salt = km.GetSalt()
-	note.Algorithm = "AES-256-GCM"
+	note.AudioData = encryptedAudio
 
 	if err := config.DB.Create(note).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create voice note"})
@@ -380,13 +378,13 @@ func GetVoiceAnnotation(c *gin.Context) {
 
 	// Decrypt audio data for playback
 	userPassword := utils.DeriveUserDocumentKey(userID)
-	km, err := utils.DeriveKeyFromPassword(userPassword, annotation.Salt)
+	km, err := utils.NewKeyManager(userPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize decryption"})
 		return
 	}
 
-	audioData, err := km.Decrypt(annotation.EncryptedAudioData)
+	audioData, err := km.Decrypt(annotation.AudioData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decrypt audio data"})
 		return
@@ -443,7 +441,7 @@ func CreateVoiceAnnotation(c *gin.Context) {
 		// Use default STT model for transcription
 		models, err := speechService.GetAvailableModels(userID.(uuid.UUID), "stt")
 		if err == nil && len(models) > 0 {
-			request, err := speechService.SpeechToText(userID.(uuid.UUID), audioData, models[0].ID, services.SpeechOptions{
+			_, err := speechService.SpeechToText(userID.(uuid.UUID), audioData, models[0].ID, services.SpeechOptions{
 				Language:    "en",
 				AudioFormat: req.AudioFormat,
 			})
@@ -481,9 +479,7 @@ func CreateVoiceAnnotation(c *gin.Context) {
 		return
 	}
 
-	annotation.EncryptedAudioData = encryptedAudio
-	annotation.Salt = km.GetSalt()
-	annotation.Algorithm = "AES-256-GCM"
+	annotation.AudioData = encryptedAudio
 
 	if err := config.DB.Create(annotation).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create voice annotation"})

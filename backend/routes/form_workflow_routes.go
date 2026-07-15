@@ -3,15 +3,14 @@ package routes
 import (
 	"database/sql"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"tpt-titan/backend/services"
 )
 
-// CreateWorkflow creates a new workflow
-func CreateWorkflow(c *gin.Context) {
+// CreateFormWorkflow creates a new workflow for a form
+func CreateFormWorkflow(c *gin.Context) {
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
@@ -33,7 +32,7 @@ func CreateWorkflow(c *gin.Context) {
 	workflow.CreatedBy = userID
 
 	db := c.MustGet("db").(*sql.DB)
-	emailSvc := services.NewEmailService(db, nil) // Would need proper email config
+	emailSvc := services.NewEmailService(db) // Would need proper email config
 	relationshipSvc := services.NewFormRelationshipService(db)
 	workflowSvc := services.NewFormWorkflowService(db, emailSvc, relationshipSvc)
 
@@ -75,7 +74,7 @@ func StartWorkflow(c *gin.Context) {
 	}
 
 	db := c.MustGet("db").(*sql.DB)
-	emailSvc := services.NewEmailService(db, nil)
+	emailSvc := services.NewEmailService(db)
 	relationshipSvc := services.NewFormRelationshipService(db)
 	workflowSvc := services.NewFormWorkflowService(db, emailSvc, relationshipSvc)
 
@@ -120,7 +119,7 @@ func ProcessApproval(c *gin.Context) {
 	}
 
 	db := c.MustGet("db").(*sql.DB)
-	emailSvc := services.NewEmailService(db, nil)
+	emailSvc := services.NewEmailService(db)
 	relationshipSvc := services.NewFormRelationshipService(db)
 	workflowSvc := services.NewFormWorkflowService(db, emailSvc, relationshipSvc)
 
@@ -148,7 +147,7 @@ func GetPendingApprovals(c *gin.Context) {
 	}
 
 	db := c.MustGet("db").(*sql.DB)
-	emailSvc := services.NewEmailService(db, nil)
+	emailSvc := services.NewEmailService(db)
 	relationshipSvc := services.NewFormRelationshipService(db)
 	workflowSvc := services.NewFormWorkflowService(db, emailSvc, relationshipSvc)
 
@@ -170,7 +169,7 @@ func CreateNotificationTemplate(c *gin.Context) {
 	}
 
 	db := c.MustGet("db").(*sql.DB)
-	emailSvc := services.NewEmailService(db, nil)
+	emailSvc := services.NewEmailService(db)
 	relationshipSvc := services.NewFormRelationshipService(db)
 	workflowSvc := services.NewFormWorkflowService(db, emailSvc, relationshipSvc)
 

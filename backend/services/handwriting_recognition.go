@@ -116,7 +116,7 @@ func (hrs *HandwritingRecognitionService) RecognizeHandwriting(strokes []Handwri
 
 	// Post-process mathematical expressions
 	if result.MathExpr == nil && result.Text != "" {
-		mathExpr, err := hrs.parseMathematicalExpression(result.Text)
+		mathExpr, err := hrs.ParseMathematicalExpression(result.Text)
 		if err == nil {
 			result.MathExpr = mathExpr
 		}
@@ -148,7 +148,7 @@ func (hrs *HandwritingRecognitionService) RecognizeEquationFromImage(imageData [
 	}
 
 	// Parse the recognized equation
-	mathExpr, err := hrs.parseMathematicalExpression(result.Text)
+	mathExpr, err := hrs.ParseMathematicalExpression(result.Text)
 	if err == nil {
 		result.MathExpr = mathExpr
 	}
@@ -397,8 +397,8 @@ func (hrs *HandwritingRecognitionService) buildComplexExpression(strokes []Handw
 	return "x^{2} + y^{2} = z^{2}"
 }
 
-// parseMathematicalExpression parses a recognized mathematical expression
-func (hrs *HandwritingRecognitionService) parseMathematicalExpression(text string) (*MathExpression, error) {
+// ParseMathematicalExpression parses a recognized mathematical expression
+func (hrs *HandwritingRecognitionService) ParseMathematicalExpression(text string) (*MathExpression, error) {
 	expr := &MathExpression{
 		Text:       text,
 		Variables:  hrs.extractVariables(text),

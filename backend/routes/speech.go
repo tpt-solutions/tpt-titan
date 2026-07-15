@@ -2,7 +2,6 @@ package routes
 
 import (
 	"encoding/base64"
-	"fmt"
 	"io"
 	"net/http"
 	"tpt-titan/backend/config"
@@ -360,11 +359,4 @@ func GetSpeechHistory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"requests": requests})
-}
-
-// Helper function to parse int
-func parseInt(s string) int {
-	var result int
-	fmt.Sscanf(s, "%d", &result)
-	return result
 }

@@ -1,13 +1,10 @@
 package routes
 
 import (
-	"database/sql"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"tpt-titan/backend/services"
 )
 
 // CreateEmailDistribution creates an email distribution for form responses

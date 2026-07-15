@@ -1,7 +1,9 @@
 package routes
 
 import (
+	"encoding/json"
 	"net/http"
+	"tpt-titan/backend/config"
 	"tpt-titan/backend/models"
 	"tpt-titan/backend/services"
 
@@ -176,8 +178,7 @@ func DeleteWorkflow(c *gin.Context) {
 
 // ExecuteWorkflow executes a workflow
 func ExecuteWorkflow(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
+	if _, exists := c.Get("user_id"); !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -461,11 +462,4 @@ func GetIntegrationConnectors(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"connectors": connectors})
-}
-
-// Helper function to parse int
-func parseInt(s string) int {
-	var result int
-	fmt.Sscanf(s, "%d", &result)
-	return result
 }

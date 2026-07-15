@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"tpt-titan/backend/config"
@@ -525,14 +524,6 @@ func processDocumentWithAI(documentID, userID uuid.UUID, fileData []byte, fileTy
 		}
 		return
 	}
-
-	// Get AI service
-	aiService := services.NewAIService(&config.AIConfig{
-		EnableLocalAI:  true, // TODO: Get from user config
-		EnableOnlineAI: false,
-		OllamaHost:     "localhost",
-		OllamaPort:     "11434",
-	})
 
 	// Find appropriate vision model
 	var visionModel models.AIModel

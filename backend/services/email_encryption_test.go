@@ -324,6 +324,16 @@ func TestEncryptWithPassphrase_OutputLongerThanSalt(t *testing.T) {
 		t.Errorf("encrypted output too short: got %d bytes, want >= %d", len(ct), minExpected)
 	}
 }
+
+func TestEncryptWithPassphrase_LongerThanSalt(t *testing.T) {
+	svc := NewPGPEncryptionService()
+
+	data := []byte("private key DER bytes here")
+	ct, err := svc.encryptWithPassphrase(data, "testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ct) <= 32 {
 		t.Errorf("encrypted output should be longer than just the salt: got %d bytes", len(ct))
 	}
 }

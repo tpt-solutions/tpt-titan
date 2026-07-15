@@ -2,11 +2,8 @@ package routes
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
-	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

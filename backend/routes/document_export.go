@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"tpt-titan/backend/services"
 )
 
@@ -142,8 +141,6 @@ func GetDocumentExportFormats(c *gin.Context) {
 
 // GetDOCXTemplates returns available DOCX templates
 func GetDOCXTemplates(c *gin.Context) {
-	docxService := services.NewDOCXExportService()
-
 	templates := []gin.H{
 		{
 			"id":          "basic",

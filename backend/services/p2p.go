@@ -97,6 +97,11 @@ func NewP2PService(cfg *config.P2PConfig) *P2PService {
 	}
 }
 
+// IsRunning reports whether the P2P service is currently active
+func (p2p *P2PService) IsRunning() bool {
+	return p2p.running
+}
+
 // Start initializes the P2P service
 func (p2p *P2PService) Start() error {
 	if p2p.running {

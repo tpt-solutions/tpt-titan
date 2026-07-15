@@ -1,9 +1,7 @@
 package routes
 
 import (
-	"database/sql"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -46,8 +44,6 @@ func GetForms(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
 		return
 	}
-
-	db := c.MustGet("db").(*sql.DB)
 
 	// For now, return mock data until proper database schema is set up
 	mockForms := []Form{

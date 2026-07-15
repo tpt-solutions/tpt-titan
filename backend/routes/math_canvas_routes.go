@@ -3,7 +3,6 @@ package routes
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -52,8 +51,7 @@ func SaveMathCanvas(c *gin.Context) {
 
 // GetMathCanvases gets user's saved math canvases
 func GetMathCanvases(c *gin.Context) {
-	userIDInterface, exists := c.Get("user_id")
-	if !exists {
+	if _, exists := c.Get("user_id"); !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}

@@ -19,6 +19,7 @@ type AIModel struct {
 	IsActive     bool       `gorm:"default:true" json:"is_active"`
 	APIKey       []byte     `json:"-"` // Encrypted
 	Endpoint     string     `gorm:"size:500" json:"endpoint,omitempty"`
+	Config       string     `gorm:"type:jsonb" json:"config,omitempty"`
 	Priority     int        `gorm:"default:0" json:"priority"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`

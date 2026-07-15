@@ -1,13 +1,12 @@
 package routes
 
 import (
-	"database/sql"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"tpt-titan/backend/services"
 )
 
 // CreateFormTemplate creates a new form template
