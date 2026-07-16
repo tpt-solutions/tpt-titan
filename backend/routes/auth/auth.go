@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"encoding/base64"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -164,7 +166,7 @@ func Register(c *gin.Context) {
 	}
 
 	// Initialize encryption keys for user
-	if err := initializeUserEncryption(user.ID, req.Password); err != nil {
+	if err := initializeUserEncryption(db, user.ID, req.Password); err != nil {
 		// Log error but don't fail registration
 		c.Error(err) // This will be logged
 	}
@@ -306,19 +308,22 @@ func generateToken(userID uuid.UUID) (string, error) {
 	return token.SignedString(getJWTSecret())
 }
 
-// initializeUserEncryption sets up encryption keys for a new user
-func initializeUserEncryption(userID uuid.UUID, password string) error {
+// initializeUserEncryption sets up encryption keys for a new user and persists
+// the per-user derivation salt so encryption keys can be recovered later.
+func initializeUserEncryption(db *gorm.DB, userID uuid.UUID, password string) error {
 	// Create user's encryption key manager
 	km, err := utils.NewKeyManager(password)
 	if err != nil {
 		return err
 	}
 
-	// Store salt for key derivation (safe to store)
-	// In a real implementation, this would be stored in a secure user key table
-	// For now, we'll log it (in production, store in encrypted user preferences)
+	// Store the salt used for key derivation (safe to store). It is required to
+	// deterministically re-derive the user's encryption key from their password.
 	salt := km.GetSalt()
-	_ = salt // TODO: Store in user preferences table
+	if err := db.Model(&models.User{}).Where("id = ?", userID).
+		Update("encryption_salt", base64.StdEncoding.EncodeToString(salt)).Error; err != nil {
+		return fmt.Errorf("failed to persist encryption salt: %w", err)
+	}
 
 	return nil
 }

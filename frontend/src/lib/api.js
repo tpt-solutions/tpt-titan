@@ -672,3 +672,405 @@ export function formatApiError(error) {
 	}
 	return error.message;
 }
+
+/**
+ * Download a binary response as a file
+ * @param {string} endpoint
+ * @param {Object} body
+ * @returns {Promise<Blob>}
+ */
+export async function apiDownload(endpoint, body = {}) {
+	const url = `${API_BASE_URL}${endpoint}`;
+	const token = getAuthToken();
+	const response = await fetch(url, {
+		method: body && Object.keys(body).length ? 'POST' : 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+			...(token ? { Authorization: `Bearer ${token}` } : {}),
+		},
+		...(body && Object.keys(body).length ? { body: JSON.stringify(body) } : {}),
+	});
+	if (!response.ok) {
+		const error = await response.json().catch(() => ({ message: 'Download failed' }));
+		throw new Error(error.message || `HTTP ${response.status}`);
+	}
+	return response.blob();
+}
+
+/**
+ * Admin API functions
+ */
+
+export function getAdminStats() {
+	return apiGet('/admin/stats');
+}
+
+export function getAdminUsers(params = {}) {
+	const q = new URLSearchParams();
+	if (params.page) q.append('page', params.page);
+	if (params.limit) q.append('limit', params.limit);
+	if (params.search) q.append('search', params.search);
+	if (params.status) q.append('status', params.status);
+	const qs = q.toString();
+	return apiGet(`/admin/users${qs ? `?${qs}` : ''}`);
+}
+
+export function updateAdminUserStatus(id, isActive) {
+	return apiPut(`/admin/users/${id}/status`, { is_active: isActive });
+}
+
+export function deleteAdminUser(id) {
+	return apiDelete(`/admin/users/${id}`);
+}
+
+export function getAdminLogs(params = {}) {
+	const q = new URLSearchParams();
+	if (params.limit) q.append('limit', params.limit);
+	if (params.level) q.append('level', params.level);
+	if (params.event_type) q.append('event_type', params.event_type);
+	const qs = q.toString();
+	return apiGet(`/admin/logs${qs ? `?${qs}` : ''}`);
+}
+
+export function getAdminDatabaseStats() {
+	return apiGet('/admin/database/stats');
+}
+
+export function runAdminDatabaseMaintenance() {
+	return apiPost('/admin/database/maintenance', {});
+}
+
+export function getAdminSecurityAlerts(limit) {
+	return apiGet(`/admin/security/alerts${limit ? `?limit=${limit}` : ''}`);
+}
+
+export function resolveAdminSecurityAlert(id) {
+	return apiPost(`/admin/security/alerts/${id}/resolve`, {});
+}
+
+export function getAdminSettings() {
+	return apiGet('/admin/settings');
+}
+
+export function updateAdminSettings(settings) {
+	return apiPut('/admin/settings', settings);
+}
+
+/**
+ * Speech (TTS/STT) API functions
+ */
+
+export function getSpeechModels(type) {
+	return apiGet(`/speech/models${type ? `?type=${type}` : ''}`);
+}
+
+export function createSpeechModel(data) {
+	return apiPost('/speech/models', data);
+}
+
+export function textToSpeech(data) {
+	return apiPost('/speech/tts', data);
+}
+
+export function speechToText(formData) {
+	const url = `${API_BASE_URL}/speech/stt`;
+	const token = getAuthToken();
+	return fetch(url, {
+		method: 'POST',
+		headers: token ? { Authorization: `Bearer ${token}` } : {},
+		body: formData,
+	}).then(async response => {
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ message: 'Speech recognition failed' }));
+			throw new Error(error.message || `HTTP ${response.status}`);
+		}
+		return response.json();
+	});
+}
+
+export function getSpeechRequestStatus(requestId) {
+	return apiGet(`/speech/requests/${requestId}`);
+}
+
+export function getSpeechHistory(params = {}) {
+	const q = new URLSearchParams();
+	if (params.type) q.append('type', params.type);
+	if (params.status) q.append('status', params.status);
+	if (params.limit) q.append('limit', params.limit);
+	const qs = q.toString();
+	return apiGet(`/speech/history${qs ? `?${qs}` : ''}`);
+}
+
+/**
+ * Voice notes & annotations API functions
+ */
+
+export function getVoiceNotes(params = {}) {
+	const q = new URLSearchParams();
+	if (params.limit) q.append('limit', params.limit);
+	if (params.offset) q.append('offset', params.offset);
+	if (params.favorites) q.append('favorites', params.favorites);
+	if (params.tag) q.append('tag', params.tag);
+	const qs = q.toString();
+	return apiGet(`/voice/notes${qs ? `?${qs}` : ''}`);
+}
+
+export function getVoiceNote(id) {
+	return apiGet(`/voice/notes/${id}`);
+}
+
+export function createVoiceNote(data) {
+	return apiPost('/voice/notes', data);
+}
+
+export function updateVoiceNote(id, data) {
+	return apiPut(`/voice/notes/${id}`, data);
+}
+
+export function deleteVoiceNote(id) {
+	return apiDelete(`/voice/notes/${id}`);
+}
+
+export function getVoiceAnnotations(params = {}) {
+	const q = new URLSearchParams();
+	if (params.content_type) q.append('content_type', params.content_type);
+	if (params.content_id) q.append('content_id', params.content_id);
+	const qs = q.toString();
+	return apiGet(`/voice/annotations${qs ? `?${qs}` : ''}`);
+}
+
+export function getVoiceAnnotation(id) {
+	return apiGet(`/voice/annotations/${id}`);
+}
+
+export function createVoiceAnnotation(data) {
+	return apiPost('/voice/annotations', data);
+}
+
+export function deleteVoiceAnnotation(id) {
+	return apiDelete(`/voice/annotations/${id}`);
+}
+
+/**
+ * Math API functions
+ */
+
+export function validateExpression(expression) {
+	return apiPost('/math/validate', { expression });
+}
+
+export function optimizeExpression(expression) {
+	return apiPost('/math/optimize', { expression });
+}
+
+export function convertExpression(expression, fromFormat, toFormat) {
+	return apiPost('/math/convert', { expression, from_format: fromFormat, to_format: toFormat });
+}
+
+export function getMathFunctions(category) {
+	return apiGet(`/math/functions${category ? `?category=${category}` : ''}`);
+}
+
+export function getMathSymbols(category) {
+	return apiGet(`/math/symbols${category ? `?category=${category}` : ''}`);
+}
+
+export function getMathConstants() {
+	return apiGet('/math/constants');
+}
+
+export function getMathTheorems(category) {
+	return apiGet(`/math/theorems${category ? `?category=${category}` : ''}`);
+}
+
+export function recognizeHandwriting(strokes, width, height) {
+	return apiPost('/math/recognize', { strokes, width, height });
+}
+
+export function recognizeEquationFromImage(formData) {
+	const url = `${API_BASE_URL}/math/recognize-image`;
+	const token = getAuthToken();
+	return fetch(url, {
+		method: 'POST',
+		headers: token ? { Authorization: `Bearer ${token}` } : {},
+		body: formData,
+	}).then(async response => {
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ message: 'Recognition failed' }));
+			throw new Error(error.message || `HTTP ${response.status}`);
+		}
+		return response.json();
+	});
+}
+
+export function getEquationTemplates(params = {}) {
+	const q = new URLSearchParams();
+	if (params.category) q.append('category', params.category);
+	if (params.search) q.append('search', params.search);
+	const qs = q.toString();
+	return apiGet(`/math/templates${qs ? `?${qs}` : ''}`);
+}
+
+export function saveEquationTemplate(data) {
+	return apiPost('/math/templates', data);
+}
+
+export function searchEquations(query) {
+	return apiGet(`/math/templates/search?q=${encodeURIComponent(query)}`);
+}
+
+export function getEquationTemplateCategories() {
+	return apiGet('/math/templates/categories');
+}
+
+export function saveMathCanvas(data) {
+	return apiPost('/math/canvas', data);
+}
+
+export function getMathCanvases() {
+	return apiGet('/math/canvas');
+}
+
+export function generateEquationImage(data) {
+	return apiPost('/math/canvas/generate-image', data);
+}
+
+export function exportEquation(expression, format) {
+	return apiPost('/math/export', { expression, format });
+}
+
+export function batchExportEquations(expressions, format) {
+	return apiPost('/math/export/batch', { expressions, format });
+}
+
+/**
+ * Document export API functions
+ */
+
+export function getDocumentExportFormats() {
+	return apiGet('/documents/export/formats');
+}
+
+export function getDOCXTemplates(category) {
+	return apiGet(`/documents/export/docx/templates${category ? `?category=${category}` : ''}`);
+}
+
+export function getDOCXFeatures() {
+	return apiGet('/documents/export/docx/features');
+}
+
+export function exportDocument(documentId, body) {
+	return apiDownload(`/documents/${documentId}/export`, body);
+}
+
+export function convertDocument(body) {
+	return apiDownload('/documents/export/convert', body);
+}
+
+export function batchExportDocuments(body) {
+	return apiPost('/documents/export/batch', body);
+}
+
+export function getDocumentStatistics(content) {
+	return apiPost('/documents/export/statistics', { content });
+}
+
+export function validateDocumentContent(content, format) {
+	return apiPost('/documents/export/validate', { content, format });
+}
+
+/**
+ * Workflow API functions
+ */
+
+export function getWorkflows(params = {}) {
+	const q = new URLSearchParams();
+	if (params.category) q.append('category', params.category);
+	if (params.active) q.append('active', params.active);
+	const qs = q.toString();
+	return apiGet(`/workflows${qs ? `?${qs}` : ''}`);
+}
+
+export function createWorkflow(data) {
+	return apiPost('/workflows', data);
+}
+
+export function getWorkflow(id) {
+	return apiGet(`/workflows/${id}`);
+}
+
+export function updateWorkflow(id, data) {
+	return apiPut(`/workflows/${id}`, data);
+}
+
+export function deleteWorkflow(id) {
+	return apiDelete(`/workflows/${id}`);
+}
+
+export function executeWorkflow(id, triggerData = {}) {
+	return apiPost(`/workflows/${id}/execute`, { trigger_data: triggerData });
+}
+
+export function getWorkflowExecutions(id, limit) {
+	return apiGet(`/workflows/${id}/executions${limit ? `?limit=${limit}` : ''}`);
+}
+
+export function getWorkflowExecution(executionId) {
+	return apiGet(`/executions/${executionId}`);
+}
+
+export function updateWorkflowNodes(id, nodes) {
+	return apiPut(`/workflows/${id}/nodes`, { nodes });
+}
+
+export function updateWorkflowConnections(id, connections) {
+	return apiPut(`/workflows/${id}/connections`, { connections });
+}
+
+export function getWorkflowTemplates(category) {
+	return apiGet(`/workflow-templates${category ? `?category=${category}` : ''}`);
+}
+
+export function createWorkflowFromTemplate(templateId) {
+	return apiPost(`/workflow-templates/${templateId}/create`, {});
+}
+
+export function getWorkflowInsights() {
+	return apiGet('/ai/workflows/insights');
+}
+
+export function analyzeWorkflowUsage() {
+	return apiGet('/ai/workflows/usage-analysis');
+}
+
+export function getWorkflowPredictions() {
+	return apiGet('/ai/workflows/predictions');
+}
+
+export function optimizeWorkflow(id) {
+	return apiGet(`/ai/workflows/${id}/optimization`);
+}
+
+export function getIntegrationConnectors() {
+	return apiGet('/connectors');
+}
+
+/**
+ * Monitoring API functions
+ */
+
+export function getMonitoringMetrics() {
+	return apiGet('/monitoring/metrics');
+}
+
+export function getMonitoringHealth() {
+	return apiGet('/monitoring/health');
+}
+
+export function getMonitoringPerformance() {
+	return apiGet('/monitoring/performance');
+}
+
+export function getMonitoringAlerts(limit) {
+	return apiGet(`/monitoring/alerts${limit ? `?limit=${limit}` : ''}`);
+}

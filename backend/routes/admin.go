@@ -2,11 +2,14 @@ package routes
 
 import (
 	"database/sql"
+	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"tpt-titan/backend/config"
+	"tpt-titan/backend/models"
 )
 
 // GetSystemStats returns comprehensive system statistics
@@ -578,45 +581,83 @@ func ResolveSecurityAlert(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Alert resolved successfully"})
 }
 
-// GetSystemSettings returns current system configuration
+// GetSystemSettings returns current system configuration, reading persisted
+// values from the database and falling back to sane defaults for any key
+// that has not been set yet.
 func GetSystemSettings(c *gin.Context) {
-	// This would return current system settings
-	// For now, return mock data
-	settings := gin.H{
-		"security": gin.H{
-			"max_login_attempts": 5,
+	db := config.GetDatabase()
+
+	defaults := map[string]interface{}{
+		"security": map[string]interface{}{
+			"max_login_attempts":       5,
 			"lockout_duration_minutes": 15,
-			"password_min_length": 8,
-			"session_timeout_hours": 24,
+			"password_min_length":      8,
+			"session_timeout_hours":    24,
 		},
-		"storage": gin.H{
-			"max_file_size_mb": 100,
-			"backup_retention_days": 30,
-			"storage_quota_gb": 10,
+		"storage": map[string]interface{}{
+			"max_file_size_mb":       100,
+			"backup_retention_days":  30,
+			"storage_quota_gb":       10,
 		},
-		"features": gin.H{
-			"ai_enabled": true,
-			"file_sync_enabled": true,
+		"features": map[string]interface{}{
+			"ai_enabled":                 true,
+			"file_sync_enabled":          true,
 			"video_conferencing_enabled": true,
-			"backup_enabled": true,
+			"backup_enabled":             true,
 		},
 	}
 
-	c.JSON(http.StatusOK, settings)
+	for key := range defaults {
+		var setting models.SystemSetting
+		result := db.Where("key = ?", key).First(&setting)
+		if result.Error != nil {
+			// Not set yet — return the default value.
+			continue
+		}
+		var stored interface{}
+		if err := json.Unmarshal([]byte(setting.Value), &stored); err == nil {
+			defaults[key] = stored
+		}
+	}
+
+	c.JSON(http.StatusOK, defaults)
 }
 
-// UpdateSystemSettings updates system configuration
+// UpdateSystemSettings persists system configuration to the database.
 func UpdateSystemSettings(c *gin.Context) {
-	var settings gin.H
+	var settings map[string]interface{}
 	if err := c.ShouldBindJSON(&settings); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// This would update system settings in database
-	// For now, just acknowledge
+	db := config.GetDatabase()
+	for key, val := range settings {
+		encoded, err := json.Marshal(val)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to encode setting: " + key})
+			return
+		}
+
+		var setting models.SystemSetting
+		result := db.Where("key = ?", key).First(&setting)
+		if result.Error != nil {
+			setting = models.SystemSetting{Key: key, Value: string(encoded)}
+			if err := db.Create(&setting).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create setting: " + key})
+				return
+			}
+		} else {
+			setting.Value = string(encoded)
+			if err := db.Save(&setting).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update setting: " + key})
+				return
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "System settings updated successfully",
+		"message":  "System settings updated successfully",
 		"settings": settings,
 	})
 }

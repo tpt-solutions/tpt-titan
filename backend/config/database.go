@@ -134,6 +134,8 @@ func migrateDatabase(db *gorm.DB) error {
 		&models.WorkflowConnection{},
 		&models.WorkflowExecution{},
 		&models.WorkflowTemplate{},
+		// System settings
+		&models.SystemSetting{},
 	); err != nil {
 		return fmt.Errorf("failed to migrate: %w", err)
 	}

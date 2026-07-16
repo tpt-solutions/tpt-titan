@@ -4,7 +4,9 @@ Tracking list generated from a full-project audit (stubs/TODOs, frontend coverag
 
 **Update 2026-07-16:** Commit `d5fa6ee` wired up the previously dead route groups (admin, document export, spreadsheet chart/collab/excel/formula, all six advanced form modules) and added a P2P collaboration service. Those routes are now reachable — see the code-level stub items below for which of them still return mock/placeholder data rather than real logic. Tasks and File Sync remain fully unwired.
 
-**Update 2026-07-16 (later, uncommitted):** Rewrote the spreadsheet formula arithmetic evaluator (`backend/services/spreadsheet_math.go`) — the old implementation only handled a single `+`/`-` split between exactly two terms (no operator precedence, no multi-term expressions, no real range expansion). Replaced with a recursive-descent parser supporting `+ - * /` with correct precedence, parentheses, nested function calls, and proper `A1:B3`-style range expansion into cell lists; cell references are now case-insensitive and function arguments are trimmed. Also added argument-count/nil guards to `math_power.go`, `math_rounding.go`, `math_trigonometric.go` (previously panicked on missing args) and nil-`DB` guards to `ai.go`/`model_service.go` `GetAvailableModels`/`CheckForUpgrades` (previously panicked if called before DB init). Tests updated to match corrected behavior. Not yet committed — see `git status`.
+**Update 2026-07-16 (later):** Rewrote the spreadsheet formula arithmetic evaluator (`backend/services/spreadsheet_math.go`) — the old implementation only handled a single `+`/`-` split between exactly two terms (no operator precedence, no multi-term expressions, no real range expansion). Replaced with a recursive-descent parser supporting `+ - * /` with correct precedence, parentheses, nested function calls, and proper `A1:B3`-style range expansion into cell lists; cell references are now case-insensitive and function arguments are trimmed. Also added argument-count/nil guards to `math_power.go`, `math_rounding.go`, `math_trigonometric.go` (previously panicked on missing args) and nil-`DB` guards to `ai.go`/`model_service.go` `GetAvailableModels`/`CheckForUpgrades` (previously panicked if called before DB init). Tests updated to match corrected behavior. Committed as `06cacef` along with wiring up Tasks, File Sync, and the Plugin system (see updated Critical section above).
+
+**Update 2026-07-16 (concurrent session, uncommitted):** Another session in parallel implemented persisted admin system settings (new `SystemSetting` model/table) and fixed the discarded per-user encryption salt at registration (new `encryption_salt` column on `User`) — see the updated code-level stub items below. Not yet committed — see `git status`.
 
 ## Critical — Frontend UIs with no backend at all (fully non-functional)
 
@@ -14,13 +16,13 @@ Tracking list generated from a full-project audit (stubs/TODOs, frontend coverag
 
 ## High — Backend features with no frontend UI at all
 
-- [ ] Admin console — backend routes are now wired (`server.go:547-560`), but no `/admin` frontend route exists yet.
-- [ ] Document export — ~10 backend endpoints, zero frontend calls.
-- [ ] Speech (TTS/STT) — 8 registered endpoints, no dedicated UI.
-- [ ] Voice notes/annotations — 9 registered endpoints (`voice.go`), no frontend route or component.
-- [ ] Math (expressions, canvas, export, recognition, templates) — ~19 registered endpoints, zero frontend page.
-- [ ] Workflows — `WorkflowBuilder.svelte` / `WorkflowDesignerModal.svelte` exist but are not mounted under any route in `frontend/src/routes`.
-- [ ] Monitoring/metrics dashboard — health/metrics endpoints exist, no admin-facing dashboard page.
+- [x] Admin console — added `frontend/src/routes/admin/+page.svelte` (overview/users/logs/security/settings tabs) calling `/admin/*` endpoints, plus nav entry in `+layout.svelte`.
+- [x] Document export — added `frontend/src/routes/export/+page.svelte` calling `/documents/:id/export`, `/export/convert`, `/export/batch`, `/export/statistics`, `/export/validate`, `/documents/export/docx/*` (formats/templates/features).
+- [x] Speech (TTS/STT) — added `frontend/src/routes/speech/+page.svelte` (TTS synthesis, STT upload, settings, history) calling `/speech/*`.
+- [x] Voice notes/annotations — added `frontend/src/routes/voice/+page.svelte` with MediaRecorder-based capture (base64 upload) calling `/voice/notes` and `/voice/annotations`.
+- [x] Math (expressions, canvas, export, recognition, templates) — added `frontend/src/routes/math/+page.svelte` (expressions, reference, templates, canvas image, export, recognition) calling `/math/*`.
+- [x] Workflows — added `frontend/src/routes/workflows/+page.svelte` mounting the existing `WorkflowBuilder.svelte` (list/create/edit/run/delete/templates/insights) calling `/workflows*`, `/workflow-templates*`, `/ai/workflows*`. `WorkflowDesignerModal.svelte` remains an alternative (form-triggered) designer.
+- [x] Monitoring/metrics dashboard — added `frontend/src/routes/monitoring/+page.svelte` (health, system/app/db metrics, alerts, 10s auto-refresh) calling `/monitoring/*`.
 
 ## Medium — Partial frontend coverage
 
@@ -47,9 +49,9 @@ Tracking list generated from a full-project audit (stubs/TODOs, frontend coverag
 
 ## Code-level stubs & mocked logic (highest-impact first)
 
-- [ ] **Admin panel now reachable but still mocked**: `backend/internal/server/server.go:547-560` admin route group is now wired up, but there is still no `/admin` frontend at all (see High section above). Additionally `GetSystemSettings` (`admin.go:584`) returns hardcoded mock settings and `UpdateSystemSettings` (`admin.go:609-622`) never persists — fix the mock logic now that routes are live.
+- [x] **Admin panel settings now persisted**: `GetSystemSettings`/`UpdateSystemSettings` (`backend/routes/admin.go`) now read/write a new `SystemSetting` key/value table (`backend/models/system_setting.go`, migrated in `database.go`) instead of hardcoded mock data. Still no `/admin` frontend at all (see High section above).
 - [ ] **Plugin system completely unreachable**: `backend/services/plugin_system.go` has full load/unload/event-bus/settings logic but still zero HTTP routes (no route file exists for it) and zero frontend UI. Also `GetPluginSettings` (`plugin_system.go:334-343`) always returns `nil, nil` instead of calling `getPluginSettingsFromDB` — the correct implementation (`getPluginSettingsInternal:346-357`) is orphaned dead code, looks like a regression. `downloadPlugin` (`plugin_system.go:703-707`) always errors "not implemented", and `validatePluginSettings` (`:698-701`) is a no-op.
-- [ ] **User encryption salt discarded at registration**: `backend/routes/auth/auth.go:309-324` (called from `auth.go:167`) derives a per-user encryption salt via `NewKeyManager` but never stores it (`_ = salt // TODO: Store in user preferences table`) — silently breaks recovery of per-user encryption keys after initial setup. High severity, no user-facing error.
+- [x] **User encryption salt now persisted**: `backend/routes/auth/auth.go` `initializeUserEncryption` now saves the per-user Argon2 salt (base64) to a new `encryption_salt` column on `User` (`backend/models/user.go`) instead of discarding it — per-user encryption keys can now be recovered after initial setup.
 - [ ] **Forms backend is 100% mocked**: `backend/routes/forms.go:52-299` — `GetForms/GetForm/CreateForm/UpdateForm/DeleteForm/GetFormResponses/SubmitFormResponse` are hardcoded mock data with zero DB reads/writes. Forms never actually save/update/delete/store responses despite a real-looking API and a working-looking frontend.
 - [ ] **AI job queue fabricates results**: `backend/services/ai_job_queue.go:546-620` — `processDocumentAnalysis`, `processEmailCategorization`, `processSpeechSynthesis`, `processWorkflowOptimization` all `time.Sleep()` then return the same canned fake result regardless of input (e.g. always the same word count, always the same fake audio URL, always the same 3 "optimization suggestions"). Called live from the dispatcher (`ai_job_queue.go:380-386`).
 - [ ] **Calendar reminders silently no-op**: `backend/services/calendar_notifications.go:283-304` — `sendSMSReminder`, `sendPushReminder`, `sendInAppReminder` all return `nil` (success) without sending anything. Also SMS reminder wiring uses the user's email address as if it were a phone number (`:232`). Users believe reminders are configured but never receive them.

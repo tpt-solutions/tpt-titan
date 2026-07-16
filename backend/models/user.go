@@ -30,6 +30,10 @@ type User struct {
 	Bio                 string     `json:"bio" gorm:"type:text"`
 	Timezone            string     `json:"timezone" gorm:"default:'UTC'"`
 	Language            string     `json:"language" gorm:"default:'en'"`
+	// EncryptionSalt is the per-user Argon2 salt used to derive the user's
+	// encryption key from their password. Safe to store; required to recover
+	// per-user encryption keys after initial setup.
+	EncryptionSalt      string     `json:"-" gorm:"column:encryption_salt;type:text"`
 }
 
 // BeforeCreate will set a UUID rather than numeric ID
