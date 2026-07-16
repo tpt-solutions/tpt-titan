@@ -5,7 +5,10 @@ import "math"
 // Rounding functions
 
 func (sms *SpreadsheetMathService) round(args []float64) (float64, error) {
-	if len(args) == 2 {
+	if len(args) == 0 {
+		return 0, nil
+	}
+	if len(args) >= 2 {
 		precision := args[1]
 		multiplier := math.Pow(10, precision)
 		return math.Round(args[0]*multiplier) / multiplier, nil
@@ -14,9 +17,15 @@ func (sms *SpreadsheetMathService) round(args []float64) (float64, error) {
 }
 
 func (sms *SpreadsheetMathService) ceiling(args []float64) (float64, error) {
+	if len(args) < 1 {
+		return 0, nil
+	}
 	return math.Ceil(args[0]), nil
 }
 
 func (sms *SpreadsheetMathService) floor(args []float64) (float64, error) {
+	if len(args) < 1 {
+		return 0, nil
+	}
 	return math.Floor(args[0]), nil
 }

@@ -339,20 +339,6 @@ func (ps *PluginSystem) GetPluginSettings(pluginID string) (map[string]interface
 	if !exists {
 		return nil, fmt.Errorf("plugin %s not found", pluginID)
 	}
-	return nil, nil
-}
-
-// getPluginSettingsInternal is the old stub kept for reference
-func (ps *PluginSystem) getPluginSettingsInternal(pluginID string) (map[string]interface{}, error) {
-	ps.mutex.RLock()
-	_, exists := ps.loadedPlugins[pluginID]
-	ps.mutex.RUnlock()
-
-	if !exists {
-		return nil, fmt.Errorf("plugin %s not found", pluginID)
-	}
-
-	// Get settings from database
 	return ps.getPluginSettingsFromDB(pluginID)
 }
 

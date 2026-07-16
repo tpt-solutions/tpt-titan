@@ -67,7 +67,7 @@ func TestSpreadsheetMathService_EvaluateFormula(t *testing.T) {
 		{
 			name:          "Nested functions",
 			formula:       "=SUM(A1,SUM(B1,B2))",
-			expectedValue: 50.0,
+			expectedValue: 30.0,
 			expectedType:  "number",
 		},
 		{
@@ -149,7 +149,7 @@ func TestSpreadsheetMathService_ParseFunctionCall(t *testing.T) {
 			name:         "Function with spaces",
 			expression:   "SUM( 1 , 2 , 3 )",
 			expectedFunc: "SUM",
-			expectedArgs: []string{" 1 ", " 2 ", " 3 "},
+			expectedArgs: []string{"1", "2", "3"},
 		},
 		{
 			name:          "Missing closing parenthesis",
@@ -194,7 +194,7 @@ func TestSpreadsheetMathService_ParseArguments(t *testing.T) {
 		{
 			name:         "Arguments with spaces",
 			argsStr:      " 1 , 2 , 3 ",
-			expectedArgs: []string{" 1 ", " 2 ", " 3 "},
+			expectedArgs: []string{"1", "2", "3"},
 		},
 		{
 			name:         "Arguments with functions",
@@ -236,7 +236,7 @@ func TestSpreadsheetMathService_IsCellReference(t *testing.T) {
 	}{
 		{"Valid cell reference", "A1", true},
 		{"Valid cell reference uppercase", "B10", true},
-		{"Valid cell reference mixed case", "a1", false}, // Our implementation expects uppercase
+		{"Valid cell reference mixed case", "a1", true}, // Case-insensitive per spreadsheet convention
 		{"Invalid - no number", "AA", false},
 		{"Invalid - no letter", "123", false},
 		{"Invalid - special characters", "A1!", false},

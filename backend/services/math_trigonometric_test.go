@@ -20,7 +20,7 @@ func TestSpreadsheetMathService_Sin(t *testing.T) {
 		{"sin(π/2)", []float64{math.Pi / 2}, 1, false},
 		{"sin(π)", []float64{math.Pi}, 0, false},
 		{"sin(π/4)", []float64{math.Pi / 4}, 0.7071067811865476, false},
-		{"too many args", []float64{1, 2}, 0, false}, // Should ignore extra args
+		{"too many args", []float64{1, 2}, math.Sin(1), false}, // Should ignore extra args
 	}
 
 	for _, tt := range tests {
@@ -49,7 +49,7 @@ func TestSpreadsheetMathService_Cos(t *testing.T) {
 		{"cos(π/2)", []float64{math.Pi / 2}, 0, false},
 		{"cos(π)", []float64{math.Pi}, -1, false},
 		{"cos(π/4)", []float64{math.Pi / 4}, 0.7071067811865476, false},
-		{"too many args", []float64{1, 2}, 0, false}, // Should ignore extra args
+		{"too many args", []float64{1, 2}, math.Cos(1), false}, // Should ignore extra args
 	}
 
 	for _, tt := range tests {
@@ -77,7 +77,7 @@ func TestSpreadsheetMathService_Tan(t *testing.T) {
 		{"tan(0)", []float64{0}, 0, false},
 		{"tan(π/4)", []float64{math.Pi / 4}, 1, false},
 		{"tan(π/3)", []float64{math.Pi / 3}, 1.732050807568877, false},
-		{"too many args", []float64{1, 2}, 0, false}, // Should ignore extra args
+		{"too many args", []float64{1, 2}, math.Tan(1), false}, // Should ignore extra args
 	}
 
 	for _, tt := range tests {
@@ -106,7 +106,7 @@ func TestSpreadsheetMathService_Asin(t *testing.T) {
 		{"asin(0.5)", []float64{0.5}, math.Pi/6, false},
 		{"asin(1)", []float64{1}, math.Pi/2, false},
 		{"asin(-1)", []float64{-1}, -math.Pi/2, false},
-		{"too many args", []float64{1, 2}, 0, false}, // Should ignore extra args
+		{"too many args", []float64{1, 2}, math.Asin(1), false}, // Should ignore extra args
 	}
 
 	for _, tt := range tests {
@@ -135,7 +135,7 @@ func TestSpreadsheetMathService_Acos(t *testing.T) {
 		{"acos(0.5)", []float64{0.5}, math.Pi/3, false},
 		{"acos(0)", []float64{0}, math.Pi/2, false},
 		{"acos(-1)", []float64{-1}, math.Pi, false},
-		{"too many args", []float64{1, 2}, 0, false}, // Should ignore extra args
+		{"too many args", []float64{1, 2}, math.Acos(1), false}, // Should ignore extra args
 	}
 
 	for _, tt := range tests {
@@ -164,7 +164,7 @@ func TestSpreadsheetMathService_Atan(t *testing.T) {
 		{"atan(1)", []float64{1}, math.Pi/4, false},
 		{"atan(-1)", []float64{-1}, -math.Pi/4, false},
 		{"atan(∞)", []float64{math.Inf(1)}, math.Pi/2, false},
-		{"too many args", []float64{1, 2}, 0, false}, // Should ignore extra args
+		{"too many args", []float64{1, 2}, math.Atan(1), false}, // Should ignore extra args
 	}
 
 	for _, tt := range tests {

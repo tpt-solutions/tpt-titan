@@ -40,6 +40,9 @@ func NewModelService(hardwareService *HardwareService, ollamaService OllamaClien
 
 // GetAvailableModels returns all available models for a user
 func (s *ModelService) GetAvailableModels(userID uuid.UUID) ([]models.AIModel, error) {
+	if config.DB == nil {
+		return nil, fmt.Errorf("database not available")
+	}
 	var models []models.AIModel
 	err := config.DB.Where("(user_id = ? OR is_system = ?) AND is_active = ?", userID, true, true).Find(&models).Error
 	return models, err

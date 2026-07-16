@@ -259,9 +259,6 @@ func (qbs *QueryBuilderService) buildSQL(ctx *QueryContext) (string, error) {
 // buildFilterCondition builds a filter condition string
 func (qbs *QueryBuilderService) buildFilterCondition(filter FilterCondition) string {
 	field := filter.Field
-	if strings.Contains(field, ".") == false {
-		field = field // Assume it's properly qualified
-	}
 
 	switch filter.Operator {
 	case "equals", "=":

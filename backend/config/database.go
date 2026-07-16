@@ -123,6 +123,11 @@ func migrateDatabase(db *gorm.DB) error {
 		&models.SyncDevice{},
 		&models.SyncFolder{},
 		&models.FileVersion{},
+		// Tasks & projects
+		&models.Task{},
+		&models.TaskSubtask{},
+		&models.Project{},
+		&models.TaskTag{},
 		// Workflows
 		&models.Workflow{},
 		&models.WorkflowNode{},

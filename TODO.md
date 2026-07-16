@@ -2,22 +2,19 @@
 
 Tracking list generated from a full-project audit (stubs/TODOs, frontend coverage, security, adoption tooling) on 2026-07-16. Items are grouped by area and roughly ordered by severity within each group. This file will be updated as remaining audit passes (code-level TODO/stub inventory, security review) complete.
 
-## Critical — Backend routes registered but never wired up (dead code, 404 in practice)
+**Update 2026-07-16:** Commit `d5fa6ee` wired up the previously dead route groups (admin, document export, spreadsheet chart/collab/excel/formula, all six advanced form modules) and added a P2P collaboration service. Those routes are now reachable — see the code-level stub items below for which of them still return mock/placeholder data rather than real logic. Tasks and File Sync remain fully unwired.
 
-- [ ] `backend/internal/server/server.go`: `/admin` route group is commented out (~line 452-454) — `admin.go` handlers (user mgmt, system stats, logs, security alerts, settings) are fully implemented but unreachable. No way to administer the instance via API/UI at all.
-- [ ] Re-enable/wire `document_export.go` route group (commented out) — export endpoints exist but are unreachable.
-- [ ] Re-enable/wire `spreadsheet_chart_routes.go`, `spreadsheet_collab_routes.go`, `spreadsheet_excel_routes.go`, `spreadsheet_formula_routes.go` — implemented but not mounted.
-- [ ] Re-enable/wire all six `form_*_routes.go` advanced modules (email, query builder, relationships, reporting, template, workflow) — ~15+ endpoints implemented, route group commented out (~line 215).
-- [ ] Decide fate of `frontend/src/lib/api.js` functions that call these dead endpoints (`evaluateFormula`, `getChartSuggestions`, `createChart`, `getSpreadsheetCharts`, `exportSpreadsheetToExcel`, `importExcelToSpreadsheet`, lines ~370-460) — currently unused on the frontend and will 404 if ever called. Wire up once routes are live, or remove if truly abandoned.
+**Update 2026-07-16 (later, uncommitted):** Rewrote the spreadsheet formula arithmetic evaluator (`backend/services/spreadsheet_math.go`) — the old implementation only handled a single `+`/`-` split between exactly two terms (no operator precedence, no multi-term expressions, no real range expansion). Replaced with a recursive-descent parser supporting `+ - * /` with correct precedence, parentheses, nested function calls, and proper `A1:B3`-style range expansion into cell lists; cell references are now case-insensitive and function arguments are trimmed. Also added argument-count/nil guards to `math_power.go`, `math_rounding.go`, `math_trigonometric.go` (previously panicked on missing args) and nil-`DB` guards to `ai.go`/`model_service.go` `GetAvailableModels`/`CheckForUpgrades` (previously panicked if called before DB init). Tests updated to match corrected behavior. Not yet committed — see `git status`.
 
 ## Critical — Frontend UIs with no backend at all (fully non-functional)
 
-- [ ] Tasks: `frontend/src/routes/tasks/+page.svelte` + `TaskBoard.svelte`/`TaskForm.svelte` (459 lines) — zero matching backend routes (`// TODO: Add task routes` in server.go). Either implement the Task model/service/routes or remove the UI.
-- [ ] File Sync: `frontend/src/routes/files/+page.svelte` calls `/filesync/folders`, `/filesync/status`, `/filesync/sync/:id` — none exist in `server.go` (`// TODO: Add file management routes`), despite `backend/services/filesync.go` existing per CLAUDE.md. Wire routes to the existing service or remove the UI.
+- [x] Tasks: `frontend/src/routes/tasks/+page.svelte` + `TaskBoard.svelte`/`TaskForm.svelte` (459 lines) — was fully non-functional. Added `backend/models/task.go` (Task/Project/Subtask GORM models), `backend/services/task_service.go` (CRUD over `*sql.DB`), and `backend/routes/tasks.go` with `/tasks` (+ projects) routes wired in `server.go`. Frontend now fetches/creates/updates/deletes tasks via the API. AI prediction/suggestion buttons in TaskForm still call non-existent `/tasks/predict-*` endpoints and fail silently (optional, out of scope).
+- [x] File Sync: `frontend/src/routes/files/+page.svelte` calls `/filesync/folders`, `/filesync/status`, `/filesync/sync/:id`. Added `backend/routes/filesync.go` wiring to the existing `services/filesync.go` (`GetSyncFolders`, `CreateSyncFolder`, `GetSyncStatus`, `SyncFolder`), registered under `/filesync` in `server.go`. UI is now functional.
+- [x] Plugin system: `backend/services/plugin_system.go` now reachable — added `backend/routes/plugins.go` with `/plugins` (list/stats/enable/disable/unload/settings) routes + `InitPluginService`, plus a frontend page `frontend/src/routes/plugins/+page.svelte` and nav entry. Also fixed the `GetPluginSettings` regression (was returning `nil, nil`; now reads from DB).
 
 ## High — Backend features with no frontend UI at all
 
-- [ ] Admin console — no `/admin` frontend route exists (blocked on route registration above too).
+- [ ] Admin console — backend routes are now wired (`server.go:547-560`), but no `/admin` frontend route exists yet.
 - [ ] Document export — ~10 backend endpoints, zero frontend calls.
 - [ ] Speech (TTS/STT) — 8 registered endpoints, no dedicated UI.
 - [ ] Voice notes/annotations — 9 registered endpoints (`voice.go`), no frontend route or component.
@@ -27,10 +24,11 @@ Tracking list generated from a full-project audit (stubs/TODOs, frontend coverag
 
 ## Medium — Partial frontend coverage
 
-- [ ] Forms: only basic CRUD + responses covered; advanced form modules (see above) have no UI once wired up.
-- [ ] Spreadsheets: charts/formula/Excel import-export/collab features have no UI once routes are wired up.
+- [ ] Forms: only basic CRUD + responses covered; advanced form modules (templates/relationships/reports/query builder/email distribution/workflow — now reachable via `formsAdvancedGroup` in `server.go:259-297`) have no frontend UI yet.
+- [ ] Spreadsheets: chart/Excel import-export/collab routes are now mounted (`server.go:206-243`) but still have no frontend UI, and several return mock data server-side (see code-level stubs below).
 - [ ] Documents/editor: `editor/+page.svelte` is a thin 24-line stub delegating to a component — verify AI processing/analysis endpoint coverage.
 - [ ] Various components contain TODO/placeholder comments: `EmailComposer.svelte`, `WorkflowBuilder.svelte`, `FormBuilderCanvas.svelte` — audit and finish.
+- [ ] `frontend/src/lib/api.js` functions that call spreadsheet chart/Excel endpoints (`evaluateFormula`, `getChartSuggestions`, `createChart`, `getSpreadsheetCharts`, `exportSpreadsheetToExcel`, `importExcelToSpreadsheet`, lines ~370-460) now hit live routes — verify they're actually invoked from the UI, since as of the last audit they were unused/dead client-side.
 
 ## Adoption / Onboarding Tooling Gaps
 
@@ -42,15 +40,15 @@ Tracking list generated from a full-project audit (stubs/TODOs, frontend coverag
 - [ ] No admin CLI tool (e.g. `tpt-titan admin create-user`) for first-deploy user/role management outside the web UI.
 - [ ] `scripts/install.sh` downloads a versioned release tarball that doesn't exist yet in Releases — currently aspirational/non-functional until releases are published.
 - [ ] Systemd unit is generated inline by `scripts/install.sh` rather than checked in as an inspectable template (e.g. `deploy/tpt-titan.service`) — check one in for review before running as root.
-- [ ] Root-level doc clutter/rot: `TODO - Copy.md`, `TODO 1260108.md`, `TODO 1260113.md`, `TODO_LAYOUT_IMPROVEMENTS.md` — consolidate or delete stale duplicates now that this file is the tracked list.
+- [x] Root-level doc clutter/rot: Deleted stale duplicates `TODO - Copy.md`, `TODO 1260108.md`, `TODO 1260113.md`, `TODO_LAYOUT_IMPROVEMENTS.md` (consolidated into this tracked list). `TODO 1260716.md` was reviewed (a completed spreadsheet-layout checklist) and retained.
 - [ ] No Makefile/task runner for a single `make setup` / `make dev` entry point across backend/frontend/desktop.
 - [ ] `docs/installation.md` env-var example block doesn't match actual `.env.example` keys (`DATABASE_URL`/`ENCRYPTION_KEY` vs `DB_TYPE`/`DB_PATH`) — reconcile so self-hosters aren't misled.
 - [ ] No Caddy reverse-proxy example (only Nginx) — Caddy is a common low-friction choice for automatic HTTPS.
 
 ## Code-level stubs & mocked logic (highest-impact first)
 
-- [ ] **Admin panel unreachable, and mocked even if wired**: `backend/internal/server/server.go:452-454` admin route group is commented out — every handler in `backend/routes/admin.go` is dead code, and there is no `/admin` frontend at all (duplicate of the routing item above). Additionally `GetSystemSettings` (`admin.go:584`) returns hardcoded mock settings and `UpdateSystemSettings` (`admin.go:609-622`) never persists — fix the mock logic once routes are restored.
-- [ ] **Plugin system completely unreachable**: `backend/services/plugin_system.go` has full load/unload/event-bus/settings logic but zero HTTP routes and zero frontend UI. Also `GetPluginSettings` (`plugin_system.go:334-343`) always returns `nil, nil` instead of calling `getPluginSettingsFromDB` — the correct implementation (`getPluginSettingsInternal:346-357`) is orphaned dead code, looks like a regression. `downloadPlugin` (`plugin_system.go:703-707`) always errors "not implemented", and `validatePluginSettings` (`:698-701`) is a no-op.
+- [ ] **Admin panel now reachable but still mocked**: `backend/internal/server/server.go:547-560` admin route group is now wired up, but there is still no `/admin` frontend at all (see High section above). Additionally `GetSystemSettings` (`admin.go:584`) returns hardcoded mock settings and `UpdateSystemSettings` (`admin.go:609-622`) never persists — fix the mock logic now that routes are live.
+- [ ] **Plugin system completely unreachable**: `backend/services/plugin_system.go` has full load/unload/event-bus/settings logic but still zero HTTP routes (no route file exists for it) and zero frontend UI. Also `GetPluginSettings` (`plugin_system.go:334-343`) always returns `nil, nil` instead of calling `getPluginSettingsFromDB` — the correct implementation (`getPluginSettingsInternal:346-357`) is orphaned dead code, looks like a regression. `downloadPlugin` (`plugin_system.go:703-707`) always errors "not implemented", and `validatePluginSettings` (`:698-701`) is a no-op.
 - [ ] **User encryption salt discarded at registration**: `backend/routes/auth/auth.go:309-324` (called from `auth.go:167`) derives a per-user encryption salt via `NewKeyManager` but never stores it (`_ = salt // TODO: Store in user preferences table`) — silently breaks recovery of per-user encryption keys after initial setup. High severity, no user-facing error.
 - [ ] **Forms backend is 100% mocked**: `backend/routes/forms.go:52-299` — `GetForms/GetForm/CreateForm/UpdateForm/DeleteForm/GetFormResponses/SubmitFormResponse` are hardcoded mock data with zero DB reads/writes. Forms never actually save/update/delete/store responses despite a real-looking API and a working-looking frontend.
 - [ ] **AI job queue fabricates results**: `backend/services/ai_job_queue.go:546-620` — `processDocumentAnalysis`, `processEmailCategorization`, `processSpeechSynthesis`, `processWorkflowOptimization` all `time.Sleep()` then return the same canned fake result regardless of input (e.g. always the same word count, always the same fake audio URL, always the same 3 "optimization suggestions"). Called live from the dispatcher (`ai_job_queue.go:380-386`).

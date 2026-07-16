@@ -170,23 +170,76 @@ func (sms *SpreadsheetMathService) EvaluateFormula(formula string, cellResolver 
 func (sms *SpreadsheetMathService) evaluateExpression(expr string, cellResolver func(string) (interface{}, error)) (interface{}, error) {
 	expr = strings.TrimSpace(expr)
 
-	// Handle function calls
-	if strings.Contains(expr, "(") {
-		return sms.evaluateFunctionCall(expr, cellResolver)
-	}
-
-	// Handle cell references
+	// Handle cell references (e.g. "A1")
 	if sms.isCellReference(expr) {
 		return cellResolver(expr)
 	}
 
-	// Handle ranges
-	if strings.Contains(expr, ":") {
+	// Handle ranges (e.g. "A1:B3") - only when the whole expression is a range.
+	if isRangeExpression(expr) {
 		return sms.evaluateRange(expr, cellResolver)
 	}
 
-	// Handle arithmetic expressions
+	// Handle a pure function call (e.g. "SUM(1,2,3)") - no surrounding operators.
+	if isPureFunctionCall(expr) {
+		return sms.evaluateFunctionCall(expr, cellResolver)
+	}
+
+	// Handle arithmetic expressions, which may embed function calls and ranges.
 	return sms.evaluateArithmetic(expr, cellResolver)
+}
+
+// isPureFunctionCall reports whether expr is a single function call of the form
+// NAME(...) with balanced parentheses and no surrounding operators.
+func isPureFunctionCall(expr string) bool {
+	open := strings.Index(expr, "(")
+	if open <= 0 {
+		return false
+	}
+	if !isIdentifier(expr[:open]) {
+		return false
+	}
+	depth := 0
+	for i := open; i < len(expr); i++ {
+		switch expr[i] {
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 && i != len(expr)-1 {
+				return false
+			}
+		}
+	}
+	return depth == 0 && strings.HasSuffix(expr, ")")
+}
+
+func isIdentifier(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (i > 0 && c >= '0' && c <= '9')) {
+			return false
+		}
+	}
+	return true
+}
+
+// isRangeExpression reports whether expr is a single cell range of the form
+// A1:B3 (two cell references separated by a colon).
+func isRangeExpression(expr string) bool {
+	colon := strings.Index(expr, ":")
+	if colon <= 0 || colon == len(expr)-1 {
+		return false
+	}
+	return sms_isCellRef(expr[:colon]) && sms_isCellRef(expr[colon+1:])
+}
+
+func sms_isCellRef(s string) bool {
+	matched, _ := regexp.MatchString(`^[A-Z]+\d+$`, strings.ToUpper(s))
+	return matched
 }
 
 // evaluateFunctionCall evaluates a function call
@@ -202,26 +255,29 @@ func (sms *SpreadsheetMathService) evaluateFunctionCall(expr string, cellResolve
 		return nil, fmt.Errorf("unknown function: %s", funcName)
 	}
 
-	// Evaluate arguments
-	argValues := make([]float64, len(args))
-	for i, arg := range args {
+	// Evaluate arguments, flattening ranges ([]interface{}) into their values.
+	var argValues []float64
+	for _, arg := range args {
 		result, err := sms.evaluateExpression(arg, cellResolver)
 		if err != nil {
 			return nil, err
 		}
 
-		// Convert to float64
 		switch v := result.(type) {
+		case []interface{}:
+			for _, item := range v {
+				argValues = append(argValues, spreadsheetToFloat64(item))
+			}
 		case float64:
-			argValues[i] = v
+			argValues = append(argValues, v)
 		case float32:
-			argValues[i] = float64(v)
+			argValues = append(argValues, float64(v))
 		case int:
-			argValues[i] = float64(v)
+			argValues = append(argValues, float64(v))
 		case int32:
-			argValues[i] = float64(v)
+			argValues = append(argValues, float64(v))
 		case int64:
-			argValues[i] = float64(v)
+			argValues = append(argValues, float64(v))
 		default:
 			return nil, fmt.Errorf("function argument must be numeric")
 		}
@@ -260,7 +316,7 @@ func (sms *SpreadsheetMathService) parseFunctionCall(expr string) (string, []str
 
 // parseArguments parses function arguments
 func (sms *SpreadsheetMathService) parseArguments(argsStr string) []string {
-	var args []string
+	args := []string{}
 	var current strings.Builder
 	var parenDepth int
 
@@ -298,87 +354,228 @@ func (sms *SpreadsheetMathService) isCellReference(ref string) bool {
 	return matched
 }
 
-// evaluateRange evaluates a cell range (e.g., A1:B3)
+// evaluateRange evaluates a cell range (e.g., A1:B3) by expanding it into the
+// list of values for every cell within the rectangular range.
 func (sms *SpreadsheetMathService) evaluateRange(rangeExpr string, cellResolver func(string) (interface{}, error)) (interface{}, error) {
-	// Parse range (simplified - would need full implementation)
 	parts := strings.Split(rangeExpr, ":")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid range: %s", rangeExpr)
 	}
 
-	// For now, return array of values
-	// In full implementation, this would expand the range
+	startRef, err := sms.ParseCellReference(parts[0])
+	if err != nil {
+		return nil, err
+	}
+	endRef, err := sms.ParseCellReference(parts[1])
+	if err != nil {
+		return nil, err
+	}
+
+	minCol, maxCol := startRef.Col, endRef.Col
+	if minCol > maxCol {
+		minCol, maxCol = maxCol, minCol
+	}
+	minRow, maxRow := startRef.Row, endRef.Row
+	if minRow > maxRow {
+		minRow, maxRow = maxRow, minRow
+	}
+
 	values := []interface{}{}
-	for _, ref := range parts {
-		value, err := cellResolver(ref)
-		if err != nil {
-			return nil, err
+	for col := minCol; col <= maxCol; col++ {
+		for row := minRow; row <= maxRow; row++ {
+			ref := sms.FormatCellReference(startRef.Sheet, col, row)
+			value, err := cellResolver(ref)
+			if err != nil {
+				return nil, err
+			}
+			values = append(values, value)
 		}
-		values = append(values, value)
 	}
 
 	return values, nil
 }
 
-// evaluateArithmetic evaluates arithmetic expressions
-func (sms *SpreadsheetMathService) evaluateArithmetic(expr string, cellResolver func(string) (interface{}, error)) (interface{}, error) {
-	// Simple arithmetic evaluation (would need full expression parser in production)
-	expr = strings.ReplaceAll(expr, " ", "")
-
-	// Handle basic operations
-	if strings.Contains(expr, "+") {
-		parts := strings.Split(expr, "+")
-		if len(parts) == 2 {
-			left, err := sms.evaluateSimpleTerm(parts[0], cellResolver)
-			if err != nil {
-				return nil, err
-			}
-			right, err := sms.evaluateSimpleTerm(parts[1], cellResolver)
-			if err != nil {
-				return nil, err
-			}
-			return spreadsheetToFloat64(left) + spreadsheetToFloat64(right), nil
-		}
-	}
-
-	if strings.Contains(expr, "-") {
-		parts := strings.Split(expr, "-")
-		if len(parts) == 2 {
-			left, err := sms.evaluateSimpleTerm(parts[0], cellResolver)
-			if err != nil {
-				return nil, err
-			}
-			right, err := sms.evaluateSimpleTerm(parts[1], cellResolver)
-			if err != nil {
-				return nil, err
-			}
-			return spreadsheetToFloat64(left) - spreadsheetToFloat64(right), nil
-		}
-	}
-
-	// Single number or cell reference
-	return sms.evaluateSimpleTerm(expr, cellResolver)
+// arithmeticParser is a recursive-descent parser for spreadsheet arithmetic
+// expressions supporting +, -, *, /, parentheses, numbers, and cell references.
+type arithmeticParser struct {
+	sms         *SpreadsheetMathService
+	resolver    func(string) (interface{}, error)
+	expr        string
+	pos         int
 }
 
-// evaluateSimpleTerm evaluates a simple term
-func (sms *SpreadsheetMathService) evaluateSimpleTerm(term string, cellResolver func(string) (interface{}, error)) (float64, error) {
-	term = strings.TrimSpace(term)
+// evaluateArithmetic evaluates arithmetic expressions with proper operator
+// precedence. It handles +, -, *, /, parentheses, numeric literals, and cell
+// references (resolved via the supplied cellResolver).
+func (sms *SpreadsheetMathService) evaluateArithmetic(expr string, cellResolver func(string) (interface{}, error)) (interface{}, error) {
+	expr = strings.ReplaceAll(expr, " ", "")
+	if expr == "" {
+		return 0.0, nil
+	}
 
-	// Try to parse as number
-	if num, err := strconv.ParseFloat(term, 64); err == nil {
+	p := &arithmeticParser{sms: sms, resolver: cellResolver, expr: expr}
+	value, err := p.parseAddSub()
+	if err != nil {
+		return nil, err
+	}
+	if p.pos < len(p.expr) {
+		return nil, fmt.Errorf("unexpected token at position %d in expression %q", p.pos, expr)
+	}
+	return value, nil
+}
+
+func (p *arithmeticParser) parseAddSub() (float64, error) {
+	left, err := p.parseMulDiv()
+	if err != nil {
+		return 0, err
+	}
+	for p.pos < len(p.expr) {
+		op := p.expr[p.pos]
+		if op != '+' && op != '-' {
+			break
+		}
+		p.pos++
+		right, err := p.parseMulDiv()
+		if err != nil {
+			return 0, err
+		}
+		if op == '+' {
+			left += right
+		} else {
+			left -= right
+		}
+	}
+	return left, nil
+}
+
+func (p *arithmeticParser) parseMulDiv() (float64, error) {
+	left, err := p.parseUnary()
+	if err != nil {
+		return 0, err
+	}
+	for p.pos < len(p.expr) {
+		op := p.expr[p.pos]
+		if op != '*' && op != '/' {
+			break
+		}
+		p.pos++
+		right, err := p.parseUnary()
+		if err != nil {
+			return 0, err
+		}
+		if op == '*' {
+			left *= right
+		} else {
+			if right == 0 {
+				return 0, fmt.Errorf("division by zero")
+			}
+			left /= right
+		}
+	}
+	return left, nil
+}
+
+func (p *arithmeticParser) parseUnary() (float64, error) {
+	if p.pos < len(p.expr) && (p.expr[p.pos] == '+' || p.expr[p.pos] == '-') {
+		op := p.expr[p.pos]
+		p.pos++
+		value, err := p.parseUnary()
+		if err != nil {
+			return 0, err
+		}
+		if op == '-' {
+			return -value, nil
+		}
+		return value, nil
+	}
+	return p.parsePrimary()
+}
+
+func (p *arithmeticParser) parsePrimary() (float64, error) {
+	if p.pos >= len(p.expr) {
+		return 0, fmt.Errorf("unexpected end of expression")
+	}
+
+	if p.expr[p.pos] == '(' {
+		p.pos++
+		value, err := p.parseAddSub()
+		if err != nil {
+			return 0, err
+		}
+		if p.pos >= len(p.expr) || p.expr[p.pos] != ')' {
+			return 0, fmt.Errorf("missing closing parenthesis")
+		}
+		p.pos++
+		return value, nil
+	}
+
+	// Read a run of identifier characters (letters/digits/.).
+	start := p.pos
+	for p.pos < len(p.expr) {
+		c := p.expr[p.pos]
+		if isAlnumOrDot(c) {
+			p.pos++
+		} else {
+			break
+		}
+	}
+	token := p.expr[start:p.pos]
+	if token == "" {
+		return 0, fmt.Errorf("unexpected character %q in expression", string(p.expr[p.pos]))
+	}
+
+	// Function call: identifier immediately followed by "(".
+	if p.pos < len(p.expr) && p.expr[p.pos] == '(' {
+		end := p.findMatchingParen(p.pos)
+		if end == -1 {
+			return 0, fmt.Errorf("missing closing parenthesis in function call")
+		}
+		callExpr := p.expr[start : end+1]
+		p.pos = end + 1
+		result, err := p.sms.evaluateFunctionCall(callExpr, p.resolver)
+		if err != nil {
+			return 0, err
+		}
+		return spreadsheetToFloat64(result), nil
+	}
+
+	// Try to parse as a number.
+	if num, err := strconv.ParseFloat(token, 64); err == nil {
 		return num, nil
 	}
 
-	// Try as cell reference
-	if sms.isCellReference(term) {
-		value, err := cellResolver(term)
+	// Try as a cell reference.
+	if p.sms.isCellReference(token) {
+		value, err := p.resolver(token)
 		if err != nil {
 			return 0, err
 		}
 		return spreadsheetToFloat64(value), nil
 	}
 
-	return 0, fmt.Errorf("invalid term: %s", term)
+	return 0, fmt.Errorf("invalid token: %s", token)
+}
+
+// findMatchingParen returns the index of the ')' that matches the '(' at pos,
+// or -1 if unbalanced.
+func (p *arithmeticParser) findMatchingParen(pos int) int {
+	depth := 0
+	for i := pos; i < len(p.expr); i++ {
+		switch p.expr[i] {
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+func isAlnumOrDot(c byte) bool {
+	return c == '.' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
 }
 
 // spreadsheetToFloat64 converts various numeric types to float64

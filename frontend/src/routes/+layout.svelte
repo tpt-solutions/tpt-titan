@@ -28,6 +28,7 @@
 		{ href: '/chat',        label: 'Chat' },
 		{ href: '/files',       label: 'Files' },
 		{ href: '/tasks',       label: 'Tasks' },
+		{ href: '/plugins',     label: 'Plugins' },
 		{ href: '/settings',    label: 'Settings' },
 	];
 </script>

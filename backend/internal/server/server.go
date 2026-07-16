@@ -98,6 +98,15 @@ func (s *Server) Initialize() error {
 	// Initialize voice service
 	routes.InitVoiceService()
 
+	// Initialize task service
+	routes.InitTaskService(sqlDB)
+
+	// Initialize file sync service
+	routes.InitFileSyncService(sqlDB)
+
+	// Initialize plugin service
+	routes.InitPluginService(sqlDB, s.config)
+
 	// Initialize P2P collaboration service
 	s.p2pService = services.NewP2PService(&s.config.P2P)
 
@@ -588,9 +597,45 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 				databaseGroup.DELETE("/tables/:table/records/:id", routes.DeleteTableRecord)
 			}
 
-			// TODO: Add file management routes
-			// TODO: Add form routes
-			// TODO: Add task routes
+			// File management (/filesync) routes
+			filesyncGroup := protected.Group("/filesync")
+			{
+				filesyncGroup.GET("/folders", routes.GetSyncFolders)
+				filesyncGroup.POST("/folders", routes.CreateSyncFolder)
+				filesyncGroup.GET("/status", routes.GetFileSyncStatus)
+				filesyncGroup.POST("/sync/:id", routes.SyncFolderRoute)
+			}
+
+			// Task management (/tasks) routes
+			taskGroup := protected.Group("/tasks")
+			{
+				taskGroup.GET("", routes.GetTasks)
+				taskGroup.POST("", routes.CreateTask)
+				taskGroup.GET("/:id", routes.GetTask)
+				taskGroup.PUT("/:id", routes.UpdateTask)
+				taskGroup.DELETE("/:id", routes.DeleteTask)
+				taskGroup.PATCH("/:id/status", routes.UpdateTaskStatus)
+
+				// Projects
+				taskGroup.GET("/projects", routes.GetProjects)
+				taskGroup.POST("/projects", routes.CreateProject)
+			}
+
+			// Plugin system (/plugins) routes
+			pluginGroup := protected.Group("/plugins")
+			{
+				pluginGroup.GET("", routes.GetPlugins)
+				pluginGroup.GET("/stats", routes.GetPluginStats)
+				pluginGroup.POST("/:id/enable", routes.EnablePluginRoute)
+				pluginGroup.POST("/:id/disable", routes.DisablePluginRoute)
+				pluginGroup.POST("/:id/unload", routes.UnloadPluginRoute)
+				pluginGroup.GET("/:id/settings", routes.GetPluginSettingsRoute)
+				pluginGroup.PUT("/:id/settings", routes.UpdatePluginSettingsRoute)
+			}
+
+			// Form routes are mounted above (/forms group).
+			// File management (/filesync) and task (/tasks) route groups are
+			// not yet implemented — their handlers/UI are missing (see TODO.md).
 		}
 	}
 

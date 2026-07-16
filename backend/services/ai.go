@@ -173,6 +173,9 @@ func (s *AIService) updateUsageStatistics(userID, modelID uuid.UUID, tokens int,
 
 // GetAvailableModels returns all available models for a user
 func (s *AIService) GetAvailableModels(userID uuid.UUID) ([]models.AIModel, error) {
+	if config.DB == nil {
+		return nil, fmt.Errorf("database not available")
+	}
 	var models []models.AIModel
 	err := config.DB.Where("(user_id = ? OR is_system = ?) AND is_active = ?", userID, true, true).Find(&models).Error
 	return models, err
@@ -230,6 +233,9 @@ func (s *AIService) CheckForUpgrades(userID uuid.UUID) (*models.AIUpgradeCheck, 
 	check.UpgradeOptions = string(optionsJSON)
 
 	// Save to database
+	if config.DB == nil {
+		return nil, fmt.Errorf("database not available")
+	}
 	if err := config.DB.Create(check).Error; err != nil {
 		return nil, fmt.Errorf("failed to save upgrade check: %w", err)
 	}

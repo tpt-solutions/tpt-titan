@@ -2,6 +2,7 @@
 	import TaskBoard from '$lib/components/TaskBoard.svelte';
 	import TaskForm from '$lib/components/TaskForm.svelte';
 	import { onMount } from 'svelte';
+	import { apiGet, apiPost, apiPut, apiDelete } from '$lib/api.js';
 
 	// Accept framework-provided props to avoid warnings
 	export let data = null;
@@ -13,71 +14,48 @@
 	let selectedTask = null;
 	let tasks = [];
 	let projects = [];
+	let isLoading = false;
+	let loadError = null;
 
 	onMount(() => {
 		loadTasks();
 		loadProjects();
 	});
 
-	function loadTasks() {
-		// Mock data - will connect to encrypted API later
-		tasks = [
-			{
-				id: 1,
-				title: 'Review Q4 Sales Data',
-				description: 'Analyze spreadsheet data and prepare quarterly report',
-				status: 'in-progress',
-				priority: 'high',
-				projectId: 1,
-				dueDate: new Date('2024-01-15'),
-				assignedTo: 'John Doe',
-				tags: ['analysis', 'quarterly'],
-				createdAt: new Date('2024-01-01'),
-				subtasks: [
-					{ id: 1, title: 'Import sales data', completed: true },
-					{ id: 2, title: 'Create pivot tables', completed: false },
-					{ id: 3, title: 'Generate charts', completed: false }
-				]
-			},
-			{
-				id: 2,
-				title: 'Update Customer Survey',
-				description: 'Incorporate feedback from recent form responses',
-				status: 'todo',
-				priority: 'medium',
-				projectId: 1,
-				dueDate: new Date('2024-01-20'),
-				assignedTo: 'Jane Smith',
-				tags: ['forms', 'customer-feedback'],
-				createdAt: new Date('2024-01-05'),
-				subtasks: []
-			},
-			{
-				id: 3,
-				title: 'Prepare Presentation Slides',
-				description: 'Create slides for quarterly business review',
-				status: 'done',
-				priority: 'high',
-				projectId: 2,
-				dueDate: new Date('2024-01-10'),
-				assignedTo: 'Bob Wilson',
-				tags: ['presentation', 'business-review'],
-				createdAt: new Date('2024-01-02'),
-				subtasks: [
-					{ id: 1, title: 'Gather data', completed: true },
-					{ id: 2, title: 'Create slides', completed: true },
-					{ id: 3, title: 'Practice presentation', completed: true }
-				]
-			}
-		];
+	async function loadTasks() {
+		isLoading = true;
+		loadError = null;
+		try {
+			const res = await apiGet('/tasks');
+			tasks = (res.tasks || []).map(t => ({
+				...t,
+				// Backend returns ISO strings; keep dueDate as-is for display
+				dueDate: t.dueDate ? new Date(t.dueDate) : null,
+				createdAt: t.createdAt ? new Date(t.createdAt) : null,
+				subtasks: (t.subtasks || []).map(st => ({
+					id: st.id,
+					title: st.title,
+					completed: !!st.completed
+				}))
+			}));
+		} catch (err) {
+			loadError = 'Could not load tasks. Please check your connection.';
+		} finally {
+			isLoading = false;
+		}
 	}
 
-	function loadProjects() {
-		projects = [
-			{ id: 1, name: 'Q4 Business Analysis', color: 'blue', tasks: 8 },
-			{ id: 2, name: 'Customer Experience', color: 'green', tasks: 12 },
-			{ id: 3, name: 'Product Development', color: 'purple', tasks: 5 }
-		];
+	async function loadProjects() {
+		try {
+			const res = await apiGet('/tasks/projects');
+			projects = (res.projects || []).map(p => ({
+				id: p.id,
+				name: p.name,
+				color: p.color || 'blue'
+			}));
+		} catch (err) {
+			console.error('Failed to load projects:', err);
+		}
 	}
 
 	function createNewTask() {
@@ -90,31 +68,58 @@
 		currentView = 'form';
 	}
 
-	function saveTask(taskData) {
-		if (selectedTask) {
-			// Update existing task
-			tasks = tasks.map(t => t.id === selectedTask.id ? { ...t, ...taskData } : t);
-		} else {
-			// Create new task
-			const newTask = {
-				id: Date.now(),
-				...taskData,
-				status: 'todo',
-				createdAt: new Date(),
-				subtasks: []
-			};
-			tasks = [...tasks, newTask];
+	async function saveTask(taskData) {
+		try {
+			if (selectedTask) {
+				const res = await apiPut(`/tasks/${selectedTask.id}`, taskData);
+				const updated = res.task;
+				tasks = tasks.map(t => t.id === selectedTask.id ? normalizeTask(updated) : t);
+			} else {
+				const res = await apiPost('/tasks', taskData);
+				tasks = [normalizeTask(res.task), ...tasks];
+			}
+		} catch (err) {
+			loadError = 'Failed to save task. Please try again.';
+			return;
 		}
 		currentView = 'board';
 		selectedTask = null;
 	}
 
-	function deleteTask(taskId) {
-		tasks = tasks.filter(t => t.id !== taskId);
+	async function deleteTask(taskId) {
+		try {
+			await apiDelete(`/tasks/${taskId}`);
+			tasks = tasks.filter(t => t.id !== taskId);
+		} catch (err) {
+			loadError = 'Failed to delete task. Please try again.';
+		}
 	}
 
-	function updateTaskStatus(taskId, newStatus) {
+	async function updateTaskStatus(taskId, newStatus) {
+		const task = tasks.find(t => t.id === taskId);
+		if (!task) return;
+		// Optimistic update
 		tasks = tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t);
+		try {
+			const res = await apiPut(`/tasks/${taskId}/status`, { status: newStatus });
+			tasks = tasks.map(t => t.id === taskId ? normalizeTask(res.task) : t);
+		} catch (err) {
+			// Revert on failure
+			tasks = tasks.map(t => t.id === taskId ? { ...t, status: task.status } : t);
+		}
+	}
+
+	function normalizeTask(t) {
+		return {
+			...t,
+			dueDate: t.dueDate ? new Date(t.dueDate) : null,
+			createdAt: t.createdAt ? new Date(t.createdAt) : null,
+			subtasks: (t.subtasks || []).map(st => ({
+				id: st.id,
+				title: st.title,
+				completed: !!st.completed
+			}))
+		};
 	}
 
 	function getProjectName(projectId) {
@@ -167,6 +172,14 @@
 		</div>
 	</header>
 
+	<!-- Error banner -->
+	{#if loadError}
+		<div class="bg-red-50 border-b border-red-200 px-6 py-3 flex items-center gap-3">
+			<span class="text-sm text-red-700">{loadError}</span>
+			<button on:click={loadTasks} class="ml-auto text-sm text-red-600 underline hover:no-underline">Retry</button>
+		</div>
+	{/if}
+
 	<!-- Stats Bar -->
 	<div class="bg-white border-b border-gray-200 px-6 py-4">
 		<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -191,7 +204,11 @@
 
 	<!-- Main Content -->
 	<div class="flex-1 overflow-hidden">
-		{#if currentView === 'board'}
+		{#if isLoading}
+			<div class="flex items-center justify-center h-full text-gray-400">
+				<span>Loading tasks…</span>
+			</div>
+		{:else if currentView === 'board'}
 			<TaskBoard
 				{tasks}
 				{projects}
