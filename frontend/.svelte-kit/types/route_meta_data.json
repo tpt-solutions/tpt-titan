@@ -1,13 +1,24 @@
 {
 	"/": [],
+	"/admin": [],
 	"/auth/login": [],
 	"/auth/register": [],
 	"/calendar": [],
+	"/chat": [],
 	"/contacts": [],
 	"/database": [],
 	"/editor": [],
 	"/email": [],
+	"/export": [],
+	"/files": [],
 	"/forms": [],
+	"/math": [],
+	"/monitoring": [],
+	"/plugins": [],
+	"/settings": [],
+	"/speech": [],
 	"/spreadsheet": [],
-	"/tasks": []
+	"/tasks": [],
+	"/voice": [],
+	"/workflows": []
 }

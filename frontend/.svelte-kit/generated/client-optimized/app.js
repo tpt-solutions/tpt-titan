@@ -13,23 +13,45 @@ export const nodes = [
 	() => import('./nodes/9'),
 	() => import('./nodes/10'),
 	() => import('./nodes/11'),
-	() => import('./nodes/12')
+	() => import('./nodes/12'),
+	() => import('./nodes/13'),
+	() => import('./nodes/14'),
+	() => import('./nodes/15'),
+	() => import('./nodes/16'),
+	() => import('./nodes/17'),
+	() => import('./nodes/18'),
+	() => import('./nodes/19'),
+	() => import('./nodes/20'),
+	() => import('./nodes/21'),
+	() => import('./nodes/22'),
+	() => import('./nodes/23')
 ];
 
 export const server_loads = [];
 
 export const dictionary = {
 		"/": [2],
-		"/auth/login": [3],
-		"/auth/register": [4],
-		"/calendar": [5],
-		"/contacts": [6],
-		"/database": [7],
-		"/editor": [8],
-		"/email": [9],
-		"/forms": [10],
-		"/spreadsheet": [11],
-		"/tasks": [12]
+		"/admin": [3],
+		"/auth/login": [4],
+		"/auth/register": [5],
+		"/calendar": [6],
+		"/chat": [7],
+		"/contacts": [8],
+		"/database": [9],
+		"/editor": [10],
+		"/email": [11],
+		"/export": [12],
+		"/files": [13],
+		"/forms": [14],
+		"/math": [15],
+		"/monitoring": [16],
+		"/plugins": [17],
+		"/settings": [18],
+		"/speech": [19],
+		"/spreadsheet": [20],
+		"/tasks": [21],
+		"/voice": [22],
+		"/workflows": [23]
 	};
 
 export const hooks = {

@@ -3430,6 +3430,17 @@ const templates = writable([
   ...generalTemplates,
   ...additionalGeneralTemplates
 ]);
+const userPreferences = writable({
+  theme: "light",
+  defaultView: "spreadsheet",
+  autoSave: true,
+  showFormulaBar: true,
+  enableAnimations: true,
+  touchMode: false,
+  locale: "en-US",
+  dateFormat: "MM/DD/YYYY",
+  numberFormat: "1,234.56"
+});
 const contacts = writable([]);
 const calendars = writable([]);
 const events = writable([]);
@@ -3526,9 +3537,10 @@ const CalendarView = create_ssr_component(($$result, $$props, $$bindings, slots)
 });
 export {
   currentFolder as A,
-  templates as B,
+  userPreferences as B,
   CalendarView as C,
-  templateCategories as D,
+  templates as D,
+  templateCategories as E,
   add_attribute as a,
   escape as b,
   create_ssr_component as c,

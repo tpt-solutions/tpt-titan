@@ -4,6 +4,7 @@ vendor/
 target/
 dist/
 build/
+.svelte-kit/
 
 # Environment variables
 .env

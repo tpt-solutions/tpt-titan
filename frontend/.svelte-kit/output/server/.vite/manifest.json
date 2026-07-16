@@ -93,7 +93,7 @@
       "_svelte-kit.js"
     ],
     "css": [
-      "_app/immutable/assets/_layout.DFDE2B2K.css"
+      "_app/immutable/assets/_layout.uRYZ9iRx.css"
     ]
   },
   "src/routes/+page.svelte": {
@@ -104,6 +104,15 @@
     "imports": [
       "_calendar.js",
       "_svelte-kit.js"
+    ]
+  },
+  "src/routes/admin/+page.svelte": {
+    "file": "entries/pages/admin/_page.svelte.js",
+    "name": "entries/pages/admin/_page.svelte",
+    "src": "src/routes/admin/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_calendar.js"
     ]
   },
   "src/routes/auth/login/+page.svelte": {
@@ -135,6 +144,16 @@
       "_calendar.js",
       "_svelte-kit.js",
       "_forms.js"
+    ]
+  },
+  "src/routes/chat/+page.svelte": {
+    "file": "entries/pages/chat/_page.svelte.js",
+    "name": "entries/pages/chat/_page.svelte",
+    "src": "src/routes/chat/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_calendar.js",
+      "_svelte-kit.js"
     ]
   },
   "src/routes/contacts/+page.svelte": {
@@ -181,6 +200,25 @@
       "_email.js"
     ]
   },
+  "src/routes/export/+page.svelte": {
+    "file": "entries/pages/export/_page.svelte.js",
+    "name": "entries/pages/export/_page.svelte",
+    "src": "src/routes/export/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_calendar.js"
+    ]
+  },
+  "src/routes/files/+page.svelte": {
+    "file": "entries/pages/files/_page.svelte.js",
+    "name": "entries/pages/files/_page.svelte",
+    "src": "src/routes/files/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_calendar.js",
+      "_svelte-kit.js"
+    ]
+  },
   "src/routes/forms/+page.svelte": {
     "file": "entries/pages/forms/_page.svelte.js",
     "name": "entries/pages/forms/_page.svelte",
@@ -189,6 +227,52 @@
     "imports": [
       "_calendar.js",
       "_forms.js"
+    ]
+  },
+  "src/routes/math/+page.svelte": {
+    "file": "entries/pages/math/_page.svelte.js",
+    "name": "entries/pages/math/_page.svelte",
+    "src": "src/routes/math/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_calendar.js"
+    ]
+  },
+  "src/routes/monitoring/+page.svelte": {
+    "file": "entries/pages/monitoring/_page.svelte.js",
+    "name": "entries/pages/monitoring/_page.svelte",
+    "src": "src/routes/monitoring/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_calendar.js"
+    ]
+  },
+  "src/routes/plugins/+page.svelte": {
+    "file": "entries/pages/plugins/_page.svelte.js",
+    "name": "entries/pages/plugins/_page.svelte",
+    "src": "src/routes/plugins/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_calendar.js"
+    ]
+  },
+  "src/routes/settings/+page.svelte": {
+    "file": "entries/pages/settings/_page.svelte.js",
+    "name": "entries/pages/settings/_page.svelte",
+    "src": "src/routes/settings/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_calendar.js",
+      "_svelte-kit.js"
+    ]
+  },
+  "src/routes/speech/+page.svelte": {
+    "file": "entries/pages/speech/_page.svelte.js",
+    "name": "entries/pages/speech/_page.svelte",
+    "src": "src/routes/speech/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_calendar.js"
     ]
   },
   "src/routes/spreadsheet/+page.svelte": {
@@ -212,6 +296,27 @@
     "imports": [
       "_calendar.js",
       "_tasks.js"
+    ]
+  },
+  "src/routes/voice/+page.svelte": {
+    "file": "entries/pages/voice/_page.svelte.js",
+    "name": "entries/pages/voice/_page.svelte",
+    "src": "src/routes/voice/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_calendar.js"
+    ]
+  },
+  "src/routes/workflows/+page.svelte": {
+    "file": "entries/pages/workflows/_page.svelte.js",
+    "name": "entries/pages/workflows/_page.svelte",
+    "src": "src/routes/workflows/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_calendar.js"
+    ],
+    "css": [
+      "_app/immutable/assets/_page.CL2twNOa.css"
     ]
   }
 }

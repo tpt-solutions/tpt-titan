@@ -31,7 +31,11 @@ const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let showForm = false;
   let editingContact = null;
   let searchQuery = "";
+  let isLoading = false;
+  let loadError = null;
   async function loadContacts() {
+    isLoading = true;
+    loadError = null;
     try {
       const response = await fetch("/api/v1/contacts", {
         headers: {
@@ -43,9 +47,14 @@ const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
         contacts.set(data2.contacts || []);
       } else if (response.status === 401) {
         goto("/auth/login");
+      } else {
+        loadError = `Failed to load contacts (${response.status})`;
       }
     } catch (error) {
+      loadError = "Could not connect to server. Please check your connection.";
       console.error("Failed to load contacts:", error);
+    } finally {
+      isLoading = false;
     }
   }
   function handleEditContact(contact) {
@@ -62,7 +71,7 @@ const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   return `${$$result.head += `<!-- HEAD_svelte-1m7vk1k_START -->${$$result.title = `<title>Contacts - TPT Titan</title>`, ""}<!-- HEAD_svelte-1m7vk1k_END -->`, ""} <div class="container mx-auto px-4 py-8"><div class="flex justify-between items-center mb-8"><h1 class="text-3xl font-bold text-gray-900 dark:text-white" data-svelte-h="svelte-qbjbfc">Contacts</h1> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2" data-svelte-h="svelte-jwj0yw"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
 			Add Contact</button></div>  <div class="mb-6"><div class="flex gap-2"><input type="text" placeholder="Search contacts..." class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"${add_attribute("value", searchQuery, 0)}> <button class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2" data-svelte-h="svelte-1v0alkm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-				Search</button></div></div>  ${validate_component(ContactList, "ContactList").$$render($$result, { handleEditContact }, {}, {})}  ${showForm ? `${validate_component(ContactForm, "ContactForm").$$render(
+				Search</button></div></div>  ${loadError ? `<div class="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg px-4 py-3 flex items-center gap-3"><svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span class="text-sm text-red-700 dark:text-red-300">${escape(loadError)}</span> <button class="ml-auto text-sm text-red-600 dark:text-red-400 underline hover:no-underline" data-svelte-h="svelte-1wf5qmv">Retry</button></div>` : ``}  ${isLoading ? `<div class="flex items-center justify-center py-16 text-gray-400 dark:text-gray-500" data-svelte-h="svelte-phqlsg"><svg class="animate-spin w-8 h-8 mr-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> <span>Loading contacts…</span></div>` : `${validate_component(ContactList, "ContactList").$$render($$result, { handleEditContact }, {}, {})}`}  ${showForm ? `${validate_component(ContactForm, "ContactForm").$$render(
     $$result,
     {
       contact: editingContact,

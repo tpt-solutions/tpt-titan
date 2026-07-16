@@ -1,7 +1,5 @@
 import { c as create_ssr_component, n as calendars, p as events, q as currentView, t as currentDate, v as validate_component, C as CalendarView } from "../../../chunks/calendar.js";
-import "@sveltejs/kit/internal";
-import "../../../chunks/svelte-kit.js";
-import "@sveltejs/kit/internal/server";
+import { g as goto } from "../../../chunks/svelte-kit.js";
 import { E as EventForm } from "../../../chunks/forms.js";
 const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let { data = null } = $$props;
@@ -33,6 +31,8 @@ const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
       if (response.ok) {
         const data2 = await response.json();
         events.set(data2.events || []);
+      } else if (response.status === 401) {
+        goto("/auth/login");
       }
     } catch (error) {
       console.error("Failed to load events:", error);
@@ -66,7 +66,7 @@ const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   if ($$props.form === void 0 && $$bindings.form && form !== void 0) $$bindings.form(form);
   if ($$props.params === void 0 && $$bindings.params && params !== void 0) $$bindings.params(params);
   return `${$$result.head += `<!-- HEAD_svelte-1qavwmb_START -->${$$result.title = `<title>Calendar - TPT Titan</title>`, ""}<!-- HEAD_svelte-1qavwmb_END -->`, ""} <div class="container mx-auto px-4 py-8"><div class="flex justify-between items-center mb-8"><h1 class="text-3xl font-bold text-gray-900 dark:text-white" data-svelte-h="svelte-3a3xx5">Calendar</h1> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2" data-svelte-h="svelte-1b56j32"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-			New Event</button></div>  ${validate_component(CalendarView, "CalendarView").$$render(
+			New Event</button></div>  ${``}  ${` ${validate_component(CalendarView, "CalendarView").$$render(
     $$result,
     {
       calendarList,
@@ -90,7 +90,7 @@ const Page = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     },
     {},
     {}
-  )}` : ``}</div>`;
+  )}` : ``}`}</div>`;
 });
 export {
   Page as default

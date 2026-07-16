@@ -36,6 +36,7 @@ const showFillHandle = writable(false);
 const showContextMenu = writable(false);
 const contextMenuPosition = writable({ x: 0, y: 0 });
 const contextMenuItems = writable([]);
+const mode = writable("simple");
 const sheets = writable([
   { id: "sheet1", name: "Sheet1", data: Array(100).fill().map(() => Array(26).fill("")) }
 ]);
@@ -162,7 +163,7 @@ const SpreadsheetGrid = create_ssr_component(($$result, $$props, $$bindings, slo
   $$unsubscribe_fillPreviewCells = subscribe(fillPreviewCells, (value) => $fillPreviewCells = value);
   $$unsubscribe_formulaBar = subscribe(formulaBar, (value) => $formulaBar = value);
   $$unsubscribe_showFillHandle = subscribe(showFillHandle, (value) => $showFillHandle = value);
-  const mode = "simple";
+  const mode2 = "simple";
   function getDisplayValue(row, col) {
     const value = $spreadsheetData[row]?.[col] || "";
     if (value.startsWith("=")) {
@@ -238,7 +239,7 @@ const SpreadsheetGrid = create_ssr_component(($$result, $$props, $$bindings, slo
     return true;
   }
   createEventDispatcher();
-  if ($$props.mode === void 0 && $$bindings.mode && mode !== void 0) $$bindings.mode(mode);
+  if ($$props.mode === void 0 && $$bindings.mode && mode2 !== void 0) $$bindings.mode(mode2);
   $$result.css.add(css);
   columns = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
   rows = Array.from({ length: 100 }, (_, i) => i + 1);
@@ -490,7 +491,7 @@ const Spreadsheet = create_ssr_component(($$result, $$props, $$bindings, slots) 
   $$unsubscribe_spreadsheetData = subscribe(spreadsheetData, (value) => $spreadsheetData = value);
   $$unsubscribe_selectedCells = subscribe(selectedCells, (value) => $selectedCells = value);
   $$unsubscribe_cellFormats = subscribe(cellFormats, (value) => $cellFormats = value);
-  let { mode = "simple" } = $$props;
+  let { mode: mode$1 = "simple" } = $$props;
   let { selectedTemplate = null } = $$props;
   createEventDispatcher();
   let spreadsheetHistory = new SpreadsheetHistory();
@@ -534,8 +535,11 @@ const Spreadsheet = create_ssr_component(($$result, $$props, $$bindings, slots) 
   onDestroy(() => {
     document.removeEventListener("keydown", handleGlobalKeyDown);
   });
-  if ($$props.mode === void 0 && $$bindings.mode && mode !== void 0) $$bindings.mode(mode);
+  if ($$props.mode === void 0 && $$bindings.mode && mode$1 !== void 0) $$bindings.mode(mode$1);
   if ($$props.selectedTemplate === void 0 && $$bindings.selectedTemplate && selectedTemplate !== void 0) $$bindings.selectedTemplate(selectedTemplate);
+  {
+    mode.set(mode$1);
+  }
   {
     {
       const cells = Array.from($selectedCells);
@@ -601,7 +605,7 @@ const Spreadsheet = create_ssr_component(($$result, $$props, $$bindings, slots) 
   $$unsubscribe_spreadsheetData();
   $$unsubscribe_selectedCells();
   $$unsubscribe_cellFormats();
-  return `<div class="flex flex-col h-full bg-white"> ${validate_component(QuickAccessToolbar, "QuickAccessToolbar").$$render($$result, {}, {}, {})}  ${validate_component(SpreadsheetMenuBar, "SpreadsheetMenuBar").$$render($$result, {}, {}, {})}  ${validate_component(SpreadsheetRibbon, "SpreadsheetRibbon").$$render($$result, {}, {}, {})}  ${validate_component(FormulaBar, "FormulaBar").$$render($$result, {}, {}, {})}  <div class="flex-1 overflow-hidden relative">${validate_component(SpreadsheetGrid, "SpreadsheetGrid").$$render($$result, {}, {}, {})}</div>  ${validate_component(SheetTabs, "SheetTabs").$$render($$result, {}, {}, {})}  ${validate_component(SpreadsheetStatusBar, "SpreadsheetStatusBar").$$render($$result, {}, {}, {})}</div>  ${validate_component(SpreadsheetModals, "SpreadsheetModals").$$render($$result, {}, {}, {})}`;
+  return `<div class="flex flex-col h-full bg-white">${mode$1 === "advanced" ? ` ${validate_component(QuickAccessToolbar, "QuickAccessToolbar").$$render($$result, {}, {}, {})}  ${validate_component(SpreadsheetMenuBar, "SpreadsheetMenuBar").$$render($$result, {}, {}, {})}  ${validate_component(SpreadsheetRibbon, "SpreadsheetRibbon").$$render($$result, {}, {}, {})}` : ``}  ${validate_component(FormulaBar, "FormulaBar").$$render($$result, {}, {}, {})}  <div class="flex-1 overflow-hidden relative">${validate_component(SpreadsheetGrid, "SpreadsheetGrid").$$render($$result, {}, {}, {})}</div>  ${validate_component(SheetTabs, "SheetTabs").$$render($$result, {}, {}, {})}  ${validate_component(SpreadsheetStatusBar, "SpreadsheetStatusBar").$$render($$result, {}, {}, {})}</div>  ${validate_component(SpreadsheetModals, "SpreadsheetModals").$$render($$result, {}, {}, {})}`;
 });
 export {
   Spreadsheet as S,
