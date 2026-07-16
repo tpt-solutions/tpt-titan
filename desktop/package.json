@@ -12,10 +12,10 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@tauri-apps/cli": "^1.5.9"
+    "@tauri-apps/cli": "^2"
   },
   "author": "TPT Titan Team",
-  "license": "AGPL-3.0-or-later",
+  "license": "MIT OR Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/your-org/tpt-titan.git"

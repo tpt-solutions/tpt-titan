@@ -1,27 +1,15 @@
 {
-  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
-  "package": {
-    "productName": "TPT Titan",
-    "version": "0.1.0"
-  },
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "TPT Titan",
+  "version": "0.1.0",
+  "identifier": "com.tpt-titan.app",
   "build": {
     "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:5173",
     "beforeBuildCommand": "npm run build",
-    "devPath": "http://localhost:5173",
-    "distDir": "../dist"
+    "frontendDist": "../dist"
   },
-  "tauri": {
-    "bundle": {
-      "active": true,
-      "targets": "all",
-      "identifier": "com.tpt-titan.app",
-      "category": "Productivity",
-      "shortDescription": "Complete Open Source Office Suite",
-      "longDescription": "TPT Titan - Complete Open Source Office Suite Alternative to Microsoft Office 365"
-    },
-    "security": {
-      "csp": null
-    },
+  "app": {
     "windows": [
       {
         "title": "TPT Titan - Complete Open Source Office Suite",
@@ -30,6 +18,16 @@
         "resizable": true,
         "center": true
       }
-    ]
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Productivity",
+    "shortDescription": "Complete Open Source Office Suite",
+    "longDescription": "TPT Titan - Complete Open Source Office Suite Alternative to Microsoft Office 365"
   }
 }

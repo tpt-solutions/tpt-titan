@@ -1,6 +1,7 @@
 <script>
 	import FormBuilder from '$lib/components/FormBuilder.svelte';
 	import FormList from '$lib/components/FormList.svelte';
+	import FormAdvancedPanel from '$lib/components/FormAdvancedPanel.svelte';
 	import DatabaseRelationsModal from '$lib/components/DatabaseRelationsModal.svelte';
 	import AdvancedReportsModal from '$lib/components/AdvancedReportsModal.svelte';
 	import WorkflowDesignerModal from '$lib/components/WorkflowDesignerModal.svelte';
@@ -13,7 +14,7 @@
 	export const params = null;
 
 
-	let currentView = 'list'; // 'list' or 'builder'
+	let currentView = 'list'; // 'list', 'builder', or 'advanced'
 	let selectedForm = null;
 	let forms = [];
 	let showDatabaseRelationsModal = false;
@@ -76,6 +77,11 @@
 		currentView = 'builder';
 	}
 
+	function openAdvanced(form) {
+		selectedForm = form;
+		currentView = 'advanced';
+	}
+
 	function deleteForm(formId) {
 		forms = forms.filter(f => f.id !== formId);
 	}
@@ -110,6 +116,10 @@
 		console.log('Forms reordered:', forms);
 	}
 
+	function handleAdvanced(event) {
+		openAdvanced(event.detail);
+	}
+
 	function handleDatabaseRelations() {
 		showDatabaseRelationsModal = true;
 	}
@@ -135,13 +145,26 @@
 			<span class="text-sm text-gray-500">MS Access-style database features</span>
 		</div>
 
-		<div class="flex items-center space-x-2">
+			<div class="flex items-center space-x-2">
 			{#if currentView === 'list'}
+				<button
+					class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+					on:click={() => { if (selectedForm) openAdvanced(selectedForm); else alert('Select a form first'); }}
+				>
+					Advanced Modules
+				</button>
 				<button
 					class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
 					on:click={createNewForm}
 				>
 					Create Form
+				</button>
+			{:else if currentView === 'advanced'}
+				<button
+					class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+					on:click={() => { currentView = 'list'; selectedForm = null; }}
+				>
+					Back to Forms
 				</button>
 			{:else}
 				<button
@@ -166,7 +189,10 @@
 				on:openDatabaseRelations={handleDatabaseRelations}
 				on:openAdvancedReports={handleAdvancedReports}
 				on:openWorkflowDesigner={handleWorkflowDesigner}
+				on:openAdvanced={handleAdvanced}
 			/>
+		{:else if currentView === 'advanced'}
+			<FormAdvancedPanel form={selectedForm} />
 		{:else}
 			<FormBuilder
 				form={selectedForm}

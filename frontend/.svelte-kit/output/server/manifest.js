@@ -10,7 +10,7 @@ return {
 	assets: new Set(["favicon.ico","site.webmanifest"]),
 	mimeTypes: {".webmanifest":"application/manifest+json"},
 	_: {
-		client: {start:"_app/immutable/entry/start.DvrB7VdR.js",app:"_app/immutable/entry/app.DhGfjq49.js",imports:["_app/immutable/entry/start.DvrB7VdR.js","_app/immutable/chunks/IoB7A9BM.js","_app/immutable/chunks/B3_NYjGC.js","_app/immutable/entry/app.DhGfjq49.js","_app/immutable/chunks/CmsKOCeN.js","_app/immutable/chunks/B3_NYjGC.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.Euo67UO6.js",app:"_app/immutable/entry/app.wLUb2UjN.js",imports:["_app/immutable/entry/start.Euo67UO6.js","_app/immutable/chunks/D-oSuO4X.js","_app/immutable/chunks/D_yhzppV.js","_app/immutable/entry/app.wLUb2UjN.js","_app/immutable/chunks/CmsKOCeN.js","_app/immutable/chunks/D_yhzppV.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
 			__memo(() => import('./nodes/0.js')),
 			__memo(() => import('./nodes/1.js')),

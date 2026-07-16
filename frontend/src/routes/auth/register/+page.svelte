@@ -258,7 +258,7 @@
 
 				<div class="text-center text-xs text-gray-500">
 					<p>🔐 Your data is encrypted and never shared</p>
-					<p>📜 Licensed under AGPL v3.0 or later</p>
+					<p>📜 Licensed under Apache-2.0 / MIT</p>
 				</div>
 			</form>
 		{/if}

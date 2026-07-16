@@ -1,9 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::process::Command;
 use std::sync::Mutex;
-// use tauri::{AppHandle, State};
+use tauri::State;
 
 // App state
 #[derive(Default)]
@@ -11,7 +10,7 @@ struct AppState {
     backend_process: Mutex<Option<std::process::Child>>,
 }
 
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
+// Learn more about Tauri commands at https://tauri.app/v2/guides/features/command
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -20,7 +19,7 @@ fn greet(name: &str) -> String {
 // Start the backend server
 #[tauri::command]
 async fn start_backend(state: State<'_, AppState>) -> Result<String, String> {
-    let mut backend_process = state.backend_process.lock().unwrap();
+    let backend_process = state.backend_process.lock().unwrap();
 
     if backend_process.is_some() {
         return Ok("Backend is already running".to_string());

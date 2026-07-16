@@ -594,6 +594,166 @@ export function submitFormResponse(formId, responseData) {
 }
 
 /**
+ * Advanced form modules (templates, relationships, reports, query builder,
+ * email distribution, workflow) reachable via the formsAdvancedGroup routes.
+ */
+
+// ── Templates ───────────────────────────────────────────────────────
+export function getFormTemplates(params = {}) {
+	const qs = new URLSearchParams(params).toString();
+	return apiGet(`/forms/templates${qs ? `?${qs}` : ''}`);
+}
+
+export function createFormTemplate(templateData) {
+	return apiPost('/forms/templates', templateData);
+}
+
+export function getFormTemplateCategories() {
+	return apiGet('/forms/templates/categories');
+}
+
+export function useFormTemplate(templateId, data) {
+	return apiPost(`/forms/templates/${templateId}/use`, data);
+}
+
+// ── Relationships ───────────────────────────────────────────────────
+export function getFormRelationships(formId) {
+	return apiGet(`/forms/${formId}/relationships`);
+}
+
+export function createRelationship(formId, relData) {
+	return apiPost(`/forms/${formId}/relationships`, relData);
+}
+
+export function createLookupField(formId, fieldData) {
+	return apiPost(`/forms/${formId}/lookup-fields`, fieldData);
+}
+
+export function getFormHierarchy(formId) {
+	return apiGet(`/forms/${formId}/hierarchy`);
+}
+
+export function getRelatedData(formId, recordId) {
+	return apiGet(`/forms/${formId}/related-data`);
+}
+
+// ── Reports & dashboards ────────────────────────────────────────────
+export function getFormReports(formId) {
+	return apiGet(`/forms/${formId}/reports`);
+}
+
+export function createReport(formId, reportData) {
+	return apiPost(`/forms/${formId}/reports`, reportData);
+}
+
+export function executeReport(formId, reportId) {
+	return apiPost(`/forms/${formId}/reports/${reportId}/execute`, {});
+}
+
+export function generateAdHocReport(formId, config) {
+	return apiPost(`/forms/${formId}/reports/ad-hoc`, config);
+}
+
+export function exportReport(formId, reportId, format = 'csv') {
+	return apiGet(`/forms/${formId}/reports/${reportId}/export?format=${format}`);
+}
+
+export function getDashboard(formId, dashboardId) {
+	return apiGet(`/forms/${formId}/dashboards/${dashboardId}`);
+}
+
+export function createDashboard(formId, dashboardData) {
+	return apiPost(`/forms/${formId}/dashboards`, dashboardData);
+}
+
+// ── Query builder ───────────────────────────────────────────────────
+export function getAvailableTables(formId) {
+	return apiGet(`/forms/${formId}/query/tables`);
+}
+
+export function buildSQL(formId, elements) {
+	return apiPost(`/forms/${formId}/query/build`, elements);
+}
+
+export function executeVisualQuery(formId, elements) {
+	return apiPost(`/forms/${formId}/query/execute`, elements);
+}
+
+export function validateVisualQuery(formId, elements) {
+	return apiPost(`/forms/${formId}/query/validate`, elements);
+}
+
+export function getQuerySuggestions(formId, elements) {
+	return apiPost(`/forms/${formId}/query/suggestions`, elements);
+}
+
+export function saveQueryTemplate(formId, data) {
+	return apiPost(`/forms/${formId}/query/templates`, data);
+}
+
+export function getQueryTemplates(formId) {
+	return apiGet(`/forms/${formId}/query/templates`);
+}
+
+// ── Email distribution ──────────────────────────────────────────────
+export function getEmailDistributions(formId) {
+	return apiGet(`/forms/${formId}/email-distributions`);
+}
+
+export function createEmailDistribution(formId, data) {
+	return apiPost(`/forms/${formId}/email-distributions`, data);
+}
+
+export function sendFormResponseEmail(formId, responseId, data) {
+	return apiPost(`/forms/${formId}/email-distributions/${responseId}/send`, data);
+}
+
+// ── Workflow ────────────────────────────────────────────────────────
+export function createFormWorkflow(formId, data) {
+	return apiPost(`/forms/${formId}/workflows`, data);
+}
+
+export function startWorkflow(formId, workflowId, recordId) {
+	return apiPost(`/forms/${formId}/workflows/start`, { workflow_id: workflowId, record_id: recordId });
+}
+
+export function processApproval(formId, approvalId, data) {
+	return apiPost(`/forms/${formId}/workflows/${approvalId}/approve`, data);
+}
+
+export function getPendingApprovals(formId) {
+	return apiGet(`/forms/${formId}/workflows/approvals`);
+}
+
+export function createNotificationTemplate(formId, data) {
+	return apiPost(`/forms/${formId}/workflows/notification-templates`, data);
+}
+
+/**
+ * Document AI processing/analysis endpoints.
+ */
+
+export function processDocument(documentId, analysisType) {
+	return apiPost(`/documents/${documentId}/process`, { analysis_type: analysisType });
+}
+
+export function getDocumentAnalysis(documentId) {
+	return apiGet(`/documents/${documentId}/analysis`);
+}
+
+export function getDocumentAnalyses(documentId) {
+	return apiGet(`/documents/${documentId}/analyses`);
+}
+
+export function getDocumentProcessingStatus(documentId) {
+	return apiGet(`/documents/${documentId}/status`);
+}
+
+export function uploadDocumentWithAI(data) {
+	return apiPost('/documents/upload', data);
+}
+
+/**
  * AI Settings API functions
  */
 

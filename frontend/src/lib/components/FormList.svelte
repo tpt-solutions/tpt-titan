@@ -101,6 +101,10 @@
 		dispatch('openWorkflowDesigner');
 	}
 
+	function handleAdvanced(form) {
+		dispatch('openAdvanced', form);
+	}
+
 	function getStatusColor(status) {
 		switch (status) {
 			case 'active': return 'bg-green-100 text-green-800';
@@ -240,12 +244,18 @@
 									>
 										View Responses
 									</button>
-									<button
-										class="px-3 py-1 text-sm bg-gray-50 text-gray-700 rounded hover:bg-gray-100 transition-colors"
-										on:click={() => handleEdit(form)}
-									>
-										Edit
-									</button>
+								<button
+									class="px-3 py-1 text-sm bg-gray-50 text-gray-700 rounded hover:bg-gray-100 transition-colors"
+									on:click={() => handleEdit(form)}
+								>
+									Edit
+								</button>
+								<button
+									class="px-3 py-1 text-sm bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 transition-colors"
+									on:click={() => handleAdvanced(form)}
+								>
+									Advanced
+								</button>
 								</div>
 								<button
 									class="p-1 text-gray-400 hover:text-red-600 transition-colors"

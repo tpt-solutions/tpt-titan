@@ -2,7 +2,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { jsPDF } from 'jspdf';
-	import { createDocument, updateDocument, getDocuments, getDocument, getDocumentVersions, restoreDocumentVersion } from '../api.js';
+	import { createDocument, updateDocument, getDocuments, getDocument, getDocumentVersions, restoreDocumentVersion, processDocument, getDocumentAnalysis, getDocumentProcessingStatus, getDocumentAnalyses } from '../api.js';
 	import SpeechService from '../services/speech.js';
 	import { aiService } from '../services/ai.js';
 	import EditorHistory, { createDebouncedPush, handleUndoRedoKeyboard } from '../utils/editor-history.js';
@@ -81,7 +81,14 @@
 	// ── AI ─────────────────────────────────────────────────────────
 	let isGeneratingAI = false;
 	let isGeneratingSummary = false;
+	let isProcessingDocument = false;
 	let aiContext = 'general';
+
+	// ── AI Document processing/analysis ───────────────────────────
+	let showDocumentAnalysis = false;
+	let documentAnalysis = null;
+	let documentAnalysisStatus = null;
+	let documentAnalyses = [];
 
 	// ── History (Undo/Redo) ────────────────────────────────────────
 	let editorHistory = new EditorHistory(100);
@@ -501,6 +508,51 @@
 		}
 	}
 
+	// ── Server-side AI document processing/analysis ─────────────────
+	async function processDocumentWithAI(analysisType = 'summarize') {
+		if (!currentDocument || !currentDocument.id) {
+			alert('Save the document first to enable AI processing.');
+			return;
+		}
+		isProcessingDocument = true;
+		try {
+			await processDocument(currentDocument.id, analysisType);
+			await refreshDocumentAnalysis();
+			showDocumentAnalysis = true;
+			alert('AI processing started. Check the Analysis panel for results.');
+		} catch (error) {
+			console.error('Failed to process document:', error);
+			alert('Failed to process document: ' + error.message);
+		} finally {
+			isProcessingDocument = false;
+		}
+	}
+
+	async function refreshDocumentAnalysis() {
+		if (!currentDocument || !currentDocument.id) return;
+		try {
+			const status = await getDocumentProcessingStatus(currentDocument.id);
+			documentAnalysisStatus = status;
+			const analysis = await getDocumentAnalysis(currentDocument.id);
+			documentAnalysis = analysis;
+		} catch (error) {
+			// No analysis yet is expected for unprocessed documents
+			documentAnalysis = null;
+			documentAnalysisStatus = null;
+		}
+		try {
+			const res = await getDocumentAnalyses(currentDocument.id);
+			documentAnalyses = res.analyses || [];
+		} catch (error) {
+			documentAnalyses = [];
+		}
+	}
+
+	function openDocumentAnalysis() {
+		refreshDocumentAnalysis();
+		showDocumentAnalysis = true;
+	}
+
 	function applyAISuggestion(suggestion) {
 		replaceSelectedText(suggestion);
 		showAIAssistant = false;
@@ -666,6 +718,30 @@
 	on:redo={redo}
 />
 
+<!-- ── AI document processing action bar ───────────────────────── -->
+<div class="flex items-center justify-between px-8 py-2 border-b border-gray-100 bg-gray-50">
+	<div class="flex items-center space-x-2">
+		<span class="text-xs text-gray-500">AI Document Processing:</span>
+		<button
+			class="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+			on:click={() => processDocumentWithAI('summarize')}
+			disabled={isProcessingDocument}
+		>Process (Summarize)</button>
+		<button
+			class="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+			on:click={() => processDocumentWithAI('extract')}
+			disabled={isProcessingDocument}
+		>Process (Extract)</button>
+		<button
+			class="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+			on:click={openDocumentAnalysis}
+		>View Analysis</button>
+	</div>
+	{#if documentAnalysisStatus}
+		<span class="text-xs text-gray-500">Status: {documentAnalysisStatus.status}</span>
+	{/if}
+</div>
+
 
 <!-- ── Global Keyboard Handler ───────────────────────────────────── -->
 <svelte:window on:keydown={handleGlobalKeyDown} />
@@ -745,3 +821,38 @@
 	on:closeSummary={() => documentSummary = ''}
 	on:closeTextAnalysis={() => { showTextAnalysis = false; textAnalysis = null; }}
 />
+
+<!-- ── AI Document Analysis panel ──────────────────────────────── -->
+{#if showDocumentAnalysis}
+	<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" on:click|self={() => showDocumentAnalysis = false}>
+		<div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-auto m-4">
+			<div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+				<h3 class="text-lg font-semibold text-gray-900">AI Document Analysis</h3>
+				<button class="text-gray-400 hover:text-gray-700" on:click={() => showDocumentAnalysis = false}>✕</button>
+			</div>
+			<div class="p-6 space-y-4">
+				{#if documentAnalysisStatus}
+					<div class="text-sm text-gray-600">Status: <span class="font-medium">{documentAnalysisStatus.status}</span></div>
+				{/if}
+				{#if documentAnalysis}
+					<div class="border rounded-lg p-4">
+						<h4 class="font-medium mb-2">Latest Analysis</h4>
+						<pre class="text-xs bg-gray-50 p-3 rounded overflow-auto max-h-64">{JSON.stringify(documentAnalysis, null, 2)}</pre>
+					</div>
+				{:else}
+					<p class="text-sm text-gray-500">No analysis yet. Use "Process" above to run AI processing on the saved document.</p>
+				{/if}
+				{#if documentAnalyses.length}
+					<div>
+						<h4 class="font-medium mb-2">History</h4>
+						<ul class="text-sm space-y-1">
+							{#each documentAnalyses as a}
+								<li class="border-b pb-1">{a.analysis_type || a.type} · {(a.created_at || '').slice(0, 19)}</li>
+							{/each}
+						</ul>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+{/if}

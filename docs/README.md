@@ -104,7 +104,7 @@ We welcome contributions from the community! Please see our [Contributing Guide]
 
 ## 📄 License
 
-TPT Titan is licensed under the **AGPL v3.0 or later**. This ensures that TPT Titan remains free and open-source forever.
+TPT Titan is dual-licensed under either the **Apache License, Version 2.0** or the **MIT License**, at your option. See [LICENSE](../LICENSE) for details.
 
 ## 🙏 Acknowledgments
 

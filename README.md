@@ -166,34 +166,15 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) to understand our communit
 - **Community Forum**: Join discussions and get help
 - **Discord**: Real-time chat with the community
 
-## Business Model
-
-TPT Titan uses a **sustainable dual-license model** designed for long-term viability:
-
-### **Free for End Users (AGPL v3)**
-- **Individual Users & SMEs**: Completely free under AGPL v3
-- **Community Access**: Full source code, modifications must stay open source
-- **No Restrictions**: Use, modify, distribute freely for personal/business use
-
-### **Commercial Licensing**
-- **Enterprise Companies**: Can license for internal modifications without sharing changes
-- **No Resale Rights**: Cannot redistribute modified versions commercially
-- **Reasonable Pricing**: Contact for commercial license terms
-- **Support Revenue**: Optional premium support packages
-
-### **Why This Works**
-- **Zero Competition**: Most AGPL projects struggle with monetization
-- **Sustainable**: Revenue from companies, free for individuals
-- **Community-First**: Open source benefits everyone
-- **No User Lock-in**: Free forever for SMEs
-
 ## License
 
-**Core Software**: GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+TPT Titan is free and open source, dual-licensed under your choice of either:
 
-**Commercial Use**: Contact us for commercial licensing terms that allow internal modifications without open source obligations.
+- **Apache License, Version 2.0** — see [LICENSE-APACHE](LICENSE-APACHE)
+- **MIT License** — see [LICENSE-MIT](LICENSE-MIT)
 
-The AGPL ensures that modifications for personal use remain open source, while commercial licensing provides flexibility for businesses.
+Use, modify, and distribute the software (including in closed-source or
+commercial products) under the terms of whichever license you prefer.
 
 ## Current Development Status
 

@@ -691,7 +691,7 @@ const TextEditor = create_ssr_component(($$result, $$props, $$bindings, slots) =
       },
       {},
       {}
-    )}    <div class="h-full overflow-y-auto p-8 bg-white"><div class="max-w-4xl mx-auto">${editorMode === "blocks" ? `${validate_component(TextEditorBlockEditor, "TextEditorBlockEditor").$$render($$result, { blocks, selectedBlockIndex }, {}, {})}` : `${editorMode === "markdown" ? `${validate_component(TextEditorMarkdownEditor, "TextEditorMarkdownEditor").$$render($$result, { markdownContent }, {}, {})}` : `${editorMode === "richtext" ? `${validate_component(TextEditorRichText, "TextEditorRichText").$$render(
+    )}  <div class="flex items-center justify-between px-8 py-2 border-b border-gray-100 bg-gray-50"><div class="flex items-center space-x-2"><span class="text-xs text-gray-500" data-svelte-h="svelte-j47afl">AI Document Processing:</span> <button class="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50" ${""}>Process (Summarize)</button> <button class="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50" ${""}>Process (Extract)</button> <button class="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300" data-svelte-h="svelte-9twip6">View Analysis</button></div> ${``}</div>    <div class="h-full overflow-y-auto p-8 bg-white"><div class="max-w-4xl mx-auto">${editorMode === "blocks" ? `${validate_component(TextEditorBlockEditor, "TextEditorBlockEditor").$$render($$result, { blocks, selectedBlockIndex }, {}, {})}` : `${editorMode === "markdown" ? `${validate_component(TextEditorMarkdownEditor, "TextEditorMarkdownEditor").$$render($$result, { markdownContent }, {}, {})}` : `${editorMode === "richtext" ? `${validate_component(TextEditorRichText, "TextEditorRichText").$$render(
       $$result,
       { editorElement: richTextEditorElement },
       {
@@ -733,7 +733,7 @@ const TextEditor = create_ssr_component(($$result, $$props, $$bindings, slots) =
         }
       },
       {}
-    )}`;
+    )}  ${``}`;
   } while (!$$settled);
   return $$rendered;
 });

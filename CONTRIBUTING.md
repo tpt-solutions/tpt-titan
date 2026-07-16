@@ -146,7 +146,7 @@ tpt-titan/
 - Check existing issues before creating new ones
 
 ## License
-By contributing to TPT Titan, you agree that your contributions will be licensed under the GPL v3 license.
+By contributing to TPT Titan, you agree that your contributions will be dual-licensed under the Apache License, Version 2.0 and the MIT License, without any additional terms or conditions.
 
 ## Recognition
 Contributors will be recognized in our README.md and potentially in release notes.

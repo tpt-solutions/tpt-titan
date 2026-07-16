@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TPT Titan is a complete open-source alternative to Microsoft Office 365, built from scratch under GNU AGPL v3.0. It's a comprehensive, self-hosted productivity suite with office applications, communication tools, file management, AI integration, and enterprise security features.
+TPT Titan is a complete open-source alternative to Microsoft Office 365, built from scratch and dual-licensed under Apache-2.0/MIT. It's a comprehensive, self-hosted productivity suite with office applications, communication tools, file management, AI integration, and enterprise security features.
 
 **Tech Stack:**
 - Backend: Go (1.19+) with Gin framework, GORM, WebSockets
