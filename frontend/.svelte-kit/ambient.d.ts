@@ -85,7 +85,6 @@ declare module '$env/static/private' {
 	export const MOZ_PLUGIN_PATH: string;
 	export const NODE: string;
 	export const NoDefaultCurrentDirectoryInExePath: string;
-	export const NODE_ENV: string;
 	export const NODE_USE_SYSTEM_CA: string;
 	export const npm_command: string;
 	export const npm_config_cache: string;
@@ -234,7 +233,6 @@ declare module '$env/dynamic/private' {
 		MOZ_PLUGIN_PATH: string;
 		NODE: string;
 		NoDefaultCurrentDirectoryInExePath: string;
-		NODE_ENV: string;
 		NODE_USE_SYSTEM_CA: string;
 		npm_command: string;
 		npm_config_cache: string;

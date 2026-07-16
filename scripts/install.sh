@@ -20,6 +20,9 @@ LOG_DIR="/var/log/tpt-titan"
 USER="tpt-titan"
 GROUP="tpt-titan"
 
+# Resolve the directory this script lives in (used to locate deploy/ templates)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Version and URLs (would be dynamically set)
 VERSION="1.0.0"
 DOWNLOAD_URL="https://github.com/tpt-titan/tpt-titan/releases/download/v${VERSION}"
@@ -141,30 +144,27 @@ create_directories() {
 }
 
 download_and_extract() {
-    echo -e "${BLUE}Downloading TPT Titan ${VERSION}...${NC}"
-
     local filename="tpt-titan-${VERSION}-${OS}-${ARCH}.tar.gz"
     local download_path="/tmp/$filename"
 
-    # Download the release
-    if ! curl -L -o $download_path "${DOWNLOAD_URL}/${filename}"; then
-        echo -e "${RED}Error: Failed to download TPT Titan${NC}"
-        exit 1
+    # Try to download the prebuilt release tarball. Releases are published on the
+    # GitHub Releases page; until they exist for a given version/tag this will fail
+    # and we transparently fall back to building from the local source tree below.
+    echo -e "${BLUE}Downloading TPT Titan ${VERSION}...${NC}"
+    if curl -fL -o "$download_path" "${DOWNLOAD_URL}/${filename}"; then
+        echo -e "${BLUE}Extracting files...${NC}"
+        if tar -xzf "$download_path" -C "$INSTALL_DIR"; then
+            rm -f "$download_path"
+            echo -e "${GREEN}✓ TPT Titan downloaded and extracted${NC}"
+            return 0
+        fi
+        rm -f "$download_path"
+        echo -e "${YELLOW}Downloaded archive failed to extract; falling back to local build.${NC}"
+    else
+        echo -e "${YELLOW}Prebuilt release not available for v${VERSION}/${OS}/${ARCH}.${NC}"
     fi
 
-    echo -e "${BLUE}Extracting files...${NC}"
-
-    # Extract to install directory
-    if ! tar -xzf $download_path -C $INSTALL_DIR; then
-        echo -e "${RED}Error: Failed to extract TPT Titan${NC}"
-        rm -f $download_path
-        exit 1
-    fi
-
-    # Cleanup
-    rm -f $download_path
-
-    echo -e "${GREEN}✓ TPT Titan downloaded and extracted${NC}"
+    build_from_source
 }
 
 install_dependencies() {
@@ -294,12 +294,22 @@ EOF
 create_service() {
     echo -e "${BLUE}Creating systemd service...${NC}"
 
-    # Create systemd service file
-    cat > /etc/systemd/system/tpt-titan.service << EOF
+    # Use the checked-in, reviewable service template if present; otherwise fall back
+    # to a generated unit (kept in sync with deploy/tpt-titan.service).
+    local template="$SCRIPT_DIR/../deploy/tpt-titan.service"
+    if [[ -f "$template" ]]; then
+        sed -e "s#/opt/tpt-titan#$INSTALL_DIR#g" \
+            -e "s#/var/lib/tpt-titan#$DATA_DIR#g" \
+            -e "s#/var/log/tpt-titan#$LOG_DIR#g" \
+            -e "s#/etc/tpt-titan/.env#$CONFIG_DIR/.env#g" \
+            -e "s#User=tpt-titan#User=$USER#g" \
+            -e "s#Group=tpt-titan#Group=$GROUP#g" \
+            "$template" > /etc/systemd/system/tpt-titan.service
+    else
+        cat > /etc/systemd/system/tpt-titan.service << EOF
 [Unit]
 Description=TPT Titan
-After=network.target postgresql.service redis.service
-Requires=postgresql.service redis.service
+After=network.target
 
 [Service]
 Type=simple
@@ -325,6 +335,7 @@ CPUQuota=50%
 [Install]
 WantedBy=multi-user.target
 EOF
+    fi
 
     # Reload systemd and enable service
     systemctl daemon-reload
@@ -498,6 +509,36 @@ main() {
     initialize_database
     start_services
     show_completion
+}
+
+build_from_source() {
+    echo -e "${BLUE}Building TPT Titan from local source...${NC}"
+
+    local repo_root="$SCRIPT_DIR/.."
+    local backend_dir="$repo_root/backend"
+
+    if [[ ! -d "$backend_dir" ]]; then
+        echo -e "${RED}Error: backend source not found at $backend_dir.${NC}"
+        echo -e "${RED}Cannot install without either a release tarball or the source tree.${NC}"
+        exit 1
+    fi
+
+    if ! command -v go &> /dev/null; then
+        echo -e "${RED}Error: 'go' is required to build from source but was not found.${NC}"
+        exit 1
+    fi
+
+    echo -e "${BLUE}Compiling backend (this may take a minute)...${NC}"
+    ( cd "$backend_dir" && go build -o "$INSTALL_DIR/tpt-titan" . ) || {
+        echo -e "${RED}Error: backend build failed.${NC}"
+        exit 1
+    }
+
+    # Copy static assets / config templates if present
+    [[ -d "$repo_root/deploy" ]] && cp -r "$repo_root/deploy" "$INSTALL_DIR/" 2>/dev/null || true
+
+    chown -R $USER:$GROUP "$INSTALL_DIR"
+    echo -e "${GREEN}✓ TPT Titan built and installed from source${NC}"
 }
 
 # Run main function

@@ -3,6 +3,7 @@ package services
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -213,6 +214,7 @@ type ReminderContext struct {
 	EndTime       time.Time
 	Location      string
 	UserEmail     string
+	UserPhone     string
 	Username      string
 	MinutesBefore int
 	CustomMessage string
@@ -228,8 +230,11 @@ func (cns *CalendarNotificationService) sendReminder(reminderID, userID uuid.UUI
 		return cns.sendEmailReminder(ctx.UserEmail, ctx.EventTitle, message, ctx)
 	case NotificationTypeInApp:
 		return cns.sendInAppReminder(userID, ctx.EventTitle, message, ctx)
-	case NotificationTypeSMS:
-		return cns.sendSMSReminder(ctx.UserEmail, message) // Using email as phone number placeholder
+		case NotificationTypeSMS:
+			if ctx.UserPhone == "" {
+				return fmt.Errorf("SMS reminder requested but no phone number is configured for the user")
+			}
+			return cns.sendSMSReminder(ctx.UserPhone, message)
 	case NotificationTypePush:
 		return cns.sendPushReminder(userID, ctx.EventTitle, message, ctx)
 	default:
@@ -292,9 +297,10 @@ func (cns *CalendarNotificationService) sendInAppReminder(userID uuid.UUID, titl
 }
 
 func (cns *CalendarNotificationService) sendSMSReminder(phoneNumber, message string) error {
-	// Placeholder for SMS service integration
-	// In a real implementation, integrate with Twilio, AWS SNS, etc.
-	return nil
+	// SMS delivery is not integrated (no Twilio/SNS provider configured).
+	// Fail honestly rather than reporting a successful send that never occurred.
+	log.Printf("SMS reminder not sent: SMS provider is not configured (target: %s)", phoneNumber)
+	return fmt.Errorf("SMS provider is not configured")
 }
 
 func (cns *CalendarNotificationService) sendPushReminder(userID uuid.UUID, title, message string, ctx ReminderContext) error {

@@ -157,6 +157,12 @@
 			</div>
 
 			<div class="text-center text-xs text-gray-500">
+				<a href="/setup" class="font-medium text-gray-500 hover:text-gray-700">
+					First-time deploy? Run the setup wizard
+				</a>
+			</div>
+
+			<div class="text-center text-xs text-gray-500">
 				<p>🔒 End-to-end encrypted • Privacy-first • Open source</p>
 			</div>
 		</form>

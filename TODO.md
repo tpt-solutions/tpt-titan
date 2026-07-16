@@ -43,9 +43,9 @@ Tracking list generated from a full-project audit (stubs/TODOs, frontend coverag
 - [ ] `scripts/install.sh` downloads a versioned release tarball that doesn't exist yet in Releases — currently aspirational/non-functional until releases are published.
 - [ ] Systemd unit is generated inline by `scripts/install.sh` rather than checked in as an inspectable template (e.g. `deploy/tpt-titan.service`) — check one in for review before running as root.
 - [x] Root-level doc clutter/rot: Deleted stale duplicates `TODO - Copy.md`, `TODO 1260108.md`, `TODO 1260113.md`, `TODO_LAYOUT_IMPROVEMENTS.md` (consolidated into this tracked list). `TODO 1260716.md` was reviewed (a completed spreadsheet-layout checklist) and retained.
-- [ ] No Makefile/task runner for a single `make setup` / `make dev` entry point across backend/frontend/desktop.
-- [ ] `docs/installation.md` env-var example block doesn't match actual `.env.example` keys (`DATABASE_URL`/`ENCRYPTION_KEY` vs `DB_TYPE`/`DB_PATH`) — reconcile so self-hosters aren't misled.
-- [ ] No Caddy reverse-proxy example (only Nginx) — Caddy is a common low-friction choice for automatic HTTPS.
+- [x] **Makefile added**: root `Makefile` provides `make setup` (backend/frontend/desktop deps), `make dev` (concurrent backend+frontend), `make build`, `make test`/`lint`/`ci`, plus `seed`/`backup`/`admin` wrappers around the new management CLI (`backend/cmd/`).
+- [x] **`docs/installation.md` env-var block reconciled**: now matches `.env.example` exactly (`DB_TYPE`/`DB_PATH`/`DB_HOST` etc.), with a note that the old `DATABASE_URL`/`ENCRYPTION_KEY`/`PORT`/`HOST`/`OLLAMA_URL` names are not read by the backend. Stale `DATABASE_URL` reference in the Troubleshooting section fixed too.
+- [x] **Caddy reverse-proxy example added** to `docs/installation.md` alongside the existing Nginx config, including a plain-HTTP/LAN variant.
 
 ## Code-level stubs & mocked logic (highest-impact first)
 

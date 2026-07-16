@@ -133,35 +133,62 @@ cd tpt-titan
 
 ### Environment Variables
 
-Create a `.env` file in the backend directory:
+The backend reads configuration from a `.env` file in the backend directory (loaded with
+[`godotenv`](https://github.com/joho/godotenv)). The keys below match the shipped
+[`.env.example`](https://github.com/yourorg/tpt-titan/blob/main/.env.example) exactly.
 
 ```env
-# Database
-DATABASE_URL=sqlite://./data/tpt-titan.db
-# Or for PostgreSQL:
-# DATABASE_URL=postgresql://user:password@localhost:5432/tpt_titan
+# Server Configuration
+SERVER_HOST=localhost
+SERVER_PORT=8080
+GIN_MODE=debug
 
-# Redis
-REDIS_URL=redis://localhost:6379
+# Database Configuration
+# Choose database type: "sqlite" (default, recommended) or "postgres"
+DB_TYPE=sqlite
+# SQLite settings (used when DB_TYPE=sqlite)
+DB_PATH=./data/tpt-titan.db
+# PostgreSQL settings (used when DB_TYPE=postgres)
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=tpt_user
+DB_PASSWORD=tpt_password
+DB_NAME=tpt_titan
+DB_SSLMODE=disable
 
-# JWT
-JWT_SECRET=your-super-secret-jwt-key-here
-ENCRYPTION_KEY=your-encryption-key-here
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+JWT_EXPIRY_HOUR=24
 
-# Server
-PORT=8080
-HOST=0.0.0.0
+# Redis Configuration (Optional)
+REDIS_ENABLED=false
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
 
-# AI Configuration
-OLLAMA_URL=http://localhost:11434
-DEFAULT_AI_MODEL=llama2
-
-# Email (optional)
+# Email Configuration (Optional)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
+SMTP_USERNAME=
+SMTP_PASSWORD=
+
+# AI Configuration
+# Ollama settings for local AI models
+OLLAMA_HOST=localhost
+OLLAMA_PORT=11434
+# OpenRouter API key for online models (optional)
+OPENROUTER_API_KEY=
+# Enable/disable AI features
+ENABLE_LOCAL_AI=true
+ENABLE_ONLINE_AI=false
+
+# Development/Production Mode
+NODE_ENV=development
 ```
+
+> The older `DATABASE_URL` / `ENCRYPTION_KEY` / `PORT` / `HOST` / `OLLAMA_URL` variable names
+> are **not** read by the backend — use the keys above.
 
 ### Nginx Configuration (Production)
 
@@ -212,12 +239,44 @@ server {
 }
 ```
 
+### Caddy Configuration (Alternative, automatic HTTPS)
+
+[Caddy](https://caddyserver.com/) is a low-friction alternative to Nginx that provisions and
+renews TLS certificates automatically. Save the following as `Caddyfile` and run `caddy run`
+(or `caddy start`) on the host:
+
+```caddy
+your-domain.com {
+    # Automatic HTTPS via Let's Encrypt (no certbot step required)
+    reverse_proxy 127.0.0.1:8080
+
+    # WebSocket upgrade support (chat, collaboration)
+    reverse_proxy /ws 127.0.0.1:8080
+
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+}
+```
+
+For a quick local/non-public deployment (self-signed cert or plain HTTP), Caddy also supports:
+
+```caddy
+# Plain HTTP on a LAN address (no public DNS needed)
+http://0.0.0.0:80 {
+    reverse_proxy 127.0.0.1:8080
+}
+```
+
 ## Troubleshooting
 
 ### Common Issues
 
 1. **Database Connection Failed**
-   - Check DATABASE_URL in .env file
+   - Check `DB_TYPE` and either `DB_PATH` (SQLite) or `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD`/`DB_NAME` (PostgreSQL) in .env file
    - Ensure PostgreSQL is running: `sudo systemctl status postgresql`
    - Verify user permissions
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 	"tpt-titan/backend/config"
 	"tpt-titan/backend/models"
 	"tpt-titan/backend/services"
@@ -468,7 +469,7 @@ func UploadDocumentWithAI(c *gin.Context) {
 
 	// If AI processing is requested, start background processing
 	if req.ProcessWithAI {
-		go processDocumentWithAI(document.ID, userID.(uuid.UUID), fileData, req.FileType, req.AnalysisType)
+		go processDocumentWithAI(document.ID, userID.(uuid.UUID), req.FileName, fileData, req.FileType, req.AnalysisType)
 
 		response["processing_status"] = "queued"
 		response["message"] = "Document uploaded and AI processing started"
@@ -480,7 +481,9 @@ func UploadDocumentWithAI(c *gin.Context) {
 }
 
 // processDocumentWithAI processes a document with AI in the background
-func processDocumentWithAI(documentID, userID uuid.UUID, fileData []byte, fileType, analysisType string) {
+func processDocumentWithAI(documentID, userID uuid.UUID, fileName string, fileData []byte, fileType, analysisType string) {
+	startTime := time.Now()
+
 	// Send initial processing notification
 	if wsHub != nil {
 		wsMessage := models.WebSocketMessage{
@@ -498,7 +501,7 @@ func processDocumentWithAI(documentID, userID uuid.UUID, fileData []byte, fileTy
 	analysis := &models.DocumentAnalysis{
 		UserID:     userID,
 		DocumentID: documentID,
-		FileName:   "uploaded_file", // TODO: Get actual filename
+		FileName:   fileName,
 		FileType:   fileType,
 		Status:     "processing",
 		Pages:      1, // Default, will be updated after analysis
@@ -573,7 +576,7 @@ func processDocumentWithAI(documentID, userID uuid.UUID, fileData []byte, fileTy
 	analysis.TextContent = result.TextContent
 	analysis.Confidence = result.Confidence
 	analysis.Pages = result.Pages
-	analysis.ProcessingTime = 0 // TODO: Track actual processing time
+	analysis.ProcessingTime = int(time.Since(startTime).Milliseconds()) // Track actual processing time
 
 	// Serialize structured data
 	if len(result.Fields) > 0 {
@@ -662,7 +665,7 @@ func ProcessDocumentWithAI(c *gin.Context) {
 	}
 
 	// Start background processing
-	go processDocumentWithAI(docID, userID.(uuid.UUID), fileData, "uploaded_file", req.AnalysisType)
+	go processDocumentWithAI(docID, userID.(uuid.UUID), "uploaded_file", fileData, "uploaded_file", req.AnalysisType)
 
 	c.JSON(http.StatusAccepted, gin.H{
 		"message": "AI processing started",

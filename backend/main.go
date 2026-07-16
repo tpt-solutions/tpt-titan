@@ -2,11 +2,18 @@ package main
 
 import (
 	"log"
+	"os"
+	"tpt-titan/backend/cmd"
 	"tpt-titan/backend/config"
 	"tpt-titan/backend/internal/server"
 )
 
 func main() {
+	// If the first argument is a known management subcommand, run it and exit.
+	if cmd.Run(os.Args[1:]) {
+		return
+	}
+
 	// Load configuration
 	cfg := config.Load()
 

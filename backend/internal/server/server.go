@@ -115,7 +115,7 @@ func (s *Server) Initialize() error {
 	dbOptimizer.OptimizeConnectionPool()
 
 	// Initialize monitoring service
-	monitoringService := services.NewMonitoringService(cacheService, dbOptimizer)
+	monitoringService := services.NewMonitoringService(cacheService, dbOptimizer, sqlDB)
 
 	// Initialize WebSocket hub
 	hub := routes.InitWebSocketHub(routes.GetChatService())
@@ -193,6 +193,10 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 			authGroup.POST("/request-password-reset", auth.RequestPasswordReset)
 			authGroup.POST("/reset-password", auth.ResetPassword)
 		}
+
+		// First-run setup wizard (public, but only usable before any user exists)
+		api.GET("/setup/status", routes.GetSetupStatus)
+		api.POST("/setup/complete", routes.CompleteSetup)
 
 		// Protected routes (require authentication)
 		protected := api.Group("/")
@@ -635,7 +639,7 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 
 			// Form routes are mounted above (/forms group).
 			// File management (/filesync) and task (/tasks) route groups are
-			// not yet implemented — their handlers/UI are missing (see TODO.md).
+			// implemented and wired above.
 		}
 	}
 
@@ -672,6 +676,9 @@ func (s *Server) validateConfig() error {
 	}
 	
 	if len(s.config.JWT.Secret) < 32 {
+		if s.config.Server.Mode == "release" {
+			return fmt.Errorf("JWT_SECRET must be at least 32 characters in release mode (current length: %d)", len(s.config.JWT.Secret))
+		}
 		log.Println("WARNING: JWT_SECRET should be at least 32 characters for security")
 	}
 	

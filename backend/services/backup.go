@@ -3,7 +3,9 @@ package services
 import (
 	"archive/tar"
 	"compress/gzip"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -708,10 +710,20 @@ func (bs *BackupService) saveJSONData(filePath string, data interface{}) error {
 	return json.NewEncoder(file).Encode(data)
 }
 
-// calculateFileChecksum calculates SHA-256 checksum of a file
+// calculateFileChecksum calculates the SHA-256 checksum of a file
 func (bs *BackupService) calculateFileChecksum(filePath string) (string, error) {
-	// Simplified - in production, calculate actual hash
-	return "checksum_placeholder", nil
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 // compressBackup compresses a backup directory

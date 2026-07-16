@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -25,6 +26,7 @@ type MonitoringService struct {
 	systemMetrics  *SystemMetrics
 	cacheService   *CacheService
 	dbOptimizer    *DatabaseOptimizer
+	db             *sql.DB
 }
 
 // RequestMetrics tracks metrics for specific endpoints
@@ -91,12 +93,13 @@ type Alert struct {
 }
 
 // NewMonitoringService creates a new monitoring service
-func NewMonitoringService(cacheService *CacheService, dbOptimizer *DatabaseOptimizer) *MonitoringService {
+func NewMonitoringService(cacheService *CacheService, dbOptimizer *DatabaseOptimizer, db *sql.DB) *MonitoringService {
 	ms := &MonitoringService{
 		startTime:     time.Now(),
 		systemMetrics: &SystemMetrics{},
 		cacheService:  cacheService,
 		dbOptimizer:   dbOptimizer,
+		db:            db,
 	}
 
 	// Start background monitoring
@@ -236,10 +239,28 @@ func (ms *MonitoringService) GetApplicationMetrics() (*ApplicationMetrics, error
 		}
 	}
 
-	// Count active users (simplified - would need proper session tracking)
-	metrics.ActiveUsers = 0 // TODO: Implement active user tracking
+	// Count active users (logged in within the last 15 minutes)
+	metrics.ActiveUsers = ms.countActiveUsers()
 
 	return metrics, nil
+}
+
+// countActiveUsers counts users who logged in within the last 15 minutes.
+func (ms *MonitoringService) countActiveUsers() int64 {
+	if ms.db == nil {
+		return 0
+	}
+	var count int64
+	cutoff := time.Now().Add(-15 * time.Minute)
+	err := ms.db.QueryRow(
+		"SELECT COUNT(*) FROM users WHERE last_login_at IS NOT NULL AND last_login_at >= $1",
+		cutoff,
+	).Scan(&count)
+	if err != nil {
+		log.Printf("Failed to count active users: %v", err)
+		return 0
+	}
+	return count
 }
 
 // GetSystemMetrics returns current system metrics
