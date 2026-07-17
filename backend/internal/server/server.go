@@ -198,6 +198,11 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 		api.GET("/setup/status", routes.GetSetupStatus)
 		api.POST("/setup/complete", routes.CompleteSetup)
 
+		// Inbound workflow webhooks (public — authenticated by the per-workflow
+		// secret token in the URL, not a user session; external systems calling
+		// this have no JWT)
+		api.POST("/webhooks/:token", routes.ReceiveWebhook)
+
 		// Protected routes (require authentication)
 		protected := api.Group("/")
 		protected.Use(auth.AuthMiddleware(s.database))
@@ -407,6 +412,17 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 
 			// Integration connectors
 			protected.GET("/connectors", routes.GetIntegrationConnectors)
+
+			// MCP (Model Context Protocol) servers — bridge to external systems
+			mcpGroup := protected.Group("/mcp")
+			{
+				mcpGroup.GET("/servers", routes.ListMCPServers)
+				mcpGroup.POST("/servers", routes.CreateMCPServer)
+				mcpGroup.DELETE("/servers/:id", routes.DeleteMCPServer)
+				mcpGroup.GET("/servers/:id/tools", routes.ListMCPTools)
+				mcpGroup.POST("/servers/test", routes.TestMCPServer)
+				mcpGroup.GET("/connectors", routes.GetMCPConnectors)
+			}
 
 			// Contact routes
 			contactGroup := protected.Group("/contacts")

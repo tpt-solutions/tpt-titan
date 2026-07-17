@@ -136,10 +136,16 @@
     {#each config.outputs as output}
       <div
         class="connection-point output-point"
+        class:true-port={output === 'true'}
+        class:false-port={output === 'false'}
         data-port={output}
         on:mousedown={(e) => handleConnectionStart(output, e)}
         on:mouseup={(e) => handleConnectionEnd(output, e)}
-      ></div>
+      >
+        {#if node.type === 'condition'}
+          <span class="port-tag">{output === 'true' ? 'T' : output === 'false' ? 'F' : ''}</span>
+        {/if}
+      </div>
     {/each}
   </div>
 
@@ -267,6 +273,35 @@
     right: -7px;
     top: 50%;
     transform: translateY(-50%);
+  }
+
+  .output-point.true-port {
+    border-color: #4CAF50;
+    background: #e8f5e9;
+  }
+
+  .output-point.false-port {
+    border-color: #f44336;
+    background: #ffebee;
+  }
+
+  .port-tag {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .true-port .port-tag {
+    color: #2e7d32;
+  }
+
+  .false-port .port-tag {
+    color: #c62828;
   }
 
   .node-content {

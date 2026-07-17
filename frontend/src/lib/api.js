@@ -1171,6 +1171,10 @@ export function executeWorkflow(id, triggerData = {}) {
 	return apiPost(`/workflows/${id}/execute`, { trigger_data: triggerData });
 }
 
+export function dryRunWorkflow(id, triggerData = {}) {
+	return apiPost(`/workflows/${id}/execute`, { trigger_data: triggerData, dry_run: true });
+}
+
 export function getWorkflowExecutions(id, limit) {
 	return apiGet(`/workflows/${id}/executions${limit ? `?limit=${limit}` : ''}`);
 }
@@ -1213,6 +1217,29 @@ export function optimizeWorkflow(id) {
 
 export function getIntegrationConnectors() {
 	return apiGet('/connectors');
+}
+
+/**
+ * MCP (Model Context Protocol) servers — bridge to external systems.
+ */
+export function getMCPServers() {
+	return apiGet('/mcp/servers');
+}
+
+export function createMCPServer(payload) {
+	return apiPost('/mcp/servers', payload);
+}
+
+export function deleteMCPServer(id) {
+	return apiDelete(`/mcp/servers/${id}`);
+}
+
+export function testMCPServer(payload) {
+	return apiPost('/mcp/servers/test', payload);
+}
+
+export function getMCPConnectors() {
+	return apiGet('/mcp/connectors');
 }
 
 /**

@@ -6,6 +6,8 @@
 		createWorkflow,
 		deleteWorkflow,
 		executeWorkflow,
+		dryRunWorkflow,
+		getWorkflowExecution,
 		getWorkflowTemplates,
 		createWorkflowFromTemplate,
 		getWorkflowInsights,
@@ -24,6 +26,7 @@
 	let error = null;
 	let loading = false;
 	let insights = null;
+	let dryRunResult = null;
 
 	onMount(load);
 
@@ -73,6 +76,48 @@
 		} catch (err) {
 			error = formatApiError(err);
 		}
+	}
+
+	async function dryRun(wf) {
+		error = null;
+		dryRunResult = null;
+		try {
+			const res = await dryRunWorkflow(wf.id);
+			const exec = await pollExecution(res.execution_id);
+			dryRunResult = buildDryRunView(exec);
+		} catch (err) {
+			error = formatApiError(err);
+		}
+	}
+
+	async function pollExecution(executionID) {
+		for (let i = 0; i < 20; i++) {
+			const r = await getWorkflowExecution(executionID);
+			const exec = r.execution;
+			if (exec.status !== 'running') return exec;
+			await new Promise((resolve) => setTimeout(resolve, 250));
+		}
+		return (await getWorkflowExecution(executionID)).execution;
+	}
+
+	function buildDryRunView(exec) {
+		let nodeStates = {};
+		let outputData = {};
+		try {
+			nodeStates = exec.node_states ? JSON.parse(exec.node_states) : {};
+		} catch (e) {}
+		try {
+			outputData = exec.output_data ? JSON.parse(exec.output_data) : {};
+		} catch (e) {}
+		const previews = Object.entries(nodeStates)
+			.filter(([, s]) => s && s.output && s.output.would_execute)
+			.map(([nodeID, s]) => ({ nodeID, ...s.output }));
+		return {
+			status: exec.status,
+			isDryRun: exec.is_dry_run,
+			previews,
+			outputData
+		};
 	}
 
 	async function remove(wf) {
@@ -157,16 +202,40 @@
 									{wf.is_active ? 'Active' : 'Inactive'}
 								</span>
 							</div>
-							<button on:click={() => editWorkflow(wf)} class="text-xs text-blue-600 hover:underline">Edit</button>
-							<button on:click={() => run(wf)} class="text-xs text-green-600 hover:underline">Run</button>
-							<button on:click={() => showOptimization(wf)} class="text-xs text-purple-600 hover:underline">Optimize</button>
-							<button on:click={() => remove(wf)} class="text-xs text-red-600 hover:underline">Delete</button>
+						<button on:click={() => editWorkflow(wf)} class="text-xs text-blue-600 hover:underline">Edit</button>
+						<button on:click={() => run(wf)} class="text-xs text-green-600 hover:underline">Run</button>
+						<button on:click={() => dryRun(wf)} class="text-xs text-amber-600 hover:underline">Dry run</button>
+						<button on:click={() => showOptimization(wf)} class="text-xs text-purple-600 hover:underline">Optimize</button>
+						<button on:click={() => remove(wf)} class="text-xs text-red-600 hover:underline">Delete</button>
 						</div>
 					{:else}
 						<div class="text-center text-gray-400 py-8 col-span-2">No workflows yet. Click “New workflow” to build one.</div>
 					{/each}
 				</div>
 			</div>
+
+			{#if dryRunResult}
+				<div class="md:col-span-2 bg-white border border-amber-200 rounded-lg p-4 mt-4">
+					<div class="flex items-center justify-between mb-2">
+						<h2 class="font-semibold text-gray-900">Dry run result</h2>
+						<span class="inline-flex px-2 py-0.5 rounded-full text-xs {dryRunResult.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">{dryRunResult.status}</span>
+					</div>
+					<p class="text-xs text-gray-400 mb-3">No real side effects were performed — these are previews of what each action node would do.</p>
+					{#if dryRunResult.previews.length}
+						<div class="space-y-2">
+							{#each dryRunResult.previews as p}
+								<div class="border border-gray-200 rounded p-3 text-sm">
+									<p class="font-medium text-gray-800">{p.node_name || p.nodeID}</p>
+									<p class="text-xs text-gray-500">{p.connector} / {p.action}</p>
+									<pre class="mt-1 text-xs bg-gray-50 rounded p-2 overflow-x-auto">{JSON.stringify(p.with_config, null, 2)}</pre>
+								</div>
+							{/each}
+						</div>
+					{:else}
+						<p class="text-sm text-gray-500">No action nodes would have executed (no matching branch, or workflow is purely structural).</p>
+					{/if}
+				</div>
+			{/if}
 
 			<div>
 				<h2 class="font-semibold text-gray-900 mb-2">Templates</h2>

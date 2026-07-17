@@ -136,6 +136,8 @@ func migrateDatabase(db *gorm.DB) error {
 		&models.WorkflowTemplate{},
 		// System settings
 		&models.SystemSetting{},
+		// MCP servers (Model Context Protocol bridges)
+		&models.MCPServer{},
 	); err != nil {
 		return fmt.Errorf("failed to migrate: %w", err)
 	}

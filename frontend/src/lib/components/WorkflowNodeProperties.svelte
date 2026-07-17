@@ -4,6 +4,8 @@
   export let node;
   export let connectors = [];
 
+  let mcpError = '';
+
   const dispatch = createEventDispatcher();
 
   // Available operators for conditions
@@ -114,6 +116,34 @@
               <option value="update_calendar">Update Calendar</option>
               <option value="send_notification">Send Notification</option>
             </select>
+
+            {#if node.config.connector && node.config.connector.startsWith('mcp.')}
+              <div class="action-params">
+                <label class="property-label">Tool arguments (JSON)</label>
+                <textarea
+                  class="property-textarea"
+                  rows="6"
+                  value={JSON.stringify(node.config.parameters || {}, null, 2)}
+                  on:input={(e) => {
+                    try {
+                      const parsed = JSON.parse(e.target.value);
+                      updateConfig({ parameters: parsed });
+                      mcpError = '';
+                    } catch (err) {
+                      mcpError = 'Invalid JSON: ' + err.message;
+                    }
+                  }}
+                  placeholder='{\n  "key": "value"\n}'
+                ></textarea>
+                {#if mcpError}
+                  <p class="help-text" style="color:#c62828">{mcpError}</p>
+                {/if}
+                <p class="help-text">
+                  These arguments are passed verbatim to the MCP tool
+                  <code>{node.config.connector}</code>.
+                </p>
+              </div>
+            {/if}
 
             <!-- Action-specific parameters -->
             {#if node.config.action === 'send_email'}

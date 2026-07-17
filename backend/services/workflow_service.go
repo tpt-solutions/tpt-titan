@@ -1,11 +1,15 @@
 package services
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"net/smtp"
 	"os"
+	"strings"
 	"time"
 
 	"tpt-titan/backend/config"
@@ -51,6 +55,10 @@ func (s *WorkflowService) registerBuiltInConnectors() {
 	// Form connectors
 	s.connectors["forms.submission"] = &FormSubmissionConnector{}
 
+	// Webhook connectors
+	s.connectors["webhook.receive"] = &WebhookReceiveConnector{}
+	s.connectors["http.request"] = &HTTPRequestConnector{}
+
 	// Email connectors
 	s.connectors["email.send"] = &EmailSendConnector{}
 
@@ -69,6 +77,11 @@ func (s *WorkflowService) registerBuiltInConnectors() {
 
 	// Notification connectors
 	s.connectors["notifications.send"] = &NotificationConnector{}
+
+	// MCP-backed connectors (discovered from configured MCP servers)
+	if err := s.RegisterMCPConnectors(nil); err != nil {
+		log.Printf("Failed to register MCP connectors: %v", err)
+	}
 }
 
 // RegisterConnector registers a custom workflow connector
@@ -266,9 +279,12 @@ func (s *WorkflowService) executeNode(node map[string]interface{}, ctx *Workflow
 			break
 		}
 		if ctx.DryRun {
+			action, _ := nodeConfig["action"].(string)
 			result = map[string]interface{}{
 				"dry_run":      true,
+				"node_name":    node["name"],
 				"would_execute": connectorName,
+				"action":       action,
 				"with_config":  nodeConfig,
 			}
 		} else {
@@ -296,6 +312,7 @@ func (s *WorkflowService) executeNode(node map[string]interface{}, ctx *Workflow
 			for k, v := range result {
 				ctx.GlobalData[k] = v
 			}
+			ctx.NodeStates[nodeID].(map[string]interface{})["output"] = result
 		}
 	}
 
@@ -461,6 +478,32 @@ func (s *WorkflowService) GetIntegrationConnectors() ([]models.IntegrationConnec
 	return connectors, nil
 }
 
+// GetMCPConnectorDescriptors returns the currently-registered MCP tool connectors
+// (names like "mcp.<server>.<tool>") so the frontend builder can offer them as
+// selectable connectors alongside the built-ins.
+func (s *WorkflowService) GetMCPConnectorDescriptors() []map[string]interface{} {
+	out := make([]map[string]interface{}, 0)
+	for name, c := range s.connectors {
+		if !strings.HasPrefix(name, "mcp.") {
+			continue
+		}
+		schema := c.GetConfigSchema()
+		desc := ""
+		if m, ok := schema["description"].(string); ok {
+			desc = m
+		}
+		out = append(out, map[string]interface{}{
+			"id":          name,
+			"name":        name,
+			"description": desc,
+			"app_name":    "mcp",
+			"connector_type": "action",
+			"is_mcp":      true,
+		})
+	}
+	return out
+}
+
 // FindFormTriggeredWorkflows returns the user's active workflows whose canvas
 // contains a "forms.submission" trigger node configured for the given form.
 func (s *WorkflowService) FindFormTriggeredWorkflows(userID uuid.UUID, formID uuid.UUID) ([]models.Workflow, error) {
@@ -502,6 +545,62 @@ func (s *WorkflowService) FindFormTriggeredWorkflows(userID uuid.UUID, formID uu
 	return matches, nil
 }
 
+// FindWebhookTriggeredWorkflow returns the active workflow whose canvas
+// contains a "webhook.receive" trigger node configured with the given secret
+// token. Unlike FindFormTriggeredWorkflows, this is not scoped to a user —
+// the caller is an unauthenticated external system, so the token itself is
+// the only thing identifying which workflow (and owner) to run.
+func (s *WorkflowService) FindWebhookTriggeredWorkflow(token string) (*models.Workflow, error) {
+	if token == "" {
+		return nil, fmt.Errorf("token is required")
+	}
+
+	var candidates []models.Workflow
+	if err := config.DB.Where("is_active = ?", true).Find(&candidates).Error; err != nil {
+		return nil, fmt.Errorf("failed to query workflows: %w", err)
+	}
+
+	for _, wf := range candidates {
+		if workflowMatchesWebhookToken(wf, token) {
+			wfCopy := wf
+			return &wfCopy, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no workflow found for this webhook token")
+}
+
+// workflowMatchesWebhookToken reports whether wf's canvas contains a
+// "webhook.receive" trigger node configured with the given token. Factored
+// out as a pure function so it's testable without a database.
+func workflowMatchesWebhookToken(wf models.Workflow, token string) bool {
+	var canvasData map[string]interface{}
+	if err := json.Unmarshal([]byte(wf.CanvasData), &canvasData); err != nil {
+		return false
+	}
+	nodes, ok := canvasData["nodes"].([]interface{})
+	if !ok {
+		return false
+	}
+	for _, n := range nodes {
+		node, ok := n.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		nodeType, _ := node["type"].(string)
+		nodeConfig, _ := node["config"].(map[string]interface{})
+		if nodeType != "trigger" || nodeConfig == nil {
+			continue
+		}
+		connector, _ := nodeConfig["connector"].(string)
+		configToken, _ := nodeConfig["token"].(string)
+		if connector == "webhook.receive" && configToken != "" && configToken == token {
+			return true
+		}
+	}
+	return false
+}
+
 // WorkflowExecutionContext holds execution context for a workflow run
 type WorkflowExecutionContext struct {
 	ExecutionID uuid.UUID
@@ -532,6 +631,139 @@ func (c *FormSubmissionConnector) GetConfigSchema() map[string]interface{} {
 			},
 		},
 		"required": []string{"form_id"},
+	}
+}
+
+// WebhookReceiveConnector handles inbound webhook triggers. The actual match
+// (by secret token) happens in WorkflowService.FindWebhookTriggeredWorkflow /
+// the ReceiveWebhook route handler before a workflow ever reaches execution —
+// this connector only needs to pass the received payload through.
+type WebhookReceiveConnector struct{}
+
+func (c *WebhookReceiveConnector) Execute(config map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {
+	// This is a trigger connector, doesn't execute actions
+	return inputData, nil
+}
+
+func (c *WebhookReceiveConnector) GetConfigSchema() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"token": map[string]interface{}{
+				"type":        "string",
+				"description": "Secret token that authenticates inbound calls to this trigger. Treat as a credential.",
+			},
+		},
+		"required": []string{"token"},
+	}
+}
+
+// HTTPRequestConnector calls an external webhook/API. The destination URL is
+// validated against internal/private network space (utils.ValidateOutboundURL)
+// before every request, including redirects, to prevent the server from being
+// used to reach internal services.
+type HTTPRequestConnector struct{}
+
+func (c *HTTPRequestConnector) Execute(nodeConfig map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {
+	targetURL, _ := nodeConfig["url"].(string)
+	if targetURL == "" {
+		return nil, fmt.Errorf("http.request connector: url is required")
+	}
+	if err := utils.ValidateOutboundURL(targetURL); err != nil {
+		return nil, fmt.Errorf("http.request connector: %w", err)
+	}
+
+	method, _ := nodeConfig["method"].(string)
+	if method == "" {
+		method = http.MethodPost
+	}
+	method = strings.ToUpper(method)
+
+	var bodyReader io.Reader
+	if rawBody, ok := nodeConfig["body"]; ok && rawBody != nil {
+		if bodyStr, isStr := rawBody.(string); isStr {
+			bodyReader = strings.NewReader(bodyStr)
+		} else {
+			encoded, err := json.Marshal(rawBody)
+			if err != nil {
+				return nil, fmt.Errorf("http.request connector: failed to encode body: %w", err)
+			}
+			bodyReader = bytes.NewReader(encoded)
+		}
+	}
+
+	req, err := http.NewRequest(method, targetURL, bodyReader)
+	if err != nil {
+		return nil, fmt.Errorf("http.request connector: failed to build request: %w", err)
+	}
+
+	if headers, ok := nodeConfig["headers"].(map[string]interface{}); ok {
+		for k, v := range headers {
+			if strVal, ok := v.(string); ok {
+				req.Header.Set(k, strVal)
+			}
+		}
+	}
+	if req.Header.Get("Content-Type") == "" && bodyReader != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	timeoutSeconds := 15.0
+	if t, ok := nodeConfig["timeout_seconds"].(float64); ok && t > 0 {
+		timeoutSeconds = t
+		if timeoutSeconds > 60 {
+			timeoutSeconds = 60
+		}
+	}
+	client := utils.SafeHTTPClient(time.Duration(timeoutSeconds * float64(time.Second)))
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http.request connector: request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	const maxResponseBytes = 1 << 20 // 1MB
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
+	if err != nil {
+		return nil, fmt.Errorf("http.request connector: failed to read response: %w", err)
+	}
+
+	log.Printf("HTTPRequestConnector: %s %s -> %d", method, targetURL, resp.StatusCode)
+	return map[string]interface{}{
+		"status_code":   resp.StatusCode,
+		"response_body": string(respBody),
+		"success":       resp.StatusCode < 400,
+	}, nil
+}
+
+func (c *HTTPRequestConnector) GetConfigSchema() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"url": map[string]interface{}{
+				"type":        "string",
+				"description": "Destination URL (must not resolve to an internal/private address)",
+			},
+			"method": map[string]interface{}{
+				"type": "string",
+				"enum": []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
+			},
+			"headers": map[string]interface{}{
+				"type":        "object",
+				"description": "Request headers",
+			},
+			"body": map[string]interface{}{
+				"description": "Request body (object is JSON-encoded, string is sent as-is)",
+			},
+			"timeout_seconds": map[string]interface{}{
+				"type":        "number",
+				"description": "Request timeout in seconds",
+				"minimum":     1,
+				"maximum":     60,
+			},
+		},
+		"required": []string{"url"},
 	}
 }
 

@@ -1,13 +1,18 @@
 package services
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"tpt-titan/backend/models"
+	"tpt-titan/backend/utils"
 )
 
 // FormWorkflowService manages workflow automation for forms
@@ -649,13 +654,46 @@ func (fws *FormWorkflowService) executeRecordCreationAction(step WorkflowStep, i
 }
 
 func (fws *FormWorkflowService) executeWebhookAction(step WorkflowStep, instance *WorkflowInstance) error {
-	// Execute webhook
 	webhookURL, ok := step.Config["url"].(string)
 	if !ok {
 		return fmt.Errorf("webhook action missing url")
 	}
+	if err := utils.ValidateOutboundURL(webhookURL); err != nil {
+		return fmt.Errorf("webhook action: %w", err)
+	}
 
-	// Make HTTP request to webhook URL
-	fmt.Printf("Executing workflow webhook to %s\n", webhookURL)
+	method, _ := step.Config["method"].(string)
+	if method == "" {
+		method = http.MethodPost
+	}
+
+	payload, err := json.Marshal(map[string]interface{}{
+		"instance_id": instance.ID,
+		"record_id":   instance.RecordID,
+		"context":     instance.Context,
+	})
+	if err != nil {
+		return fmt.Errorf("webhook action: failed to encode payload: %w", err)
+	}
+
+	req, err := http.NewRequest(strings.ToUpper(method), webhookURL, bytes.NewReader(payload))
+	if err != nil {
+		return fmt.Errorf("webhook action: failed to build request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := utils.SafeHTTPClient(15 * time.Second)
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("webhook action: request to %s failed: %w", webhookURL, err)
+	}
+	defer resp.Body.Close()
+	io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<20))
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("webhook action: %s returned status %d", webhookURL, resp.StatusCode)
+	}
+
+	fmt.Printf("Executed workflow webhook to %s (status %d)\n", webhookURL, resp.StatusCode)
 	return nil
 }

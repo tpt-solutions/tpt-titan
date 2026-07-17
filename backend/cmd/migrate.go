@@ -68,10 +68,11 @@ var migrations = []migration{
 				&models.WorkflowConnection{},
 				&models.WorkflowExecution{},
 				&models.WorkflowTemplate{},
-				&models.SystemSetting{},
-				&models.SpreadsheetChart{},
-			)
-		},
+			&models.SystemSetting{},
+			&models.SpreadsheetChart{},
+			&models.MCPServer{},
+		)
+	},
 	},
 	{
 		Version: "0002",
@@ -85,6 +86,13 @@ var migrations = []migration{
 		Name:    "seed_default_workflow_templates",
 		Up: func(db *gorm.DB) error {
 			return config.EnsureDefaultWorkflowTemplates(db)
+		},
+	},
+	{
+		Version: "0004",
+		Name:    "add_mcp_servers",
+		Up: func(db *gorm.DB) error {
+			return db.AutoMigrate(&models.MCPServer{})
 		},
 	},
 }

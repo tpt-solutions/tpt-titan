@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher, onMount } from 'svelte';
-  import { apiGet, apiPost, apiPut } from '$lib/api.js';
+	import { apiGet, apiPost, apiPut, getMCPConnectors } from '$lib/api.js';
 
   export let workflowId = null; // null for new workflow, ID for editing
   export let initialData = null;
@@ -77,14 +77,24 @@
 
   const dispatch = createEventDispatcher();
 
-  onMount(async () => {
-    // Load available connectors
-    try {
-      const response = await apiGet('/workflows/connectors');
-      connectors = response.connectors || [];
-    } catch (error) {
-      console.error('Failed to load connectors:', error);
-    }
+	onMount(async () => {
+		// Load available connectors
+		try {
+			const response = await apiGet('/workflows/connectors');
+			connectors = response.connectors || [];
+		} catch (error) {
+			console.error('Failed to load connectors:', error);
+		}
+
+		// Load MCP-backed connectors (mcp.<server>.<tool>)
+		try {
+			const mcp = await getMCPConnectors();
+			if (mcp.connectors && mcp.connectors.length) {
+				connectors = [...connectors, ...mcp.connectors];
+			}
+		} catch (error) {
+			console.error('Failed to load MCP connectors:', error);
+		}
 
     // Load existing workflow if editing
     if (workflowId) {

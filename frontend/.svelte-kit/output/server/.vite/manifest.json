@@ -93,7 +93,7 @@
       "_svelte-kit.js"
     ],
     "css": [
-      "_app/immutable/assets/_layout.fFXixcFY.css"
+      "_app/immutable/assets/_layout.DLK1wheZ.css"
     ]
   },
   "src/routes/+page.svelte": {
@@ -238,6 +238,15 @@
       "_calendar.js"
     ]
   },
+  "src/routes/mcp/+page.svelte": {
+    "file": "entries/pages/mcp/_page.svelte.js",
+    "name": "entries/pages/mcp/_page.svelte",
+    "src": "src/routes/mcp/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_calendar.js"
+    ]
+  },
   "src/routes/monitoring/+page.svelte": {
     "file": "entries/pages/monitoring/_page.svelte.js",
     "name": "entries/pages/monitoring/_page.svelte",
@@ -260,6 +269,16 @@
     "file": "entries/pages/settings/_page.svelte.js",
     "name": "entries/pages/settings/_page.svelte",
     "src": "src/routes/settings/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_calendar.js",
+      "_svelte-kit.js"
+    ]
+  },
+  "src/routes/setup/+page.svelte": {
+    "file": "entries/pages/setup/_page.svelte.js",
+    "name": "entries/pages/setup/_page.svelte",
+    "src": "src/routes/setup/+page.svelte",
     "isEntry": true,
     "imports": [
       "_calendar.js",

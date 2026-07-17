@@ -703,6 +703,96 @@ var DefaultWorkflowTemplates = []WorkflowTemplate{
 			"viewport": {"x": 0, "y": 0, "zoom": 1}
 		}`,
 	},
+	{
+		Name:        "Overdue Task Digest",
+		Description: "Manually run to email yourself a digest of open high-priority work for the week.",
+		Category:    "digests",
+		Icon:        "📨",
+		Color:       "#17a2b8",
+		IsSystem:    true,
+		IsPublic:    true,
+		TemplateData: `{
+			"nodes": [
+				{"id": "trigger-1", "type": "trigger", "position": {"x": 60, "y": 120}, "config": {"connector": "manual"}},
+				{"id": "task-digest", "type": "action", "position": {"x": 340, "y": 120}, "config": {"connector": "email.send", "to": "", "subject": "Your open high-priority tasks", "body": "Reminder to review this week's open high-priority tasks."}},
+				{"id": "task-followup", "type": "action", "position": {"x": 620, "y": 120}, "config": {"connector": "tasks.create", "title": "Triage this week's open tasks", "description": "Created by the Overdue Task Digest preset.", "priority": "medium"}}
+			],
+			"connections": [
+				{"from": "trigger-1", "to": "task-digest"},
+				{"from": "trigger-1", "to": "task-followup"}
+			],
+			"viewport": {"x": 0, "y": 0, "zoom": 1}
+		}`,
+	},
+	{
+		Name:        "Meeting Follow-up Action Items",
+		Description: "After a meeting, capture the agreed action items as tasks and schedule a review.",
+		Category:    "follow_up",
+		Icon:        "📝",
+		Color:       "#20c997",
+		IsSystem:    true,
+		IsPublic:    true,
+		TemplateData: `{
+			"nodes": [
+				{"id": "trigger-1", "type": "trigger", "position": {"x": 60, "y": 140}, "config": {"connector": "manual"}},
+				{"id": "task-actions", "type": "action", "position": {"x": 340, "y": 40}, "config": {"connector": "tasks.create", "title": "Complete meeting action items", "description": "Owner-assigned follow-ups from the meeting.", "priority": "high"}},
+				{"id": "task-share", "type": "action", "position": {"x": 340, "y": 160}, "config": {"connector": "tasks.create", "title": "Share meeting notes with attendees", "priority": "low"}},
+				{"id": "calendar-review", "type": "action", "position": {"x": 620, "y": 160}, "config": {"connector": "calendar.create_event", "title": "Follow-up review meeting", "duration": 30}}
+			],
+			"connections": [
+				{"from": "trigger-1", "to": "task-actions"},
+				{"from": "trigger-1", "to": "task-share"},
+				{"from": "task-share", "to": "calendar-review"}
+			],
+			"viewport": {"x": 0, "y": 0, "zoom": 1}
+		}`,
+	},
+	{
+		Name:        "Spreadsheet Threshold Alert",
+		Description: "When a form is submitted, alert if a numeric field exceeds a threshold (e.g. budget overage).",
+		Category:    "alerting",
+		Icon:        "🔔",
+		Color:       "#fd7e14",
+		IsSystem:    true,
+		IsPublic:    true,
+		TemplateData: `{
+			"nodes": [
+				{"id": "trigger-1", "type": "trigger", "position": {"x": 60, "y": 120}, "config": {"connector": "forms.submission", "form_id": ""}},
+				{"id": "condition-1", "type": "condition", "position": {"x": 320, "y": 120}, "config": {"field": "amount", "operator": "greater_than", "value": "1000"}},
+				{"id": "notify-over", "type": "action", "position": {"x": 600, "y": 40}, "config": {"connector": "notifications.send", "title": "Threshold exceeded", "message": "A submitted value exceeded the configured threshold.", "type": "warning"}},
+				{"id": "task-over", "type": "action", "position": {"x": 600, "y": 200}, "config": {"connector": "tasks.create", "title": "Review threshold-exceeding submission", "priority": "high"}}
+			],
+			"connections": [
+				{"from": "trigger-1", "to": "condition-1"},
+				{"from": "condition-1", "to": "notify-over", "fromPort": "true"},
+				{"from": "condition-1", "to": "task-over", "fromPort": "true"}
+			],
+			"viewport": {"x": 0, "y": 0, "zoom": 1}
+		}`,
+	},
+	{
+		Name:        "Delayed Escalation Reminder",
+		Description: "Send an initial reminder, wait, then escalate to a task if still unaddressed.",
+		Category:    "escalation",
+		Icon:        "⏰",
+		Color:       "#e83e8c",
+		IsSystem:    true,
+		IsPublic:    true,
+		TemplateData: `{
+			"nodes": [
+				{"id": "trigger-1", "type": "trigger", "position": {"x": 60, "y": 120}, "config": {"connector": "manual"}},
+				{"id": "notify-first", "type": "action", "position": {"x": 320, "y": 120}, "config": {"connector": "notifications.send", "title": "Reminder", "message": "Please address the pending item.", "type": "info"}},
+				{"id": "delay-1", "type": "action", "position": {"x": 600, "y": 120}, "config": {"connector": "logic.delay", "delay_seconds": 86400}},
+				{"id": "task-escalate", "type": "action", "position": {"x": 880, "y": 120}, "config": {"connector": "tasks.create", "title": "Escalate: item still unaddressed", "priority": "high"}}
+			],
+			"connections": [
+				{"from": "trigger-1", "to": "notify-first"},
+				{"from": "notify-first", "to": "delay-1"},
+				{"from": "delay-1", "to": "task-escalate"}
+			],
+			"viewport": {"x": 0, "y": 0, "zoom": 1}
+		}`,
+	},
 }
 
 // Default Integration Connectors

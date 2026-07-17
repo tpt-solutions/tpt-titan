@@ -3,7 +3,12 @@
 
 package services
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/google/uuid"
+	"tpt-titan/backend/models"
+)
 
 func nodeMapOf(ids ...string) map[string]map[string]interface{} {
 	m := make(map[string]map[string]interface{})
@@ -140,5 +145,96 @@ func TestExecuteNode_UnknownConnector_ReturnsError(t *testing.T) {
 	err := s.executeNode(node, ctx, nodeMapOf("action-1"), nil)
 	if err == nil {
 		t.Fatal("expected an error for an unregistered connector")
+	}
+}
+
+// ─── HTTPRequestConnector: SSRF validation happens before dialing ───────────
+
+func TestHTTPRequestConnector_RejectsPrivateAddress(t *testing.T) {
+	c := &HTTPRequestConnector{}
+	_, err := c.Execute(map[string]interface{}{
+		"url": "http://127.0.0.1:9999/whatever",
+	}, map[string]interface{}{})
+
+	if err == nil {
+		t.Fatal("expected an error for a private-address URL — validation should reject it before dialing")
+	}
+}
+
+func TestHTTPRequestConnector_MissingURL_ReturnsError(t *testing.T) {
+	c := &HTTPRequestConnector{}
+	_, err := c.Execute(map[string]interface{}{}, map[string]interface{}{})
+	if err == nil {
+		t.Fatal("expected an error when url is missing")
+	}
+}
+
+// ─── executeNode: dry-run also skips the new http.request connector ────────
+
+func TestExecuteNode_DryRun_HTTPRequestConnector_SkipsRealCall(t *testing.T) {
+	s := NewWorkflowService()
+	ctx := &WorkflowExecutionContext{
+		NodeStates: make(map[string]interface{}),
+		GlobalData: map[string]interface{}{},
+		DryRun:     true,
+	}
+	node := map[string]interface{}{
+		"id":   "action-1",
+		"type": "action",
+		"config": map[string]interface{}{
+			"connector": "http.request",
+			// A private-address URL would fail validation if this were ever
+			// really dialed — reaching a clean pass proves dry-run skipped it.
+			"url": "http://127.0.0.1:9999/should-never-be-called",
+		},
+	}
+
+	err := s.executeNode(node, ctx, nodeMapOf("action-1"), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ctx.GlobalData["would_execute"] != "http.request" {
+		t.Fatalf("expected would_execute preview, got %v", ctx.GlobalData)
+	}
+}
+
+// ─── workflowMatchesWebhookToken ─────────────────────────────────────────────
+
+func canvasWithWebhookTrigger(token string) string {
+	return `{"nodes": [{"id": "trigger-1", "type": "trigger", "config": {"connector": "webhook.receive", "token": "` + token + `"}}], "connections": []}`
+}
+
+func TestWorkflowMatchesWebhookToken_MatchesConfiguredToken(t *testing.T) {
+	wf := models.Workflow{ID: uuid.New(), CanvasData: canvasWithWebhookTrigger("secret-token-123")}
+
+	if !workflowMatchesWebhookToken(wf, "secret-token-123") {
+		t.Error("expected a workflow with a matching webhook token to match")
+	}
+}
+
+func TestWorkflowMatchesWebhookToken_RejectsWrongToken(t *testing.T) {
+	wf := models.Workflow{ID: uuid.New(), CanvasData: canvasWithWebhookTrigger("secret-token-123")}
+
+	if workflowMatchesWebhookToken(wf, "wrong-token") {
+		t.Error("expected a mismatched token not to match")
+	}
+}
+
+func TestWorkflowMatchesWebhookToken_IgnoresOtherTriggerTypes(t *testing.T) {
+	wf := models.Workflow{
+		ID:         uuid.New(),
+		CanvasData: `{"nodes": [{"id": "trigger-1", "type": "trigger", "config": {"connector": "forms.submission", "form_id": "abc"}}], "connections": []}`,
+	}
+
+	if workflowMatchesWebhookToken(wf, "anything") {
+		t.Error("expected a forms.submission trigger not to match a webhook lookup")
+	}
+}
+
+func TestWorkflowMatchesWebhookToken_EmptyTokenNeverMatches(t *testing.T) {
+	wf := models.Workflow{ID: uuid.New(), CanvasData: canvasWithWebhookTrigger("")}
+
+	if workflowMatchesWebhookToken(wf, "") {
+		t.Error("an empty configured token must never match an empty lookup token")
 	}
 }

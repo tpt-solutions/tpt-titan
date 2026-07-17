@@ -35,6 +35,7 @@ const Layout = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     { href: "/monitoring", label: "Monitoring" },
     { href: "/admin", label: "Admin" },
     { href: "/plugins", label: "Plugins" },
+    { href: "/mcp", label: "MCP" },
     { href: "/settings", label: "Settings" }
   ];
   if ($$props.data === void 0 && $$bindings.data && data !== void 0) $$bindings.data(data);

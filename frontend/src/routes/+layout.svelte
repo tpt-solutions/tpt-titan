@@ -36,6 +36,7 @@
 		{ href: '/monitoring',   label: 'Monitoring' },
 		{ href: '/admin',        label: 'Admin' },
 		{ href: '/plugins',     label: 'Plugins' },
+		{ href: '/mcp',         label: 'MCP' },
 		{ href: '/settings',    label: 'Settings' },
 	];
 </script>

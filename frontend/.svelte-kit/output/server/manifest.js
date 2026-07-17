@@ -10,7 +10,7 @@ return {
 	assets: new Set(["favicon.ico","site.webmanifest"]),
 	mimeTypes: {".webmanifest":"application/manifest+json"},
 	_: {
-		client: {start:"_app/immutable/entry/start.Euo67UO6.js",app:"_app/immutable/entry/app.wLUb2UjN.js",imports:["_app/immutable/entry/start.Euo67UO6.js","_app/immutable/chunks/D-oSuO4X.js","_app/immutable/chunks/D_yhzppV.js","_app/immutable/entry/app.wLUb2UjN.js","_app/immutable/chunks/CmsKOCeN.js","_app/immutable/chunks/D_yhzppV.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.DLDJbbC8.js",app:"_app/immutable/entry/app.DQSYuOUG.js",imports:["_app/immutable/entry/start.DLDJbbC8.js","_app/immutable/chunks/DX9WGBLo.js","_app/immutable/chunks/D_yhzppV.js","_app/immutable/entry/app.DQSYuOUG.js","_app/immutable/chunks/CmsKOCeN.js","_app/immutable/chunks/D_yhzppV.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
 			__memo(() => import('./nodes/0.js')),
 			__memo(() => import('./nodes/1.js')),
@@ -35,7 +35,9 @@ return {
 			__memo(() => import('./nodes/20.js')),
 			__memo(() => import('./nodes/21.js')),
 			__memo(() => import('./nodes/22.js')),
-			__memo(() => import('./nodes/23.js'))
+			__memo(() => import('./nodes/23.js')),
+			__memo(() => import('./nodes/24.js')),
+			__memo(() => import('./nodes/25.js'))
 		],
 		remotes: {
 			
@@ -140,59 +142,73 @@ return {
 				endpoint: null
 			},
 			{
+				id: "/mcp",
+				pattern: /^\/mcp\/?$/,
+				params: [],
+				page: { layouts: [0,], errors: [1,], leaf: 16 },
+				endpoint: null
+			},
+			{
 				id: "/monitoring",
 				pattern: /^\/monitoring\/?$/,
 				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 16 },
+				page: { layouts: [0,], errors: [1,], leaf: 17 },
 				endpoint: null
 			},
 			{
 				id: "/plugins",
 				pattern: /^\/plugins\/?$/,
 				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 17 },
+				page: { layouts: [0,], errors: [1,], leaf: 18 },
 				endpoint: null
 			},
 			{
 				id: "/settings",
 				pattern: /^\/settings\/?$/,
 				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 18 },
+				page: { layouts: [0,], errors: [1,], leaf: 19 },
+				endpoint: null
+			},
+			{
+				id: "/setup",
+				pattern: /^\/setup\/?$/,
+				params: [],
+				page: { layouts: [0,], errors: [1,], leaf: 20 },
 				endpoint: null
 			},
 			{
 				id: "/speech",
 				pattern: /^\/speech\/?$/,
 				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 19 },
+				page: { layouts: [0,], errors: [1,], leaf: 21 },
 				endpoint: null
 			},
 			{
 				id: "/spreadsheet",
 				pattern: /^\/spreadsheet\/?$/,
 				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 20 },
+				page: { layouts: [0,], errors: [1,], leaf: 22 },
 				endpoint: null
 			},
 			{
 				id: "/tasks",
 				pattern: /^\/tasks\/?$/,
 				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 21 },
+				page: { layouts: [0,], errors: [1,], leaf: 23 },
 				endpoint: null
 			},
 			{
 				id: "/voice",
 				pattern: /^\/voice\/?$/,
 				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 22 },
+				page: { layouts: [0,], errors: [1,], leaf: 24 },
 				endpoint: null
 			},
 			{
 				id: "/workflows",
 				pattern: /^\/workflows\/?$/,
 				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 23 },
+				page: { layouts: [0,], errors: [1,], leaf: 25 },
 				endpoint: null
 			}
 		],

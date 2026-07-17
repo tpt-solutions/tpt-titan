@@ -63,6 +63,29 @@
   <!-- Delete button (shown on hover) -->
   {#if path}
     {@const midPoint = getMidPoint(fromNode, toNode)}
+    {#if connection.fromPort && connection.fromPort !== 'output'}
+      <rect
+        x={midPoint.x - 18}
+        y={midPoint.y - 24}
+        width="36"
+        height="16"
+        rx="8"
+        fill={connection.fromPort === 'true' ? '#e8f5e9' : '#ffebee'}
+        stroke={connection.fromPort === 'true' ? '#4CAF50' : '#f44336'}
+        stroke-width="1"
+        class="port-label-bg"
+      />
+      <text
+        x={midPoint.x}
+        y={midPoint.y - 16}
+        text-anchor="middle"
+        dominant-baseline="middle"
+        font-size="10"
+        font-weight="600"
+        fill={connection.fromPort === 'true' ? '#2e7d32' : '#c62828'}
+        class="port-label-text"
+      >{connection.fromPort}</text>
+    {/if}
     <circle
       cx={midPoint.x}
       cy={midPoint.y}
