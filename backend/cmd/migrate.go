@@ -73,6 +73,20 @@ var migrations = []migration{
 			)
 		},
 	},
+	{
+		Version: "0002",
+		Name:    "add_workflow_execution_is_dry_run",
+		Up: func(db *gorm.DB) error {
+			return db.AutoMigrate(&models.WorkflowExecution{})
+		},
+	},
+	{
+		Version: "0003",
+		Name:    "seed_default_workflow_templates",
+		Up: func(db *gorm.DB) error {
+			return config.EnsureDefaultWorkflowTemplates(db)
+		},
+	},
 }
 
 // runMigrate applies all pending migrations idempotently.

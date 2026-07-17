@@ -204,7 +204,8 @@ func (s *EmailService) DeleteEmailAccount(userID, accountID uuid.UUID) error {
 func (s *EmailService) GetEmails(userID uuid.UUID, searchReq models.EmailSearchRequest) ([]models.EmailSummary, error) {
 	query := `
 		SELECT e.id, e.subject, e.sender_name, e.sender_email, e.received_at, e.sent_at,
-			   e.is_read, e.is_starred, e.folder
+			   e.is_read, e.is_starred, e.folder,
+			   EXISTS(SELECT 1 FROM email_attachments a WHERE a.email_id = e.id) AS has_attachments
 		FROM emails e
 		JOIN email_accounts ea ON e.account_id = ea.id
 		WHERE ea.user_id = $1
@@ -276,7 +277,7 @@ func (s *EmailService) GetEmails(userID uuid.UUID, searchReq models.EmailSearchR
 		var email models.Email
 		err := rows.Scan(
 			&email.ID, &email.Subject, &email.SenderName, &email.SenderEmail,
-			&email.ReceivedAt, &email.SentAt, &email.IsRead, &email.IsStarred, &email.Folder,
+			&email.ReceivedAt, &email.SentAt, &email.IsRead, &email.IsStarred, &email.Folder, &email.HasAttachments,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan email: %w", err)
@@ -296,7 +297,8 @@ func (s *EmailService) GetEmail(userID, emailID uuid.UUID) (*models.EmailRespons
 	query := `
 		SELECT e.id, e.account_id, e.message_id, e.subject, e.sender_name, e.sender_email,
 			   e.recipient_emails, e.cc_emails, e.bcc_emails, e.content, e.html_content,
-			   e.received_at, e.sent_at, e.is_read, e.is_starred, e.folder, e.labels, e.created_at
+			   e.received_at, e.sent_at, e.is_read, e.is_starred, e.folder, e.labels, e.created_at,
+			   EXISTS(SELECT 1 FROM email_attachments a WHERE a.email_id = e.id) AS has_attachments
 		FROM emails e
 		JOIN email_accounts ea ON e.account_id = ea.id
 		WHERE e.id = $1 AND ea.user_id = $2
@@ -306,7 +308,7 @@ func (s *EmailService) GetEmail(userID, emailID uuid.UUID) (*models.EmailRespons
 	err := s.db.QueryRow(query, emailID, userID).Scan(
 		&email.ID, &email.AccountID, &email.MessageID, &email.Subject, &email.SenderName, &email.SenderEmail,
 		&email.RecipientEmails, &email.CCEmails, &email.BCCEmails, &email.Content, &email.HTMLContent,
-		&email.ReceivedAt, &email.SentAt, &email.IsRead, &email.IsStarred, &email.Folder, &email.Labels, &email.CreatedAt,
+		&email.ReceivedAt, &email.SentAt, &email.IsRead, &email.IsStarred, &email.Folder, &email.Labels, &email.CreatedAt, &email.HasAttachments,
 	)
 
 	if err == sql.ErrNoRows {

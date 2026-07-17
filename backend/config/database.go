@@ -145,6 +145,11 @@ func migrateDatabase(db *gorm.DB) error {
 		log.Printf("Warning: Failed to initialize system AI models: %v", err)
 	}
 
+	// Initialize built-in preset workflow templates if they don't exist
+	if err := EnsureDefaultWorkflowTemplates(db); err != nil {
+		log.Printf("Warning: Failed to initialize default workflow templates: %v", err)
+	}
+
 	log.Println("Database migrations completed")
 	return nil
 }
@@ -179,6 +184,25 @@ func initializeSystemAIModels(db *gorm.DB) error {
 				continue
 			}
 			log.Printf("Created system AI model: %s", model.Name)
+		}
+	}
+	return nil
+}
+
+// EnsureDefaultWorkflowTemplates seeds the built-in preset workflow templates
+// if they don't already exist, following the same idempotent pattern as
+// initializeSystemAIModels above.
+func EnsureDefaultWorkflowTemplates(db *gorm.DB) error {
+	for _, tmpl := range models.DefaultWorkflowTemplates {
+		var count int64
+		db.Model(&models.WorkflowTemplate{}).Where("name = ? AND is_system = ?", tmpl.Name, true).Count(&count)
+
+		if count == 0 {
+			if err := db.Create(&tmpl).Error; err != nil {
+				log.Printf("Failed to create workflow template %s: %v", tmpl.Name, err)
+				continue
+			}
+			log.Printf("Created preset workflow template: %s", tmpl.Name)
 		}
 	}
 	return nil

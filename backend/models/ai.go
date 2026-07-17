@@ -570,6 +570,7 @@ type WorkflowExecution struct {
 	Status       string    `gorm:"size:20;default:'running'" json:"status"` // "running", "completed", "failed", "paused"
 	TriggerType  string    `gorm:"size:50" json:"trigger_type"`
 	TriggerData  string    `gorm:"type:jsonb" json:"trigger_data"` // Data that triggered execution
+	IsDryRun     bool      `gorm:"default:false" json:"is_dry_run"` // If true, action nodes only preview their effect
 
 	// Execution state
 	CurrentNodeID string    `gorm:"size:100" json:"current_node_id"`
@@ -627,43 +628,80 @@ type IntegrationConnector struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// Default Workflow Templates
+// Default Workflow Templates.
+//
+// Each TemplateData is a real, executable canvas (nodes/connections) built
+// entirely from connectors that already exist in workflow_service.go — none
+// of these rely on integrations that aren't implemented yet. Every node's
+// "config" must be filled in with real IDs (form_id, spreadsheet_id, etc.)
+// by the user after instantiating from the template; CreateWorkflowFromTemplate
+// ships the resulting workflow inactive by default so nothing runs until the
+// user explicitly reviews and enables it (ideally via a dry run first).
 var DefaultWorkflowTemplates = []WorkflowTemplate{
 	{
-		Name:        "Invoice Processing Workflow",
-		Description: "Automate invoice upload, AI extraction, approval routing, and payment processing",
-		Category:    "invoice_processing",
-		Icon:        "📄",
-		Color:       "#28a745",
+		Name:        "Form Response Triage",
+		Description: "When a form is submitted, route it to an urgent or normal-priority task depending on a field value.",
+		Category:    "form_triage",
+		Icon:        "🚦",
+		Color:       "#dc3545",
 		IsSystem:    true,
 		IsPublic:    true,
+		TemplateData: `{
+			"nodes": [
+				{"id": "trigger-1", "type": "trigger", "position": {"x": 60, "y": 120}, "config": {"connector": "forms.submission", "form_id": ""}},
+				{"id": "condition-1", "type": "condition", "position": {"x": 320, "y": 120}, "config": {"field": "priority", "operator": "equals", "value": "high"}},
+				{"id": "action-urgent", "type": "action", "position": {"x": 600, "y": 40}, "config": {"connector": "tasks.create", "title": "Urgent: review new form response", "description": "Auto-created by the Form Response Triage preset workflow.", "priority": "urgent"}},
+				{"id": "action-medium", "type": "action", "position": {"x": 600, "y": 200}, "config": {"connector": "tasks.create", "title": "Review new form response", "description": "Auto-created by the Form Response Triage preset workflow.", "priority": "medium"}}
+			],
+			"connections": [
+				{"from": "trigger-1", "to": "condition-1"},
+				{"from": "condition-1", "to": "action-urgent", "fromPort": "true"},
+				{"from": "condition-1", "to": "action-medium", "fromPort": "false"}
+			],
+			"viewport": {"x": 0, "y": 0, "zoom": 1}
+		}`,
 	},
 	{
-		Name:        "Lead Management Workflow",
-		Description: "Process form submissions, send automated emails, and schedule calendar bookings",
-		Category:    "lead_management",
-		Icon:        "🎯",
+		Name:        "Form Response to Spreadsheet Log",
+		Description: "When a form is submitted, log the response into a spreadsheet.",
+		Category:    "form_logging",
+		Icon:        "📋",
 		Color:       "#007bff",
 		IsSystem:    true,
 		IsPublic:    true,
+		TemplateData: `{
+			"nodes": [
+				{"id": "trigger-1", "type": "trigger", "position": {"x": 60, "y": 120}, "config": {"connector": "forms.submission", "form_id": ""}},
+				{"id": "action-log", "type": "action", "position": {"x": 340, "y": 120}, "config": {"connector": "spreadsheet.update", "spreadsheet_id": "", "range": "A:A", "values": []}}
+			],
+			"connections": [
+				{"from": "trigger-1", "to": "action-log"}
+			],
+			"viewport": {"x": 0, "y": 0, "zoom": 1}
+		}`,
 	},
 	{
-		Name:        "Expense Report Workflow",
-		Description: "Receipt upload, AI categorization, approval workflow, and reimbursement",
-		Category:    "expense_management",
-		Icon:        "💰",
-		Color:       "#ffc107",
-		IsSystem:    true,
-		IsPublic:    true,
-	},
-	{
-		Name:        "Project Onboarding Workflow",
-		Description: "New project setup, task creation, team notifications, and milestone tracking",
-		Category:    "project_management",
+		Name:        "New Client Onboarding Checklist",
+		Description: "Manually run this after signing a new client: creates the setup tasks and schedules a kickoff call.",
+		Category:    "client_onboarding",
 		Icon:        "🚀",
 		Color:       "#6f42c1",
 		IsSystem:    true,
 		IsPublic:    true,
+		TemplateData: `{
+			"nodes": [
+				{"id": "trigger-1", "type": "trigger", "position": {"x": 60, "y": 140}, "config": {"connector": "manual"}},
+				{"id": "task-folder", "type": "action", "position": {"x": 340, "y": 40}, "config": {"connector": "tasks.create", "title": "Set up client folder and draft contract", "priority": "high"}},
+				{"id": "task-agenda", "type": "action", "position": {"x": 340, "y": 140}, "config": {"connector": "tasks.create", "title": "Prepare kickoff call agenda", "priority": "medium"}},
+				{"id": "calendar-kickoff", "type": "action", "position": {"x": 340, "y": 240}, "config": {"connector": "calendar.create_event", "title": "Client Kickoff Call", "duration": 60}}
+			],
+			"connections": [
+				{"from": "trigger-1", "to": "task-folder"},
+				{"from": "trigger-1", "to": "task-agenda"},
+				{"from": "trigger-1", "to": "calendar-kickoff"}
+			],
+			"viewport": {"x": 0, "y": 0, "zoom": 1}
+		}`,
 	},
 }
 

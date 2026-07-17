@@ -1,5 +1,8 @@
 package services
 
+import (
+	"runtime"
+)
 // HardwareInfo represents detected hardware capabilities
 type HardwareInfo struct {
 	RAMGB     int  `json:"ram_gb"`
@@ -17,23 +20,28 @@ func NewHardwareService() *HardwareService {
 	return &HardwareService{}
 }
 
-// DetectHardware attempts to detect system hardware capabilities
+// DetectHardware attempts to detect system hardware capabilities using
+// real OS queries (CPU count, installed RAM, free disk space). Fields that
+// cannot be determined reliably without elevated APIs (e.g. GPU presence,
+// exact CPU frequency) are reported conservatively.
 func (s *HardwareService) DetectHardware() (*HardwareInfo, error) {
-	// This is a basic implementation - in production, you'd use system calls
-	// For now, we'll return conservative defaults
-	// TODO: Implement actual hardware detection using runtime.NumCPU(), syscall, etc.
-
 	info := &HardwareInfo{
-		RAMGB:     8,  // Conservative default - most users have at least 8GB
-		HasGPU:    false, // Conservative - assume no GPU unless detected
-		CPUCores:  4,  // Most systems have at least 4 cores
-		CPUSpeed:  2000, // 2GHz base speed
-		DiskSpace: 50, // 50GB free space minimum
+		HasGPU:   detectGPU(),
+		CPUCores: runtime.NumCPU(),
+		CPUSpeed: detectCPUSpeedMHz(),
 	}
 
-	// Try to detect actual RAM (simplified)
-	// In production, use: runtime.MemStats, syscall.Sysinfo, etc.
-	// For now, return defaults that work for most systems
+	if ram, ok := detectTotalSystemRAMGB(); ok {
+		info.RAMGB = ram
+	} else {
+		info.RAMGB = 8 // conservative fallback
+	}
+
+	if disk, ok := detectFreeDiskGB(); ok {
+		info.DiskSpace = disk
+	} else {
+		info.DiskSpace = 50 // conservative fallback
+	}
 
 	return info, nil
 }

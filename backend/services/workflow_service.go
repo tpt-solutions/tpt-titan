@@ -123,8 +123,9 @@ func (s *WorkflowService) UpdateWorkflow(userID uuid.UUID, workflowID uuid.UUID,
 	return nil
 }
 
-// ExecuteWorkflow executes a workflow
-func (s *WorkflowService) ExecuteWorkflow(workflowID uuid.UUID, triggerData map[string]interface{}) (*models.WorkflowExecution, error) {
+// ExecuteWorkflow executes a workflow. When dryRun is true, action nodes do not
+// perform their real side effects — they return a preview of what would happen.
+func (s *WorkflowService) ExecuteWorkflow(workflowID uuid.UUID, triggerData map[string]interface{}, dryRun bool) (*models.WorkflowExecution, error) {
 	var workflow models.Workflow
 	if err := config.DB.Where("id = ?", workflowID).First(&workflow).Error; err != nil {
 		return nil, fmt.Errorf("workflow not found: %w", err)
@@ -134,32 +135,38 @@ func (s *WorkflowService) ExecuteWorkflow(workflowID uuid.UUID, triggerData map[
 		return nil, fmt.Errorf("workflow is not active")
 	}
 
+	if triggerData == nil {
+		triggerData = map[string]interface{}{}
+	}
+	if _, ok := triggerData["user_id"]; !ok {
+		triggerData["user_id"] = workflow.UserID.String()
+	}
+
 	// Create execution record
 	execution := &models.WorkflowExecution{
 		WorkflowID:   workflowID,
 		UserID:       workflow.UserID,
 		Status:       "running",
 		TriggerType:  "manual",
+		IsDryRun:     dryRun,
 		StartedAt:    time.Now(),
 	}
 
-	if triggerData != nil {
-		triggerDataJSON, _ := json.Marshal(triggerData)
-		execution.TriggerData = string(triggerDataJSON)
-	}
+	triggerDataJSON, _ := json.Marshal(triggerData)
+	execution.TriggerData = string(triggerDataJSON)
 
 	if err := config.DB.Create(execution).Error; err != nil {
 		return nil, fmt.Errorf("failed to create execution record: %w", err)
 	}
 
 	// Execute workflow asynchronously
-	go s.executeWorkflowAsync(execution, &workflow, triggerData)
+	go s.executeWorkflowAsync(execution, &workflow, triggerData, dryRun)
 
 	return execution, nil
 }
 
 // executeWorkflowAsync executes a workflow asynchronously
-func (s *WorkflowService) executeWorkflowAsync(execution *models.WorkflowExecution, workflow *models.Workflow, triggerData map[string]interface{}) {
+func (s *WorkflowService) executeWorkflowAsync(execution *models.WorkflowExecution, workflow *models.Workflow, triggerData map[string]interface{}, dryRun bool) {
 	defer func() {
 		execution.UpdatedAt = time.Now()
 		config.DB.Save(execution)
@@ -195,6 +202,7 @@ func (s *WorkflowService) executeWorkflowAsync(execution *models.WorkflowExecuti
 		UserID:       workflow.UserID,
 		NodeStates:   make(map[string]interface{}),
 		GlobalData:   triggerData,
+		DryRun:       dryRun,
 	}
 
 	// Execute starting nodes
@@ -252,11 +260,19 @@ func (s *WorkflowService) executeNode(node map[string]interface{}, ctx *Workflow
 		// Triggers don't execute, they just pass data through
 		result = ctx.GlobalData
 	case "action":
-		connectorName := nodeConfig["connector"].(string)
-		if connector, exists := s.connectors[connectorName]; exists {
-			result, err = connector.Execute(nodeConfig, ctx.GlobalData)
-		} else {
+		connectorName, _ := nodeConfig["connector"].(string)
+		if _, exists := s.connectors[connectorName]; !exists {
 			err = fmt.Errorf("unknown connector: %s", connectorName)
+			break
+		}
+		if ctx.DryRun {
+			result = map[string]interface{}{
+				"dry_run":      true,
+				"would_execute": connectorName,
+				"with_config":  nodeConfig,
+			}
+		} else {
+			result, err = s.connectors[connectorName].Execute(nodeConfig, ctx.GlobalData)
 		}
 	case "condition":
 		result, err = s.executeCondition(nodeConfig, ctx.GlobalData)
@@ -283,8 +299,17 @@ func (s *WorkflowService) executeNode(node map[string]interface{}, ctx *Workflow
 		}
 	}
 
-	// Find next nodes to execute
-	nextNodes := s.findNextNodes(nodeID, connections, nodeMap)
+	// Find next nodes to execute. For condition nodes, only the branch matching
+	// the boolean result is followed (connections tagged via fromPort "true"/"false").
+	var branchPort string
+	if nodeType == "condition" {
+		if result != nil {
+			if condResult, ok := result["condition_result"].(bool); ok {
+				branchPort = fmt.Sprintf("%v", condResult)
+			}
+		}
+	}
+	nextNodes := s.findNextNodes(nodeID, branchPort, connections, nodeMap)
 	for _, nextNode := range nextNodes {
 		if err := s.executeNode(nextNode, ctx, nodeMap, connections); err != nil {
 			return err
@@ -318,19 +343,32 @@ func (s *WorkflowService) findStartNodes(nodes []interface{}, connections []inte
 	return startNodes
 }
 
-// findNextNodes finds nodes that should execute after the current node
-func (s *WorkflowService) findNextNodes(nodeID string, connections []interface{}, nodeMap map[string]map[string]interface{}) []map[string]interface{} {
+// findNextNodes finds nodes that should execute after the current node.
+// branchPort, when non-empty (only set for condition-node sources, as "true"/"false"),
+// restricts traversal to connections whose fromPort matches — this is how conditional
+// branching gates downstream execution. Non-condition sources ignore branchPort and
+// keep the original unconditional fan-out.
+func (s *WorkflowService) findNextNodes(nodeID string, branchPort string, connections []interface{}, nodeMap map[string]map[string]interface{}) []map[string]interface{} {
 	var nextNodes []map[string]interface{}
 
 	for _, conn := range connections {
 		connData := conn.(map[string]interface{})
 		fromNodeID := connData["from"].(string)
 
-		if fromNodeID == nodeID {
-			toNodeID := connData["to"].(string)
-			if node, exists := nodeMap[toNodeID]; exists {
-				nextNodes = append(nextNodes, node)
+		if fromNodeID != nodeID {
+			continue
+		}
+
+		if branchPort != "" {
+			fromPort, _ := connData["fromPort"].(string)
+			if fromPort != branchPort {
+				continue
 			}
+		}
+
+		toNodeID := connData["to"].(string)
+		if node, exists := nodeMap[toNodeID]; exists {
+			nextNodes = append(nextNodes, node)
 		}
 	}
 
@@ -388,7 +426,7 @@ func (s *WorkflowService) scheduleWorkflow(workflow *models.Workflow) {
 		s.ExecuteWorkflow(workflow.ID, map[string]interface{}{
 			"trigger_type": "scheduled",
 			"scheduled_at": time.Now(),
-		})
+		}, false)
 	})
 	if err != nil {
 		log.Printf("failed to schedule workflow %s: %v", workflow.ID, err)
@@ -423,6 +461,47 @@ func (s *WorkflowService) GetIntegrationConnectors() ([]models.IntegrationConnec
 	return connectors, nil
 }
 
+// FindFormTriggeredWorkflows returns the user's active workflows whose canvas
+// contains a "forms.submission" trigger node configured for the given form.
+func (s *WorkflowService) FindFormTriggeredWorkflows(userID uuid.UUID, formID uuid.UUID) ([]models.Workflow, error) {
+	var candidates []models.Workflow
+	if err := config.DB.Where("user_id = ? AND is_active = ?", userID, true).Find(&candidates).Error; err != nil {
+		return nil, fmt.Errorf("failed to query workflows: %w", err)
+	}
+
+	var matches []models.Workflow
+	formIDStr := formID.String()
+	for _, wf := range candidates {
+		var canvasData map[string]interface{}
+		if err := json.Unmarshal([]byte(wf.CanvasData), &canvasData); err != nil {
+			continue
+		}
+		nodes, ok := canvasData["nodes"].([]interface{})
+		if !ok {
+			continue
+		}
+		for _, n := range nodes {
+			node, ok := n.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			nodeType, _ := node["type"].(string)
+			nodeConfig, _ := node["config"].(map[string]interface{})
+			if nodeType != "trigger" || nodeConfig == nil {
+				continue
+			}
+			connector, _ := nodeConfig["connector"].(string)
+			configFormID, _ := nodeConfig["form_id"].(string)
+			if connector == "forms.submission" && configFormID == formIDStr {
+				matches = append(matches, wf)
+				break
+			}
+		}
+	}
+
+	return matches, nil
+}
+
 // WorkflowExecutionContext holds execution context for a workflow run
 type WorkflowExecutionContext struct {
 	ExecutionID uuid.UUID
@@ -430,6 +509,7 @@ type WorkflowExecutionContext struct {
 	UserID      uuid.UUID
 	NodeStates  map[string]interface{}
 	GlobalData  map[string]interface{}
+	DryRun      bool
 }
 
 // Built-in Connector Implementations
@@ -761,7 +841,9 @@ func (c *SpreadsheetUpdateConnector) GetConfigSchema() map[string]interface{} {
 	}
 }
 
-// ConditionConnector handles conditional logic
+// ConditionConnector handles conditional logic. Outgoing connections from a
+// condition node must set fromPort to "true" or "false" — only the branch
+// matching the evaluated condition_result is executed (see findNextNodes).
 type ConditionConnector struct{}
 
 func (c *ConditionConnector) Execute(config map[string]interface{}, inputData map[string]interface{}) (map[string]interface{}, error) {

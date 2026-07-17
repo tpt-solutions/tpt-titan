@@ -1,11 +1,23 @@
 package services
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"image"
+	"image/jpeg"
+	_ "image/png"
+	"io"
+	"math"
+	"mime"
+	"mime/multipart"
 	"net/mail"
+	"net/textproto"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -228,37 +240,113 @@ func (eas *EmailAttachmentService) GetEmailAttachments(emailID uuid.UUID) ([]Ema
 	return attachments, nil
 }
 
-// ProcessEmailAttachments processes attachments from incoming email
+// ProcessEmailAttachments processes attachments from incoming email.
 func (eas *EmailAttachmentService) ProcessEmailAttachments(emailID uuid.UUID, email *mail.Message) ([]uuid.UUID, error) {
 	var attachmentIDs []uuid.UUID
 
-	// Parse email with attachments
-	// This would use a proper email parsing library
-	parts := eas.parseEmailParts(email)
+	// Walk the MIME tree starting from the top-level message. Attachment parts
+	// are detected by their Content-Disposition / MIME type and extracted.
+	var walk func(headers textproto.MIMEHeader, body io.Reader) error
+	walk = func(headers textproto.MIMEHeader, body io.Reader) error {
+		mediaType, params, err := mime.ParseMediaType(headers.Get("Content-Type"))
+		if err != nil {
+			mediaType = "text/plain"
+		}
 
-	for _, part := range parts {
-		if eas.isAttachmentPart(part) {
-			upload := &AttachmentUpload{
-				Filename:    eas.extractFilename(part),
-				ContentType: eas.extractContentType(part),
-				Data:        eas.extractPartData(part),
-				IsInline:    eas.isInlineAttachment(part),
-				ContentID:   eas.extractContentID(part),
+		if !strings.HasPrefix(mediaType, "multipart/") {
+			// Non-multipart body: no nested attachments here.
+			return nil
+		}
+
+		mr := multipart.NewReader(body, params["boundary"])
+		for {
+			part, perr := mr.NextPart()
+			if perr != nil {
+				break
 			}
-
-			upload.Size = int64(len(upload.Data))
-
-			attachment, err := eas.SaveAttachment(emailID, upload)
-			if err != nil {
-				// Log error but continue processing other attachments
+			ct := part.Header.Get("Content-Type")
+			pmt, _, _ := mime.ParseMediaType(ct)
+			if strings.HasPrefix(pmt, "multipart/") {
+				if werr := walk(part.Header, part); werr != nil {
+					return werr
+				}
 				continue
 			}
-
-			attachmentIDs = append(attachmentIDs, attachment.ID)
+			if isAttachmentHeader(part.Header) {
+				data, rerr := io.ReadAll(part)
+				if rerr != nil {
+					return rerr
+				}
+				upload := &AttachmentUpload{
+					Filename:    decodeFilename(part.FileName()),
+					ContentType: pmt,
+					Data:        data,
+					IsInline:    isInlineHeader(part.Header),
+					ContentID:   strings.Trim(part.Header.Get("Content-ID"), "<>"),
+				}
+				attachment, aerr := eas.SaveAttachment(emailID, upload)
+				if aerr != nil {
+					// Log error but continue processing other attachments.
+					continue
+				}
+				attachmentIDs = append(attachmentIDs, attachment.ID)
+			}
 		}
+		return nil
+	}
+
+	if werr := walk(textproto.MIMEHeader(email.Header), email.Body); werr != nil {
+		return attachmentIDs, werr
 	}
 
 	return attachmentIDs, nil
+}
+
+// decodeFilename decodes RFC 2047 / parameter-encoded filenames when possible
+// and strips path components for safety.
+func decodeFilename(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "attachment.bin"
+	}
+	// decoder.DecodeHeader handles RFC 2047 encoded words.
+	if decoded, err := mimeWordDecoder.DecodeHeader(name); err == nil && decoded != "" {
+		name = decoded
+	}
+	// Strip directory components.
+	if idx := strings.LastIndexAny(name, `/\`); idx >= 0 {
+		name = name[idx+1:]
+	}
+	if name == "" {
+		return "attachment.bin"
+	}
+	return name
+}
+
+var mimeWordDecoder = mime.WordDecoder{}
+
+func isAttachmentHeader(h textproto.MIMEHeader) bool {
+	disp := h.Get("Content-Disposition")
+	ct := h.Get("Content-Type")
+	mt, _, _ := mime.ParseMediaType(ct)
+	isText := mt == "" || strings.HasPrefix(mt, "text/") || strings.HasPrefix(mt, "multipart/")
+
+	switch {
+	case disp == "":
+		// No disposition: treat non-text (and non-multipart) parts as attachments.
+		return !isText
+	case disp == "attachment":
+		return true
+	case disp == "inline":
+		// Inline text is message body, not an attachment; inline images/blobs are.
+		return !isText
+	}
+	return !isText
+}
+
+func isInlineHeader(h textproto.MIMEHeader) bool {
+	dm, _, _ := mime.ParseMediaType(h.Get("Content-Disposition"))
+	return dm == "inline"
 }
 
 // CreateAttachmentFromUpload creates an attachment from file upload
@@ -291,8 +379,11 @@ func (eas *EmailAttachmentService) GetAttachmentPreview(attachmentID uuid.UUID, 
 		return nil, err
 	}
 
-	// Generate thumbnail (would use image processing library)
-	thumbnail := eas.generateThumbnail(data.Data, maxWidth, maxHeight, attachment.ContentType)
+	// Generate thumbnail by decoding the image and scaling it down.
+	thumbnail, err := generateImageThumbnail(data.Data, maxWidth, maxHeight)
+	if err != nil {
+		return nil, err
+	}
 
 	return thumbnail, nil
 }
@@ -395,6 +486,55 @@ func (eas *EmailAttachmentService) GetAttachmentStats(userID uuid.UUID) (map[str
 
 // Helper methods
 
+// generateImageThumbnail decodes an image and scales it down to fit within
+// maxWidth x maxHeight (preserving aspect ratio), returning JPEG-encoded bytes.
+func generateImageThumbnail(data []byte, maxWidth, maxHeight int) ([]byte, error) {
+	if maxWidth <= 0 {
+		maxWidth = 200
+	}
+	if maxHeight <= 0 {
+		maxHeight = 200
+	}
+
+	src, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode image for thumbnail: %w", err)
+	}
+
+	b := src.Bounds()
+	w, h := b.Dx(), b.Dy()
+	if w == 0 || h == 0 {
+		return nil, fmt.Errorf("invalid image dimensions")
+	}
+
+	scale := math.Min(float64(maxWidth)/float64(w), float64(maxHeight)/float64(h))
+	if scale > 1 {
+		scale = 1
+	}
+	nw, nh := int(float64(w)*scale), int(float64(h)*scale)
+	if nw < 1 {
+		nw = 1
+	}
+	if nh < 1 {
+		nh = 1
+	}
+
+	dst := image.NewRGBA(image.Rect(0, 0, nw, nh))
+	for y := 0; y < nh; y++ {
+		for x := 0; x < nw; x++ {
+			srcX := b.Min.X + int(float64(x)/scale)
+			srcY := b.Min.Y + int(float64(y)/scale)
+			dst.Set(x, y, src.At(srcX, srcY))
+		}
+	}
+
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, dst, &jpeg.Options{Quality: 85}); err != nil {
+		return nil, fmt.Errorf("failed to encode thumbnail: %w", err)
+	}
+	return buf.Bytes(), nil
+}
+
 func (eas *EmailAttachmentService) validateAttachment(upload *AttachmentUpload) error {
 	// Check file size
 	if upload.Size > eas.maxSize {
@@ -455,80 +595,109 @@ func (eas *EmailAttachmentService) saveAttachmentToDB(attachment *EmailAttachmen
 	return err
 }
 
+// StorageService persists attachment bytes. The default implementation stores
+// files on the local filesystem under a configurable base directory; swap in an
+// S3/GCS-backed implementation by satisfying this interface.
+type StorageService struct {
+	baseDir string
+}
+
+// NewLocalStorageService creates a filesystem-backed storage service rooted at
+// baseDir. The directory is created if it does not already exist.
+func NewLocalStorageService(baseDir string) (*StorageService, error) {
+	if baseDir == "" {
+		baseDir = "data/attachments"
+	}
+	if err := os.MkdirAll(baseDir, 0o750); err != nil {
+		return nil, fmt.Errorf("failed to create storage dir: %w", err)
+	}
+	return &StorageService{baseDir: baseDir}, nil
+}
+
+func (ss *StorageService) resolve(path string) string {
+	// Prevent path traversal outside the base directory.
+	clean := filepath.Clean(path)
+	if strings.Contains(clean, "..") {
+		clean = filepath.Base(clean)
+	}
+	return filepath.Join(ss.baseDir, clean)
+}
+
+func (ss *StorageService) SaveFile(path string, data []byte) error {
+	full := ss.resolve(path)
+	if err := os.MkdirAll(filepath.Dir(full), 0o750); err != nil {
+		return err
+	}
+	return os.WriteFile(full, data, 0o600)
+}
+
+func (ss *StorageService) GetFile(path string) ([]byte, error) {
+	full := ss.resolve(path)
+	data, err := os.ReadFile(full)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func (ss *StorageService) DeleteFile(path string) error {
+	full := ss.resolve(path)
+	err := os.Remove(full)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
+// scanAttachmentForViruses scans attachment data for malware. If the ClamAV
+// daemon (clamdscan / clamd) is available on PATH it is used for a real scan;
+// otherwise the attachment is marked scanned-but-unverified with an honest
+// engine label rather than claimed to be clean.
 func (eas *EmailAttachmentService) scanAttachmentForViruses(attachmentID uuid.UUID, data []byte) {
-	// Simulate virus scanning (would integrate with actual AV service)
-	scanResult := &AttachmentVirusScan{
+	engine := "unverified"
+	scanResult := "unscanned"
+	isSafe := false
+
+	if eas.storageSvc != nil {
+		// Best-effort real scan via clamdscan if present on the system.
+		if path, err := eas.writeTempForScan(data); err == nil {
+			defer os.Remove(path)
+			if out, serr := exec.Command("clamdscan", "--no-summary", path).CombinedOutput(); serr == nil || strings.Contains(string(out), "FOUND") {
+				engine = "clamav"
+				scanResult = "clamav:" + strings.TrimSpace(string(out))
+				isSafe = !strings.Contains(string(out), "FOUND")
+			} else {
+				scanResult = "clamav unavailable: " + strings.TrimSpace(string(out))
+			}
+		}
+	}
+
+	result := &AttachmentVirusScan{
 		AttachmentID: attachmentID,
-		IsSafe:       true, // Assume safe for demo
-		ScanEngine:   "simulated_scanner",
-		ScanResult:   "clean",
+		IsSafe:       isSafe,
+		ScanEngine:   engine,
+		ScanResult:   scanResult,
 		ScannedAt:    time.Now(),
 	}
 
-	// Save scan result
 	query := `
 		INSERT INTO attachment_virus_scans (attachment_id, is_safe, scan_engine, scan_result, scanned_at)
 		VALUES ($1, $2, $3, $4, $5)
 	`
-	eas.db.Exec(query, scanResult.AttachmentID, scanResult.IsSafe, scanResult.ScanEngine,
-		scanResult.ScanResult, scanResult.ScannedAt)
+	eas.db.Exec(query, result.AttachmentID, result.IsSafe, result.ScanEngine,
+		result.ScanResult, result.ScannedAt)
 }
 
-func (eas *EmailAttachmentService) parseEmailParts(email *mail.Message) []interface{} {
-	// Placeholder - would use proper email parsing
-	return []interface{}{}
-}
-
-func (eas *EmailAttachmentService) isAttachmentPart(part interface{}) bool {
-	// Placeholder - would check if email part is an attachment
-	return false
-}
-
-func (eas *EmailAttachmentService) extractFilename(part interface{}) string {
-	// Placeholder - would extract filename from email part
-	return "attachment.bin"
-}
-
-func (eas *EmailAttachmentService) extractContentType(part interface{}) string {
-	// Placeholder - would extract content type from email part
-	return "application/octet-stream"
-}
-
-func (eas *EmailAttachmentService) extractPartData(part interface{}) []byte {
-	// Placeholder - would extract data from email part
-	return []byte{}
-}
-
-func (eas *EmailAttachmentService) isInlineAttachment(part interface{}) bool {
-	// Placeholder - would check if attachment is inline
-	return false
-}
-
-func (eas *EmailAttachmentService) extractContentID(part interface{}) string {
-	// Placeholder - would extract content ID
-	return ""
-}
-
-func (eas *EmailAttachmentService) generateThumbnail(data []byte, maxWidth, maxHeight int, contentType string) []byte {
-	// Placeholder - would use image processing library to generate thumbnail
-	// For now, return original data (not recommended for production)
-	return data
-}
-
-// StorageService interface (would be implemented separately)
-type StorageService struct{}
-
-func (ss *StorageService) SaveFile(path string, data []byte) error {
-	// Placeholder - would save to actual storage (S3, local filesystem, etc.)
-	return nil
-}
-
-func (ss *StorageService) GetFile(path string) ([]byte, error) {
-	// Placeholder - would retrieve from actual storage
-	return []byte{}, nil
-}
-
-func (ss *StorageService) DeleteFile(path string) error {
-	// Placeholder - would delete from actual storage
-	return nil
+func (eas *EmailAttachmentService) writeTempForScan(data []byte) (string, error) {
+	f, err := os.CreateTemp("", "attachment-scan-*.bin")
+	if err != nil {
+		return "", err
+	}
+	if _, err := f.Write(data); err != nil {
+		f.Close()
+		os.Remove(f.Name())
+		return "", err
+	}
+	f.Close()
+	return f.Name(), nil
 }

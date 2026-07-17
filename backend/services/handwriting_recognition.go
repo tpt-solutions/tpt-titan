@@ -351,8 +351,42 @@ func (hrs *HandwritingRecognitionService) isHorizontalStroke(stroke HandwritingS
 }
 
 func (hrs *HandwritingRecognitionService) strokesIntersect(s1, s2 HandwritingStroke) bool {
-	// Simplified intersection check
-	return true // Placeholder
+	b1 := strokeBounds(s1)
+	b2 := strokeBounds(s2)
+	if b1 == nil || b2 == nil {
+		return false
+	}
+	// Axis-aligned bounding-box overlap test.
+	return b1.minX <= b2.maxX && b1.maxX >= b2.minX &&
+		b1.minY <= b2.maxY && b1.maxY >= b2.minY
+}
+
+type bounds struct {
+	minX, minY, maxX, maxY float64
+}
+
+func strokeBounds(s HandwritingStroke) *bounds {
+	if len(s.X) == 0 || len(s.Y) == 0 {
+		return nil
+	}
+	b := bounds{minX: s.X[0], minY: s.Y[0], maxX: s.X[0], maxY: s.Y[0]}
+	for i := range s.X {
+		if s.X[i] < b.minX {
+			b.minX = s.X[i]
+		}
+		if s.X[i] > b.maxX {
+			b.maxX = s.X[i]
+		}
+	}
+	for i := range s.Y {
+		if s.Y[i] < b.minY {
+			b.minY = s.Y[i]
+		}
+		if s.Y[i] > b.maxY {
+			b.maxY = s.Y[i]
+		}
+	}
+	return &b
 }
 
 func (hrs *HandwritingRecognitionService) calculateConfidence(strokes []HandwritingStroke, recognizedText string) float64 {
@@ -392,9 +426,50 @@ func (hrs *HandwritingRecognitionService) generateAlternative(originalText strin
 }
 
 func (hrs *HandwritingRecognitionService) buildComplexExpression(strokes []HandwritingStroke) string {
-	// Build complex mathematical expression from strokes
-	// This is a simplified implementation
-	return "x^{2} + y^{2} = z^{2}"
+	// Derive a structural description of the drawing from its geometry. A full
+	// recognizer would map this to LaTeX via an ML model; here we summarize the
+	// strokes (count, total length, bounding box) so the output reflects the
+	// actual input rather than a hardcoded constant.
+	if len(strokes) == 0 {
+		return ""
+	}
+
+	totalPoints := 0
+	totalLen := 0.0
+	all := bounds{}
+	first := true
+	for _, s := range strokes {
+		b := strokeBounds(s)
+		if b == nil {
+			continue
+		}
+		totalPoints += len(s.X)
+		for i := 1; i < len(s.X); i++ {
+			dx := s.X[i] - s.X[i-1]
+			dy := s.Y[i] - s.Y[i-1]
+			totalLen += math.Sqrt(dx*dx + dy*dy)
+		}
+		if first {
+			all = *b
+			first = false
+		} else {
+			if b.minX < all.minX {
+				all.minX = b.minX
+			}
+			if b.minY < all.minY {
+				all.minY = b.minY
+			}
+			if b.maxX > all.maxX {
+				all.maxX = b.maxX
+			}
+			if b.maxY > all.maxY {
+				all.maxY = b.maxY
+			}
+		}
+	}
+
+	return fmt.Sprintf("drawing{strokes:%d,points:%d,length:%.1f,w:%.1f,h:%.1f}",
+		len(strokes), totalPoints, totalLen, all.maxX-all.minX, all.maxY-all.minY)
 }
 
 // ParseMathematicalExpression parses a recognized mathematical expression
@@ -697,11 +772,19 @@ func (hrs *HandwritingRecognitionService) ExportEquation(expr *MathExpression, f
 	case "svg":
 		return []byte(expr.SVG), nil
 	case "png":
-		// Would render to PNG image
-		return []byte("PNG data placeholder"), nil
+		// Render a real PNG of the expression text.
+		data, _, err := RenderEquationImage(expr.LaTeX, "png", "medium", "")
+		if err != nil {
+			return nil, err
+		}
+		return data, nil
 	case "pdf":
-		// Would render to PDF
-		return []byte("PDF data placeholder"), nil
+		// Render a real PDF of the expression text.
+		data, _, err := RenderEquationImage(expr.LaTeX, "pdf", "medium", "")
+		if err != nil {
+			return nil, err
+		}
+		return data, nil
 	default:
 		return nil, fmt.Errorf("unsupported export format: %s", format)
 	}

@@ -63,6 +63,7 @@ type Email struct {
 	IsStarred       bool       `json:"is_starred" db:"is_starred"`
 	Folder          string     `json:"folder" db:"folder"`
 	Labels          []string   `json:"labels,omitempty" db:"labels"`
+	HasAttachments  bool       `json:"-" db:"has_attachments"`
 	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
 }
 
@@ -175,7 +176,7 @@ func (e *Email) ToSummary() EmailSummary {
 		IsRead:      e.IsRead,
 		IsStarred:   e.IsStarred,
 		Folder:      e.Folder,
-		HasAttachments: false, // TODO: Implement attachment detection
+		HasAttachments: e.HasAttachments,
 	}
 }
 

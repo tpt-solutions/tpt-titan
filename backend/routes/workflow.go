@@ -197,6 +197,7 @@ func ExecuteWorkflow(c *gin.Context) {
 
 	var payload struct {
 		TriggerData map[string]interface{} `json:"trigger_data,omitempty"`
+		DryRun      bool                    `json:"dry_run,omitempty"`
 	}
 
 	if err := c.ShouldBindJSON(&payload); err != nil {
@@ -204,7 +205,7 @@ func ExecuteWorkflow(c *gin.Context) {
 		return
 	}
 
-	execution, err := workflowService.ExecuteWorkflow(wfID, payload.TriggerData)
+	execution, err := workflowService.ExecuteWorkflow(wfID, payload.TriggerData, payload.DryRun)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -441,8 +442,11 @@ func CreateWorkflowFromTemplate(c *gin.Context) {
 		Description: template.Description,
 		Category:    template.Category,
 		TriggerType: "manual",
-		IsActive:    true,
-		CanvasData:  template.TemplateData,
+		// Ships inactive: instantiating a preset is opt-in, but running it (and
+		// producing any real side effects) requires the user to explicitly
+		// activate it — ideally after a dry run.
+		IsActive:   false,
+		CanvasData: template.TemplateData,
 	}
 
 	if err := workflowService.CreateWorkflow(userID.(uuid.UUID), workflow); err != nil {

@@ -396,6 +396,22 @@ func SubmitFormResponse(c *gin.Context) {
 		return
 	}
 
+	if workflowService != nil {
+		if workflows, err := workflowService.FindFormTriggeredWorkflows(userID, formID); err == nil {
+			for _, wf := range workflows {
+				// Each execution gets its own copy — GlobalData is mutated in place
+				// during execution, and workflows run concurrently in goroutines.
+				triggerData := make(map[string]interface{}, len(responseData)+2)
+				for k, v := range responseData {
+					triggerData[k] = v
+				}
+				triggerData["user_id"] = userID.String()
+				triggerData["form_id"] = formID.String()
+				workflowService.ExecuteWorkflow(wf.ID, triggerData, false)
+			}
+		}
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
 		"id":           response.ID,
 		"form_id":      response.FormID,

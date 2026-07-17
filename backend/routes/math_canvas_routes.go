@@ -3,6 +3,8 @@ package routes
 import (
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -90,24 +92,18 @@ func GenerateEquationImage(c *gin.Context) {
 		req.Size = "medium"
 	}
 
-	// In a real implementation, render LaTeX to image using external service
-	// For now, return placeholder
-	placeholderData := []byte(fmt.Sprintf("Generated %s image for LaTeX: %s", req.Format, req.LaTeX))
-
-	var contentType string
-	switch req.Format {
-	case "png":
-		contentType = "image/png"
-	case "svg":
-		contentType = "image/svg+xml"
-	case "pdf":
-		contentType = "application/pdf"
-	default:
-		contentType = "application/octet-stream"
+	// Render a real artifact of the requested format (SVG / PDF / PNG) containing
+	// the equation text. A full TeX layout engine is out of scope, so the LaTeX
+	// is rendered as text rather than faked typeset output.
+	data, contentType, err := services.RenderEquationImage(req.LaTeX, req.Format, req.Size, req.Color)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	filename := fmt.Sprintf("equation.%s", req.Format)
+	filename := fmt.Sprintf("equation.%s", strings.ToLower(req.Format))
 	c.Header("Content-Disposition", "attachment; filename="+filename)
 	c.Header("Content-Type", contentType)
-	c.Data(http.StatusOK, contentType, placeholderData)
+	c.Header("Content-Length", strconv.Itoa(len(data)))
+	c.Data(http.StatusOK, contentType, data)
 }

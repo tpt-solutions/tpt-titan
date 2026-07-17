@@ -424,26 +424,113 @@
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 									<div>
 										<h4 class="text-lg font-semibold text-gray-900 mb-4">Response Trends</h4>
-										<div class="bg-gray-50 p-4 rounded">
-											<p class="text-gray-600">Response trend visualization would appear here.</p>
-											<p class="text-sm text-gray-500 mt-2">Shows daily/weekly response patterns over time.</p>
-										</div>
+										{#if reportData.trends && reportData.trends.length > 0}
+											<div class="bg-gray-50 p-4 rounded space-y-2">
+												{#each reportData.trends as point}
+													<div>
+														<div class="flex justify-between text-sm text-gray-700">
+															<span>{point.label}</span>
+															<span>{point.count}</span>
+														</div>
+														<div class="w-full bg-gray-200 rounded h-2 mt-1">
+															<div class="bg-blue-500 h-2 rounded" style="width: {Math.max(2, Math.round((point.count / (reportData.trend_max || point.count || 1)) * 100))}%"></div>
+														</div>
+													</div>
+												{/each}
+											</div>
+										{:else}
+											<div class="bg-gray-50 p-4 rounded">
+												<p class="text-gray-600">No trend data returned for the selected criteria.</p>
+												<p class="text-sm text-gray-500 mt-2">Export the raw data to analyze response patterns over time.</p>
+											</div>
+										{/if}
 									</div>
 									<div>
 										<h4 class="text-lg font-semibold text-gray-900 mb-4">Peak Hours</h4>
-										<div class="bg-gray-50 p-4 rounded">
-											<p class="text-gray-600">Peak submission hours analysis would appear here.</p>
-											<p class="text-sm text-gray-500 mt-2">Identifies when users are most active.</p>
-										</div>
+										{#if reportData.peak_hours && reportData.peak_hours.length > 0}
+											<div class="bg-gray-50 p-4 rounded space-y-2">
+												{#each reportData.peak_hours as point}
+													<div>
+														<div class="flex justify-between text-sm text-gray-700">
+															<span>{point.label}</span>
+															<span>{point.count}</span>
+														</div>
+														<div class="w-full bg-gray-200 rounded h-2 mt-1">
+															<div class="bg-purple-500 h-2 rounded" style="width: {Math.max(2, Math.round((point.count / (reportData.peak_max || point.count || 1)) * 100))}%"></div>
+														</div>
+													</div>
+												{/each}
+											</div>
+										{:else}
+											<div class="bg-gray-50 p-4 rounded">
+												<p class="text-gray-600">No peak-hour data returned for the selected criteria.</p>
+												<p class="text-sm text-gray-500 mt-2">Export the raw data to identify when users are most active.</p>
+											</div>
+										{/if}
 									</div>
 								</div>
 
 							{:else}
-								<!-- Other Report Types -->
-								<div class="text-center py-8 text-gray-500">
-									<p>This report type visualization is coming soon.</p>
-									<p class="text-sm mt-2">Raw data is available for export.</p>
-								</div>
+								<!-- Generic data-driven view for completion / field-analysis / cross-tab -->
+								{#if reportData.responses && reportData.responses.length > 0}
+									<h4 class="text-lg font-semibold text-gray-900 mb-4">
+										{reportTypes.find(t => t.id === selectedReportType)?.name} — {reportData.responses.length} responses
+									</h4>
+									<div class="overflow-x-auto">
+										<table class="w-full border border-gray-200 rounded">
+											<thead class="bg-gray-50">
+												<tr>
+													<th class="px-4 py-2 text-left border-b">ID</th>
+													<th class="px-4 py-2 text-left border-b">Submitted</th>
+													{#each reportData.fields || Object.keys(reportData.responses[0].responses || {}) as field}
+														<th class="px-4 py-2 text-left border-b">{typeof field === 'string' ? field : field.label}</th>
+													{/each}
+												</tr>
+											</thead>
+											<tbody>
+												{#each reportData.responses as response}
+													<tr class="border-b border-gray-200">
+														<td class="px-4 py-2">{response.id}</td>
+														<td class="px-4 py-2">{response.submitted_at ? new Date(response.submitted_at).toLocaleString() : '-'}</td>
+														{#each reportData.fields || Object.keys(response.responses || {}) as field}
+															{@const key = typeof field === 'string' ? field : field.label}
+															<td class="px-4 py-2">{response.responses?.[key] || '-'}</td>
+														{/each}
+													</tr>
+												{/each}
+											</tbody>
+										</table>
+									</div>
+								{:else if reportData.field_stats}
+									<h4 class="text-lg font-semibold text-gray-900 mb-4">
+										{reportTypes.find(t => t.id === selectedReportType)?.name} — Field Statistics
+									</h4>
+									<div class="overflow-x-auto">
+										<table class="w-full border border-gray-200 rounded">
+											<thead class="bg-gray-50">
+												<tr>
+													<th class="px-4 py-2 text-left border-b">Field</th>
+													<th class="px-4 py-2 text-left border-b">Responses</th>
+													<th class="px-4 py-2 text-left border-b">Completion %</th>
+												</tr>
+											</thead>
+											<tbody>
+												{#each reportData.field_stats as stat}
+													<tr class="border-b border-gray-200">
+														<td class="px-4 py-2">{stat.field_name}</td>
+														<td class="px-4 py-2">{stat.response_count}</td>
+														<td class="px-4 py-2">{Math.round((stat.completion_rate || 0) * 100)}%</td>
+													</tr>
+												{/each}
+											</tbody>
+										</table>
+									</div>
+								{:else}
+									<div class="text-center py-8 text-gray-500">
+										<p>No data available for this report configuration.</p>
+										<p class="text-sm mt-2">Try adjusting the filters or date range, or export the raw data.</p>
+									</div>
+								{/if}
 							{/if}
 						</div>
 					{:else}

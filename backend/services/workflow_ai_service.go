@@ -662,7 +662,7 @@ type PredictedWorkflow struct {
 
 // Placeholder implementations for analysis methods
 func (s *WorkflowAIService) findLongSequentialChains(nodes []interface{}, connections []interface{}) [][]interface{} {
-	// Build adjacency from connection "source" -> "target" edges.
+	// Build adjacency from connection "from" -> "to" edges.
 	adj := make(map[string][]string)
 	targets := make(map[string]bool)
 	for _, c := range connections {
@@ -670,8 +670,8 @@ func (s *WorkflowAIService) findLongSequentialChains(nodes []interface{}, connec
 		if !ok {
 			continue
 		}
-		src, _ := conn["source"].(string)
-		tgt, _ := conn["target"].(string)
+		src, _ := conn["from"].(string)
+		tgt, _ := conn["to"].(string)
 		if src == "" || tgt == "" {
 			continue
 		}
@@ -790,10 +790,10 @@ func (s *WorkflowAIService) findUnusedDataFlow(nodes []interface{}, connections 
 		if !ok {
 			continue
 		}
-		if src, _ := conn["source"].(string); src != "" {
+		if src, _ := conn["from"].(string); src != "" {
 			referenced[src] = true
 		}
-		if tgt, _ := conn["target"].(string); tgt != "" {
+		if tgt, _ := conn["to"].(string); tgt != "" {
 			referenced[tgt] = true
 		}
 	}

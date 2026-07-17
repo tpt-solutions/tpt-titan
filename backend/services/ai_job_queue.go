@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"runtime"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -543,65 +545,285 @@ func (jq *JobQueue) cleanupOldJobs() {
 	}
 }
 
-// Job processing implementations (simplified placeholders)
+// Job processing implementations.
+//
+// These derive results from the actual job input payload so that different
+// inputs produce different (and meaningful) outputs instead of canned data.
+
+// extractText pulls a textual body out of the job input under a few common
+// keys ("content", "text", "body", "document"). It returns "" when absent.
+func extractJobText(input map[string]interface{}) string {
+	for _, key := range []string{"content", "text", "body", "document", "transcript"} {
+		if v, ok := input[key]; ok {
+			if s, ok := v.(string); ok {
+				return s
+			}
+		}
+	}
+	return ""
+}
+
+var topicKeywords = []struct {
+	topic string
+	words []string
+}{
+	{"AI", []string{"ai", "model", "neural", "machine learning", "llm", "gpt"}},
+	{"productivity", []string{"task", "workflow", "automation", "schedule", "goal", "productive"}},
+	{"security", []string{"security", "encryption", "password", "auth", "vulnerability", "key"}},
+	{"finance", []string{"budget", "invoice", "payment", "finance", "revenue", "cost"}},
+	{"meetings", []string{"meeting", "agenda", "standup", "call", "sync", "review"}},
+}
 
 func (jq *JobQueue) processDocumentAnalysis(job *Job) *JobResult {
-	// Placeholder implementation
-	time.Sleep(time.Second * 2) // Simulate processing time
+	text := extractJobText(job.Input)
+
+	words := strings.Fields(text)
+	wordCount := len(words)
+
+	topicHits := map[string]int{}
+	for _, w := range words {
+		lw := strings.ToLower(strings.TrimRight(w, ",.;:!?"))
+		for _, tk := range topicKeywords {
+			for _, kw := range tk.words {
+				if lw == kw || strings.Contains(lw, kw) {
+					topicHits[tk.topic]++
+				}
+			}
+		}
+	}
+
+	// Rank topics by hit count and keep up to 5 with at least one match.
+	topics := make([]string, 0, len(topicHits))
+	type scored struct {
+		topic string
+		score int
+	}
+	ranked := make([]scored, 0, len(topicHits))
+	for t, s := range topicHits {
+		ranked = append(ranked, scored{t, s})
+	}
+	sort.Slice(ranked, func(i, j int) bool { return ranked[i].score > ranked[j].score })
+	for _, r := range ranked {
+		topics = append(topics, r.topic)
+		if len(topics) >= 5 {
+			break
+		}
+	}
+	if len(topics) == 0 {
+		topics = []string{"general"}
+	}
+
+	charCount := len(text)
+	readMinutes := 0
+	if wordCount > 0 {
+		readMinutes = (wordCount + 199) / 200
+	}
 
 	return &JobResult{
 		JobID:   job.ID,
 		Success: true,
 		Output: map[string]interface{}{
-			"analysis": "Document analyzed successfully",
-			"word_count": 1250,
-			"key_topics": []string{"AI", "productivity", "automation"},
+			"analysis":        "Document analyzed successfully",
+			"word_count":      wordCount,
+			"character_count": charCount,
+			"estimated_read_minutes": readMinutes,
+			"key_topics":      topics,
 		},
 	}
 }
 
+// emailCategoryKeywords maps a category to the keywords that indicate it.
+var emailCategoryKeywords = map[string][]string{
+	"urgent":   {"urgent", "asap", "immediately", "critical", "deadline", "emergency"},
+	"meeting":  {"meeting", "agenda", "invite", "call", "standup", "sync", "conference"},
+	"work":     {"project", "task", "client", "report", "review", "sprint", "ticket"},
+	"personal": {"family", "weekend", "friend", "vacation", "birthday", "holiday"},
+	"finance":  {"invoice", "payment", "billing", "receipt", "subscription", "refund"},
+}
+
 func (jq *JobQueue) processEmailCategorization(job *Job) *JobResult {
-	// Placeholder implementation
-	time.Sleep(time.Second * 1)
+	subject, _ := job.Input["subject"].(string)
+	from, _ := job.Input["from"].(string)
+	body := extractJobText(job.Input)
+
+	corpus := strings.ToLower(subject + " " + from + " " + body)
+
+	categories := make([]string, 0, len(emailCategoryKeywords))
+	bestScore := 0
+	for category, keywords := range emailCategoryKeywords {
+		score := 0
+		for _, kw := range keywords {
+			if strings.Contains(corpus, kw) {
+				score++
+			}
+		}
+		if score > 0 {
+			// "work" is a weaker default than more specific categories.
+			if category == "work" {
+				score = score - 0
+			}
+			categories = append(categories, category)
+			if score > bestScore {
+				bestScore = score
+			}
+		}
+	}
+	if len(categories) == 0 {
+		categories = []string{"other"}
+	}
+
+	confidence := 0.5
+	if bestScore > 0 {
+		confidence = float64(bestScore) / float64(bestScore+1)
+		if confidence > 0.99 {
+			confidence = 0.99
+		}
+	}
 
 	return &JobResult{
 		JobID:   job.ID,
 		Success: true,
 		Output: map[string]interface{}{
-			"categories": []string{"work", "meeting", "urgent"},
-			"confidence": 0.95,
+			"categories": categories,
+			"confidence": confidence,
 		},
 	}
 }
 
 func (jq *JobQueue) processSpeechSynthesis(job *Job) *JobResult {
-	// Placeholder implementation
-	time.Sleep(time.Second * 3)
+	text, _ := job.Input["text"].(string)
+	if text == "" {
+		return &JobResult{
+			JobID:   job.ID,
+			Success: false,
+			Error:   "speech synthesis requires a 'text' input field",
+		}
+	}
 
+	// Estimate duration at ~150 words per minute.
+	words := len(strings.Fields(text))
+	durationSec := (words * 60) / 150
+	if durationSec < 1 {
+		durationSec = 1
+	}
+
+	// No real TTS engine is wired here; expose the requested text and the
+	// estimated duration honestly instead of fabricating an audio URL.
 	return &JobResult{
 		JobID:   job.ID,
 		Success: true,
 		Output: map[string]interface{}{
-			"audio_url": "https://example.com/audio/generated.mp3",
-			"duration": 45,
+			"text":           text,
+			"estimated_duration_seconds": durationSec,
+			"synthesized":    false,
+			"note":           "no TTS provider configured; duration is an estimate",
 		},
 	}
 }
 
 func (jq *JobQueue) processWorkflowOptimization(job *Job) *JobResult {
-	// Placeholder implementation
-	time.Sleep(time.Second * 2)
+	nodesRaw, hasNodes := job.Input["nodes"]
+	connectionsRaw, hasConns := job.Input["connections"]
+
+	if !hasNodes || !hasConns {
+		return &JobResult{
+			JobID:   job.ID,
+			Success: false,
+			Error:   "workflow optimization requires 'nodes' and 'connections' input",
+		}
+	}
+
+	nodes, okN := nodesRaw.([]interface{})
+	connections, okC := connectionsRaw.([]interface{})
+	if !okN || !okC {
+		return &JobResult{
+			JobID:   job.ID,
+			Success: false,
+			Error:   "workflow optimization input has invalid node/connection types",
+		}
+	}
+
+	nodeByID := map[string]map[string]interface{}{}
+	nodeTypeCount := map[string]int{}
+	for _, n := range nodes {
+		nm, ok := n.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		id, _ := nm["id"].(string)
+		if id == "" {
+			continue
+		}
+		nodeByID[id] = nm
+		nt, _ := nm["type"].(string)
+		if nt != "" {
+			nodeTypeCount[nt]++
+		}
+	}
+
+	// Build adjacency from connections (source -> target).
+	adj := map[string][]string{}
+	inDeg := map[string]int{}
+	for _, c := range connections {
+		cm, ok := c.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		src, _ := cm["source"].(string)
+		tgt, _ := cm["target"].(string)
+		if src == "" || tgt == "" {
+			continue
+		}
+		adj[src] = append(adj[src], tgt)
+		inDeg[tgt]++
+	}
+
+	// Long chains: walk from each node that has no inbound edge.
+	var suggestions []string
+	longest := 0
+	for id := range nodeByID {
+		if inDeg[id] > 0 {
+			continue
+		}
+		chain := 0
+		cur := id
+		visited := map[string]bool{}
+		for cur != "" && !visited[cur] {
+			visited[cur] = true
+			chain++
+			next := ""
+			for _, t := range adj[cur] {
+				next = t
+				break
+			}
+			cur = next
+		}
+		if chain > longest {
+			longest = chain
+		}
+		if chain > 5 {
+			suggestions = append(suggestions, fmt.Sprintf("Flatten the sequential chain of %d steps starting at node %s", chain, id))
+		}
+	}
+
+	// Redundant operations: node types appearing more than once.
+	for nt, count := range nodeTypeCount {
+		if count > 1 {
+			suggestions = append(suggestions, fmt.Sprintf("Merge %d redundant '%s' nodes", count, nt))
+		}
+	}
+
+	if len(suggestions) == 0 {
+		suggestions = append(suggestions, "Workflow looks well structured; no optimizations detected")
+	}
 
 	return &JobResult{
 		JobID:   job.ID,
 		Success: true,
 		Output: map[string]interface{}{
-			"suggestions": []string{
-				"Add error handling to step 3",
-				"Parallelize steps 4 and 5",
-				"Add validation before step 2",
-			},
-			"estimated_improvement": "35% faster execution",
+			"suggestions":          suggestions,
+			"node_count":           len(nodeByID),
+			"longest_chain_length": longest,
 		},
 	}
 }

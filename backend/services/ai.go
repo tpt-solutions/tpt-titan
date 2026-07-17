@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 	"tpt-titan/backend/config"
@@ -287,23 +288,80 @@ func (s *AIService) checkOllamaUpgrades(currentModels []models.AIModel, hardware
 	return upgrades, nil
 }
 
-// checkOpenRouterUpgrades checks for OpenRouter model upgrades
+// checkOpenRouterUpgrades checks for OpenRouter model upgrades by querying the
+// OpenRouter models API. It only runs when an API key is configured (the caller
+// already guards on s.config.OpenRouterKey != ""), and returns a real list of
+// candidate upgrades derived from the live model catalog.
 func (s *AIService) checkOpenRouterUpgrades(currentModels []models.AIModel, hardware *HardwareInfo) ([]models.UpgradeOption, error) {
-	// This would query OpenRouter API for available models
-	// For now, return a placeholder - in production, this would make API calls
 	var upgrades []models.UpgradeOption
 
-	// Example: Check if user has access to GPT-4, Claude 3, etc.
-	// This is simplified - real implementation would query OpenRouter API
+	catalog, err := s.listOpenRouterModels()
+	if err != nil {
+		return nil, fmt.Errorf("failed to query OpenRouter models: %w", err)
+	}
 
 	for _, current := range currentModels {
-		if current.Provider == "openrouter" {
-			// Add potential OpenRouter upgrades here
-			// This would compare current model against available OpenRouter models
+		if current.Provider != "openrouter" {
+			continue
+		}
+		for _, m := range catalog {
+			if !s.isUpgradeCandidate(current.ModelID, m.ID, hardware) {
+				continue
+			}
+			sizeGB := 0.0 // OpenRouter models run in the cloud; no local RAM sizing
+			upgrade := models.UpgradeOption{
+				ID:              fmt.Sprintf("openrouter-%s-%s", current.ModelID, m.ID),
+				CurrentModel:    current.ModelID,
+				NewModel:        m.ID,
+				Provider:        "openrouter",
+				SizeGB:          sizeGB,
+				Capabilities:    []string{m.Architecture},
+				PerformanceGain: s.assessPerformanceGain(current.ModelID, m.ID),
+				Compatibility:   s.checkCompatibility(sizeGB, hardware),
+				Reasoning:       s.generateUpgradeReasoning(current.ModelID, m.ID),
+				RiskLevel:       "medium",
+			}
+			upgrades = append(upgrades, upgrade)
 		}
 	}
 
 	return upgrades, nil
+}
+
+// openRouterModel is the subset of the OpenRouter /api/v1/models response we use.
+type openRouterModel struct {
+	ID           string `json:"id"`
+	Architecture string `json:"architecture"`
+	ContextLength string `json:"context_length"`
+}
+
+// listOpenRouterModels fetches the available model catalog from OpenRouter.
+func (s *AIService) listOpenRouterModels() ([]openRouterModel, error) {
+	req, err := http.NewRequest(http.MethodGet, "https://openrouter.ai/api/v1/models", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+s.config.OpenRouterKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("openrouter returned status %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Data []openRouterModel `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, err
+	}
+	return payload.Data, nil
 }
 
 // Helper functions for upgrade evaluation
@@ -314,8 +372,9 @@ func (s *AIService) isUpgradeCandidate(currentModelID, newModelName string, hard
 		return false
 	}
 
-	// Check basic compatibility
-	return s.checkCompatibility(1.0, hardware) // Placeholder size check
+	// Check basic compatibility against the real candidate size.
+	sizeGB := extractModelSize(newModelName)
+	return s.checkCompatibility(sizeGB, hardware)
 }
 
 func (s *AIService) assessPerformanceGain(currentModel, newModel string) string {
