@@ -2,6 +2,7 @@ package services
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -580,8 +581,11 @@ func (qbs *QueryBuilderService) ExportQuery(elements []QueryElement, format stri
 	case "sql":
 		return sql, nil
 	case "json":
-		// Would serialize elements to JSON
-		return "", fmt.Errorf("JSON export not implemented")
+		data, err := json.MarshalIndent(elements, "", "  ")
+		if err != nil {
+			return "", err
+		}
+		return string(data), nil
 	default:
 		return "", fmt.Errorf("unsupported export format: %s", format)
 	}

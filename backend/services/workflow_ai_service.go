@@ -662,23 +662,155 @@ type PredictedWorkflow struct {
 
 // Placeholder implementations for analysis methods
 func (s *WorkflowAIService) findLongSequentialChains(nodes []interface{}, connections []interface{}) [][]interface{} {
-	// Simplified implementation - would need more sophisticated graph analysis
-	return [][]interface{}{}
+	// Build adjacency from connection "source" -> "target" edges.
+	adj := make(map[string][]string)
+	targets := make(map[string]bool)
+	for _, c := range connections {
+		conn, ok := c.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		src, _ := conn["source"].(string)
+		tgt, _ := conn["target"].(string)
+		if src == "" || tgt == "" {
+			continue
+		}
+		adj[src] = append(adj[src], tgt)
+		targets[tgt] = true
+	}
+
+	// A node with no inbound edge is a chain start.
+	var chains [][]interface{}
+	for _, n := range nodes {
+		node, ok := n.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		id, _ := node["id"].(string)
+		if id == "" || targets[id] {
+			continue
+		}
+
+		// Walk the longest simple path from this start.
+		chain := []interface{}{node}
+		visited := map[string]bool{id: true}
+		cur := id
+		for {
+			nexts := adj[cur]
+			if len(nexts) == 0 {
+				break
+			}
+			// Follow the first unvisited successor to stay simple.
+			var picked string
+			for _, nx := range nexts {
+				if !visited[nx] {
+					picked = nx
+					break
+				}
+			}
+			if picked == "" {
+				break
+			}
+			visited[picked] = true
+			chain = append(chain, picked)
+			cur = picked
+		}
+		if len(chain) > 1 {
+			chains = append(chains, chain)
+		}
+	}
+	return chains
 }
 
 func (s *WorkflowAIService) findRedundantOperations(nodes []interface{}) []struct{OperationType string; Count int} {
-	// Simplified implementation
-	return []struct{OperationType string; Count int}{}
+	counts := make(map[string]int)
+	for _, n := range nodes {
+		node, ok := n.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		op, _ := node["type"].(string)
+		if op == "" {
+			op, _ = node["operation_type"].(string)
+		}
+		if op == "" {
+			continue
+		}
+		counts[op]++
+	}
+
+	result := []struct{OperationType string; Count int}{}
+	for op, count := range counts {
+		if count > 1 {
+			result = append(result, struct{OperationType string; Count int}{OperationType: op, Count: count})
+		}
+	}
+	return result
 }
 
 func (s *WorkflowAIService) analyzeErrorHandling(nodes []interface{}, connections []interface{}) struct{HasErrorHandlers bool} {
-	// Simplified implementation
+	// Heuristic: a workflow has error handling if any node declares an
+	// on_error/error_handler property or any connection leads to an
+	// error-handling node.
+	errorNodeTypes := map[string]bool{"error": true, "error_handler": true, "notify_error": true}
+	for _, n := range nodes {
+		node, ok := n.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if onErr, _ := node["on_error"].(string); onErr != "" {
+			return struct{HasErrorHandlers bool}{HasErrorHandlers: true}
+		}
+		if eh, _ := node["error_handler"].(string); eh != "" {
+			return struct{HasErrorHandlers bool}{HasErrorHandlers: true}
+		}
+		op, _ := node["type"].(string)
+		if errorNodeTypes[op] {
+			return struct{HasErrorHandlers bool}{HasErrorHandlers: true}
+		}
+	}
+	for _, c := range connections {
+		conn, ok := c.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if label, _ := conn["label"].(string); strings.EqualFold(label, "error") {
+			return struct{HasErrorHandlers bool}{HasErrorHandlers: true}
+		}
+	}
 	return struct{HasErrorHandlers bool}{HasErrorHandlers: false}
 }
 
 func (s *WorkflowAIService) findUnusedDataFlow(nodes []interface{}, connections []interface{}) []interface{} {
-	// Simplified implementation
-	return []interface{}{}
+	// A node is "unused" if it is never referenced as a connection target and
+	// never acts as a connection source (i.e. it is disconnected from the flow).
+	referenced := make(map[string]bool)
+	for _, c := range connections {
+		conn, ok := c.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if src, _ := conn["source"].(string); src != "" {
+			referenced[src] = true
+		}
+		if tgt, _ := conn["target"].(string); tgt != "" {
+			referenced[tgt] = true
+		}
+	}
+
+	unused := []interface{}{}
+	for _, n := range nodes {
+		node, ok := n.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		id, _ := node["id"].(string)
+		if id == "" || referenced[id] {
+			continue
+		}
+		unused = append(unused, n)
+	}
+	return unused
 }
 
 func (s *WorkflowAIService) estimatePerformanceImprovement(suggestions []OptimizationSuggestion) WorkflowImprovement {

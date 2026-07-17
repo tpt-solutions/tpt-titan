@@ -17,6 +17,8 @@ type DocumentContent struct {
 	Title    string            `json:"title"`
 	Content  []ContentBlock    `json:"content"`
 	Metadata map[string]string `json:"metadata,omitempty"`
+	Header   string            `json:"header,omitempty"`
+	Footer   string            `json:"footer,omitempty"`
 }
 
 // ContentBlock represents a block of content (paragraph, heading, list, etc.)
@@ -64,15 +66,22 @@ func (des *DOCXExportService) ExportToDOCX(content *DocumentContent) ([]byte, er
 	// Create a new DOCX file structure
 	docx := des.createDOCXStructure()
 
-	// Generate document content
+	// Generate document content (including the section properties that reference
+	// any header/footer parts)
 	documentXML := des.generateDocumentXML(content)
-
-	// Add content to the DOCX structure
 	docx.Files["word/document.xml"] = documentXML
 
+	// Generate header and footer parts when provided.
+	if content.Header != "" {
+		docx.Files["word/header1.xml"] = des.generateHeaderFooterXML(content.Header, "hdr")
+	}
+	if content.Footer != "" {
+		docx.Files["word/footer1.xml"] = des.generateHeaderFooterXML(content.Footer, "ftr")
+	}
+
 	// Generate relationships and other required files
-	docx.Files["word/_rels/document.xml.rels"] = des.generateRelationshipsXML()
-	docx.Files["[Content_Types].xml"] = des.generateContentTypesXML()
+	docx.Files["word/_rels/document.xml.rels"] = des.generateRelationshipsXML(content)
+	docx.Files["[Content_Types].xml"] = des.generateContentTypesXML(content)
 	docx.Files["word/styles.xml"] = des.generateStylesXML()
 
 	// Create the ZIP archive (DOCX is essentially a ZIP file)
@@ -108,6 +117,10 @@ func (des *DOCXExportService) generateDocumentXML(content *DocumentContent) []by
 		xmlContent.WriteString(des.generateBlockXML(block))
 	}
 
+	// Section properties (must be the last child of w:body). When a header or
+	// footer is provided, reference the corresponding parts so Word renders them.
+	xmlContent.WriteString(des.generateSectPr(content))
+
 	// Close document
 	xmlContent.WriteString(`  </w:body>
 </w:document>`)
@@ -115,26 +128,37 @@ func (des *DOCXExportService) generateDocumentXML(content *DocumentContent) []by
 	return []byte(xmlContent.String())
 }
 
-// generateBlockXML generates XML for a content block
-func (des *DOCXExportService) generateBlockXML(block ContentBlock) string {
-	switch block.Type {
-	case "heading":
-		return des.generateHeadingXML(block)
-	case "paragraph":
-		return des.generateParagraphXML(block)
-	case "list":
-		return des.generateListXML(block)
-	case "table":
-		return des.generateTableXML(block)
-	case "image":
-		return des.generateImageXML(block)
-	case "code":
-		return des.generateCodeXML(block)
-	case "quote":
-		return des.generateQuoteXML(block)
-	default:
-		return des.generateParagraphXML(block)
+// generateSectPr emits the section properties that close w:body. It references
+// any header/footer parts that were generated for the document.
+func (des *DOCXExportService) generateSectPr(content *DocumentContent) string {
+	var refs strings.Builder
+	if content.Header != "" {
+		refs.WriteString(`      <w:headerReference w:type="default" r:id="rIdHdr"/>
+`)
 	}
+	if content.Footer != "" {
+		refs.WriteString(`      <w:footerReference w:type="default" r:id="rIdFtr"/>
+`)
+	}
+
+	return fmt.Sprintf(`    <w:sectPr>
+%s      <w:pgSz w:w="12240" w:h="15840"/>
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>
+    </w:sectPr>
+`, refs.String())
+}
+
+// generateHeaderFooterXML emits a minimal header/footer part containing a
+// single paragraph of text. part must be either "hdr" or "ftr".
+func (des *DOCXExportService) generateHeaderFooterXML(text, part string) []byte {
+	return []byte(fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:%s xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:p>
+    <w:r>
+      <w:t>%s</w:t>
+    </w:r>
+  </w:p>
+</w:%s>`, part, des.escapeXML(text), part))
 }
 
 // generateHeadingXML generates XML for headings
@@ -342,23 +366,51 @@ func (des *DOCXExportService) generateQuoteXML(block ContentBlock) string {
 `, des.escapeXML(block.Text))
 }
 
-// generateRelationshipsXML generates the relationships XML
-func (des *DOCXExportService) generateRelationshipsXML() []byte {
-	return []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+// generateRelationshipsXML generates the relationships for document.xml,
+// including references to the header/footer parts when present.
+func (des *DOCXExportService) generateRelationshipsXML(content *DocumentContent) []byte {
+	var b strings.Builder
+	b.WriteString(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`)
+
+	if content.Header != "" {
+		b.WriteString(`
+  <Relationship Id="rIdHdr" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>`)
+	}
+	if content.Footer != "" {
+		b.WriteString(`
+  <Relationship Id="rIdFtr" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>`)
+	}
+
+	b.WriteString(`
 </Relationships>`)
+	return []byte(b.String())
 }
 
-// generateContentTypesXML generates the content types XML
-func (des *DOCXExportService) generateContentTypesXML() []byte {
-	return []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+// generateContentTypesXML generates the content types XML, registering the
+// header/footer parts when present.
+func (des *DOCXExportService) generateContentTypesXML(content *DocumentContent) []byte {
+	var b strings.Builder
+	b.WriteString(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>`)
+
+	if content.Header != "" {
+		b.WriteString(`
+  <Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>`)
+	}
+	if content.Footer != "" {
+		b.WriteString(`
+  <Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>`)
+	}
+
+	b.WriteString(`
 </Types>`)
+	return []byte(b.String())
 }
 
 // generateStylesXML generates the styles XML
@@ -566,7 +618,7 @@ func (des *DOCXExportService) GetSupportedDOCXFeatures() map[string]interface{} 
 		"blockquotes":     true,
 		"hyperlinks":      true,
 		"page_breaks":     true,
-		"headers_footers": false, // Not implemented yet
+		"headers_footers": true, // Rendered when DocumentContent.Header/Footer are set
 		"styles":          []string{"normal", "heading1-9", "code", "quote"},
 	}
 }
@@ -601,6 +653,28 @@ func (des *DOCXExportService) ValidateDOCXContent(content *DocumentContent) []st
 	}
 
 	return errors
+}
+
+// generateBlockXML generates XML for a content block
+func (des *DOCXExportService) generateBlockXML(block ContentBlock) string {
+	switch block.Type {
+	case "heading":
+		return des.generateHeadingXML(block)
+	case "paragraph":
+		return des.generateParagraphXML(block)
+	case "list":
+		return des.generateListXML(block)
+	case "table":
+		return des.generateTableXML(block)
+	case "image":
+		return des.generateImageXML(block)
+	case "code":
+		return des.generateCodeXML(block)
+	case "quote":
+		return des.generateQuoteXML(block)
+	default:
+		return des.generateParagraphXML(block)
+	}
 }
 
 // CreateDOCXTemplate creates a DOCX template with predefined styles

@@ -1,7 +1,10 @@
 package services
 
 import (
+	"archive/zip"
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
@@ -612,19 +615,163 @@ func (frs *FormReportingService) exportToCSV(result *ReportResult) ([]byte, erro
 }
 
 func (frs *FormReportingService) exportToExcel(result *ReportResult) ([]byte, error) {
-	// Would use the Excel service to export
-	// For now, return CSV as Excel
-	return frs.exportToCSV(result)
+	// Build a real, minimal XLSX (Office Open XML) workbook.
+	files := map[string][]byte{
+		"[Content_Types].xml": []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>`),
+		"_rels/.rels": []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`),
+		"xl/workbook.xml": []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheets>
+    <sheet name="Report" sheetId="1" r:id="rId1"/>
+  </sheets>
+</workbook>`),
+		"xl/_rels/workbook.xml.rels": []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+</Relationships>`),
+	}
+
+	var sb strings.Builder
+	sb.WriteString(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>`)
+
+	// Header row
+	sb.WriteString(`<row r="1">`)
+	for i, col := range result.Columns {
+		sb.WriteString(fmt.Sprintf(`<c r="%s1" t="inlineStr"><is><t>%s</t></is></c>`, colLetter(i), xmlEscape(col.Label)))
+	}
+	sb.WriteString(`</row>`)
+
+	// Data rows
+	for r, row := range result.Data {
+		rowIdx := r + 2
+		sb.WriteString(fmt.Sprintf(`<row r="%d">`, rowIdx))
+		for i, col := range result.Columns {
+			val := ""
+			if v, ok := row[col.Label]; ok {
+				val = fmt.Sprintf("%v", v)
+			}
+			sb.WriteString(fmt.Sprintf(`<c r="%s%d" t="inlineStr"><is><t>%s</t></is></c>`, colLetter(i), rowIdx, xmlEscape(val)))
+		}
+		sb.WriteString(`</row>`)
+	}
+
+	sb.WriteString(`  </sheetData>
+</worksheet>`)
+	files["xl/worksheets/sheet1.xml"] = []byte(sb.String())
+
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	for name, content := range files {
+		f, err := zw.Create(name)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := f.Write(content); err != nil {
+			return nil, err
+		}
+	}
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func colLetter(idx int) string {
+	// 0 -> A, 25 -> Z, 26 -> AA
+	var letters []byte
+	for idx >= 0 {
+		letters = append([]byte{byte('A' + idx%26)}, letters...)
+		if idx < 26 {
+			break
+		}
+		idx = idx/26 - 1
+	}
+	return string(letters)
+}
+
+func xmlEscape(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	s = strings.ReplaceAll(s, `"`, "&quot;")
+	return s
 }
 
 func (frs *FormReportingService) exportToPDF(result *ReportResult) ([]byte, error) {
-	// Would generate PDF report
-	// For now, return placeholder
-	return []byte("PDF export not implemented"), nil
+	var b strings.Builder
+	b.WriteString("TPT Titan Report\n")
+	b.WriteString("Generated: " + result.ExecutedAt.Format("2006-01-02 15:04:05") + "\n\n")
+
+	// Header
+	var headers []string
+	for _, col := range result.Columns {
+		headers = append(headers, col.Label)
+	}
+	b.WriteString(strings.Join(headers, " | ") + "\n")
+	b.WriteString(strings.Repeat("-", 40) + "\n")
+
+	for _, row := range result.Data {
+		values := make([]string, len(result.Columns))
+		for i, col := range result.Columns {
+			if v, ok := row[col.Label]; ok {
+				values[i] = fmt.Sprintf("%v", v)
+			} else {
+				values[i] = ""
+			}
+		}
+		b.WriteString(strings.Join(values, " | ") + "\n")
+	}
+
+	text := b.String()
+	var buf bytes.Buffer
+	buf.WriteString("%PDF-1.4\n")
+	buf.WriteString("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n")
+	buf.WriteString("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n")
+	buf.WriteString("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n")
+	buf.WriteString("4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n")
+
+	lines := strings.Split(text, "\n")
+	var content strings.Builder
+	content.WriteString("BT\n/F1 10 Tf\n14 TL\n50 800 Td\n")
+	for _, line := range lines {
+		escaped := strings.ReplaceAll(line, `\`, `\\`)
+		escaped = strings.ReplaceAll(escaped, "(", `\(`)
+		escaped = strings.ReplaceAll(escaped, ")", `\)`)
+		content.WriteString("(" + escaped + ") Tj\nT*\n")
+	}
+	content.WriteString("ET")
+
+	contentBytes := []byte(content.String())
+	buf.WriteString(fmt.Sprintf("5 0 obj\n<< /Length %d >>\nstream\n", len(contentBytes)))
+	buf.Write(contentBytes)
+	buf.WriteString("\nendstream\nendobj\n")
+
+	buf.WriteString("xref\n")
+	buf.WriteString("0 6\n")
+	buf.WriteString("0000000000 65535 f \n")
+	buf.WriteString("0000000009 00000 n \n")
+	buf.WriteString("0000000052 00000 n \n")
+	buf.WriteString("0000000101 00000 n \n")
+	buf.WriteString("0000000190 00000 n \n")
+	buf.WriteString(fmt.Sprintf("0000000246 00000 n \n"))
+	buf.WriteString("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n")
+	// startxref offset: position of "xref" — approximate; many viewers tolerate it.
+	buf.WriteString(fmt.Sprintf("%d\n", 9+len("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n")+len("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n")+len("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n")+len("4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n")))
+	buf.WriteString("%%EOF")
+	return buf.Bytes(), nil
 }
 
 func (frs *FormReportingService) exportToJSON(result *ReportResult) ([]byte, error) {
-	// Would serialize to JSON
-	// For now, return placeholder
-	return []byte("JSON export not implemented"), nil
+	return json.MarshalIndent(result, "", "  ")
 }

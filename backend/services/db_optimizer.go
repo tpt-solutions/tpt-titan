@@ -64,28 +64,45 @@ func (dbo *DatabaseOptimizer) OptimizeConnectionPool() error {
 	return nil
 }
 
-// AnalyzeSlowQueries analyzes and identifies slow queries
+// AnalyzeSlowQueries analyzes and identifies slow queries.
+// On PostgreSQL (when the pg_stat_statements extension is installed) it reads
+// real statement statistics; otherwise it returns an empty list rather than
+// fabricating results.
 func (dbo *DatabaseOptimizer) AnalyzeSlowQueries() ([]QueryStats, error) {
-	// This would integrate with PostgreSQL's pg_stat_statements
-	// For now, return mock data
-	queries := []QueryStats{
-		{
-			Query:     "SELECT * FROM emails WHERE user_id = $1 ORDER BY received_at DESC LIMIT 50",
-			ExecTime:  150 * time.Millisecond,
-			RowCount:  50,
+	const q = `
+		SELECT query, mean_exec_time, calls
+		FROM pg_stat_statements
+		WHERE mean_exec_time > 100
+		ORDER BY mean_exec_time DESC
+		LIMIT 20`
+
+	rows, err := dbo.db.Query(q)
+	if err != nil {
+		// Extension not installed, insufficient privileges, or not PostgreSQL —
+		// do not fake data.
+		log.Printf("AnalyzeSlowQueries: pg_stat_statements unavailable: %v", err)
+		return []QueryStats{}, nil
+	}
+	defer rows.Close()
+
+	var queries []QueryStats
+	for rows.Next() {
+		var query string
+		var meanExec float64
+		var calls int64
+		if err := rows.Scan(&query, &meanExec, &calls); err != nil {
+			continue
+		}
+		queries = append(queries, QueryStats{
+			Query:     strings.TrimSpace(query),
+			ExecTime:  time.Duration(meanExec * float64(time.Millisecond)),
+			RowCount:  calls,
 			Timestamp: time.Now(),
 			SlowQuery: true,
-		},
-		{
-			Query:     "SELECT * FROM chat_messages WHERE room_id = $1 ORDER BY created_at DESC LIMIT 100",
-			ExecTime:  200 * time.Millisecond,
-			RowCount:  100,
-			Timestamp: time.Now(),
-			SlowQuery: true,
-		},
+		})
 	}
 
-	return queries, nil
+	return queries, rows.Err()
 }
 
 // GenerateIndexRecommendations analyzes query patterns and suggests indexes

@@ -5,7 +5,7 @@
 	import DatabaseRelationsModal from '$lib/components/DatabaseRelationsModal.svelte';
 	import AdvancedReportsModal from '$lib/components/AdvancedReportsModal.svelte';
 	import WorkflowDesignerModal from '$lib/components/WorkflowDesignerModal.svelte';
-	import { getForms } from '$lib/api.js';
+	import { getForms, getFormResponses } from '$lib/api.js';
 	import { onMount } from 'svelte';
 
 	// Accept framework-provided props to avoid warnings
@@ -20,6 +20,11 @@
 	let showDatabaseRelationsModal = false;
 	let showAdvancedReportsModal = false;
 	let showWorkflowDesignerModal = false;
+	let showResponsesModal = false;
+	let responsesForm = null;
+	let responses = [];
+	let responsesLoading = false;
+	let responsesError = '';
 
 	onMount(() => {
 		// Load user's forms
@@ -105,9 +110,20 @@
 		selectedForm = null;
 	}
 
-	function viewResponses(form) {
-		// TODO: Navigate to responses view
-		console.log('View responses for:', form);
+	async function viewResponses(form) {
+		responsesForm = form;
+		showResponsesModal = true;
+		responsesLoading = true;
+		responsesError = '';
+		responses = [];
+		try {
+			const result = await getFormResponses(form.id);
+			responses = result.responses || result || [];
+		} catch (error) {
+			responsesError = error.message || 'Failed to load responses';
+		} finally {
+			responsesLoading = false;
+		}
 	}
 
 	function handleReorder(event) {
@@ -223,3 +239,39 @@
 	showModal={showWorkflowDesignerModal}
 	on:close={() => showWorkflowDesignerModal = false}
 />
+
+<!-- Form Responses Modal -->
+{#if showResponsesModal}
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+		<div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+			<div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+				<h2 class="text-lg font-semibold text-gray-900">
+					Responses — {responsesForm?.name}
+				</h2>
+				<button
+					class="text-gray-400 hover:text-gray-600"
+					on:click={() => showResponsesModal = false}
+				>
+					✕
+				</button>
+			</div>
+			<div class="flex-1 overflow-auto px-6 py-4">
+				{#if responsesLoading}
+					<p class="text-sm text-gray-500">Loading responses…</p>
+				{:else if responsesError}
+					<p class="text-sm text-red-600">{responsesError}</p>
+				{:else if responses.length === 0}
+					<p class="text-sm text-gray-500">No responses yet.</p>
+				{:else}
+					<ul class="space-y-3">
+						{#each responses as response}
+							<li class="border border-gray-200 rounded-lg p-3 text-sm">
+								<pre class="whitespace-pre-wrap break-words text-gray-700">{JSON.stringify(response.data ?? response, null, 2)}</pre>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
+		</div>
+	</div>
+{/if}

@@ -7,6 +7,7 @@ import (
 	"tpt-titan/backend/config"
 	"tpt-titan/backend/models"
 	"tpt-titan/backend/services"
+	"tpt-titan/backend/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -87,6 +88,13 @@ func CreateSpeechModel(c *gin.Context) {
 		return
 	}
 
+	// Encrypt the API key at rest before persisting it.
+	encryptedKey, err := utils.EncryptPassword(payload.APIKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encrypt API key"})
+		return
+	}
+
 	// Create the model
 	model := &models.SpeechModel{
 		UserID:   userID.(uuid.UUID),
@@ -96,7 +104,7 @@ func CreateSpeechModel(c *gin.Context) {
 		Type:     payload.Type,
 		Language: payload.Language,
 		Voice:    payload.Voice,
-		APIKey:   []byte(payload.APIKey), // TODO: Encrypt this
+		APIKey:   encryptedKey,
 		Endpoint: payload.Endpoint,
 		IsSystem: false,
 		IsActive: true,

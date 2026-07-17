@@ -69,6 +69,7 @@ var migrations = []migration{
 				&models.WorkflowExecution{},
 				&models.WorkflowTemplate{},
 				&models.SystemSetting{},
+				&models.SpreadsheetChart{},
 			)
 		},
 	},

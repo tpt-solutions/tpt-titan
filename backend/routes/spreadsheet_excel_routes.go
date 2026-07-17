@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"tpt-titan/backend/config"
 	"tpt-titan/backend/services"
 )
 
@@ -54,28 +55,51 @@ func ExportExcel(c *gin.Context) {
 		return
 	}
 
-	// In a real implementation, get spreadsheet data from database
-	// For now, use mock data
+	// Fetch the real spreadsheet cell data from the database.
+	db, err := config.GetDatabase().DB()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get database connection"})
+		return
+	}
+
+	rows, err := db.Query(`
+		SELECT cell_reference, value, formula, data_type
+		FROM spreadsheet_cells WHERE spreadsheet_id = $1`, spreadsheetID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch cell data: " + err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	data := map[string]interface{}{}
+	formulas := map[string]string{}
+	for rows.Next() {
+		var cellRef, value, formula, dataType string
+		if err := rows.Scan(&cellRef, &value, &formula, &dataType); err != nil {
+			continue
+		}
+		switch dataType {
+		case "number":
+			if num, err := strconv.ParseFloat(value, 64); err == nil {
+				data[cellRef] = num
+			} else {
+				data[cellRef] = value
+			}
+		case "boolean":
+			data[cellRef] = value == "true"
+		default:
+			data[cellRef] = value
+		}
+		if formula != "" {
+			formulas[cellRef] = formula
+		}
+	}
+
 	sheets := []services.ExcelSheet{
 		{
-			Name: "Sheet1",
-			Data: map[string]interface{}{
-				"A1": "Product",
-				"B1": "Price",
-				"C1": "Quantity",
-				"D1": "Total",
-				"A2": "Widget A",
-				"B2": 10.99,
-				"C2": 5,
-				"A3": "Widget B",
-				"B3": 15.50,
-				"C3": 3,
-			},
-			Formulas: map[string]string{
-				"D2": "=B2*C2",
-				"D3": "=B3*C3",
-				"D4": "=SUM(D2:D3)",
-			},
+			Name:     "Sheet1",
+			Data:     data,
+			Formulas: formulas,
 		},
 	}
 

@@ -7,14 +7,17 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"tpt-titan/backend/models"
 )
 
 // TaskIntegrationService provides integration between tasks and other TPT Titan components
 type TaskIntegrationService struct {
 	db              *sql.DB
+	taskService     *TaskService
 	emailService    *EmailService
 	formService     interface{} // Form service interface (placeholder)
 	calendarService *CalendarService
+	userID          uuid.UUID
 }
 
 // TaskIntegration represents an integration configuration
@@ -94,12 +97,14 @@ type SubtaskTemplate struct {
 }
 
 // NewTaskIntegrationService creates a new task integration service
-func NewTaskIntegrationService(db *sql.DB, emailSvc *EmailService, formSvc interface{}, calSvc *CalendarService) *TaskIntegrationService {
+func NewTaskIntegrationService(db *sql.DB, taskSvc *TaskService, emailSvc *EmailService, formSvc interface{}, calSvc *CalendarService, userID uuid.UUID) *TaskIntegrationService {
 	return &TaskIntegrationService{
 		db:              db,
+		taskService:     taskSvc,
 		emailService:    emailSvc,
 		formService:     formSvc,
 		calendarService: calSvc,
+		userID:          userID,
 	}
 }
 
@@ -242,38 +247,29 @@ func (tis *TaskIntegrationService) CreateTaskFromTemplate(templateID uuid.UUID, 
 	// Increment usage count
 	tis.incrementTemplateUsage(templateID)
 
-	// Create task data from template
-	taskData := map[string]interface{}{
-		"title":       template.Name,
-		"description": template.Description,
-		"category":    template.Category,
-		"priority":    template.Priority,
-		"tags":        template.Tags,
-		"created_at":  time.Now(),
-	}
-
-	// Apply customizations
-	for key, value := range customizations {
-		taskData[key] = value
-	}
-
-	// Create the task (would call task service)
-	taskID := uuid.New() // Placeholder - would be returned from task creation
-
-	// Create subtasks if template has them
+	// Create the task via the real task service so it is persisted and a real
+	// ID is returned (previously this fabricated a UUID, risking orphans).
+	subtasks := make([]models.SubtaskRequest, 0, len(template.Subtasks))
 	for _, subtask := range template.Subtasks {
-		subtaskData := map[string]interface{}{
-			"parent_task_id": taskID,
-			"title":          subtask.Title,
-			"description":    subtask.Description,
-			"priority":       subtask.Priority,
-			"order":          subtask.Order,
-			"created_at":     time.Now(),
-		}
-		tis.createSubtask(subtaskData)
+		subtasks = append(subtasks, models.SubtaskRequest{
+			Title:  subtask.Title,
+			ID:     uuid.New().String(),
+		})
 	}
 
-	return taskID, nil
+	task, err := tis.taskService.CreateTask(tis.userID, models.TaskRequest{
+		Title:       template.Name,
+		Description: template.Description,
+		Status:      "todo",
+		Priority:    template.Priority,
+		Tags:        template.Tags,
+		Subtasks:    subtasks,
+	})
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return task.ID, nil
 }
 
 // LinkTaskToItem links a task to another TPT Titan item
@@ -448,63 +444,78 @@ func (tis *TaskIntegrationService) evaluateTriggerCondition(condition string, da
 }
 
 func (tis *TaskIntegrationService) createTaskFromFormSubmission(integration FormTaskIntegration, submissionData map[string]interface{}) (uuid.UUID, error) {
-	// Create task from form submission data
-	taskData := map[string]interface{}{
-		"title":       tis.processTemplate(integration.TitleTemplate, submissionData),
-		"description": tis.processTemplate(integration.DescriptionTemplate, submissionData),
-		"created_at":  time.Now(),
+	taskID := uuid.New() // Reserved so the integration record can reference it even if persistence fails.
+
+	if tis.taskService == nil {
+		return taskID, fmt.Errorf("task service not configured")
+	}
+
+	req := models.TaskRequest{
+		Title:       tis.processTemplate(integration.TitleTemplate, submissionData),
+		Description: tis.processTemplate(integration.DescriptionTemplate, submissionData),
+		Status:      "todo",
+		Priority:    "medium",
 	}
 
 	// Set assignee if auto-assign is enabled
 	if integration.AutoAssign && integration.AssigneeField != "" {
 		if assigneeValue, exists := submissionData[integration.AssigneeField]; exists {
-			taskData["assignee_id"] = assigneeValue
+			req.AssignedTo = fmt.Sprintf("%v", assigneeValue)
 		}
 	}
 
 	// Set priority if field is specified
 	if integration.PriorityField != "" {
 		if priorityValue, exists := submissionData[integration.PriorityField]; exists {
-			taskData["priority"] = priorityValue
+			req.Priority = fmt.Sprintf("%v", priorityValue)
 		}
 	}
 
 	// Set due date if field is specified
 	if integration.DueDateField != "" {
 		if dueDateValue, exists := submissionData[integration.DueDateField]; exists {
-			taskData["due_date"] = dueDateValue
+			if t, err := time.Parse(time.RFC3339, fmt.Sprintf("%v", dueDateValue)); err == nil {
+				req.DueDate = &t
+			}
 		}
 	}
 
-	// Create task (would call actual task service)
-	taskID := uuid.New() // Placeholder
-	return taskID, nil
+	task, err := tis.taskService.CreateTask(tis.userID, req)
+	if err != nil {
+		return taskID, err
+	}
+	return task.ID, nil
 }
 
 func (tis *TaskIntegrationService) createTaskFromEmail(integration EmailTaskIntegration, emailData map[string]interface{}) (uuid.UUID, error) {
-	taskData := map[string]interface{}{
-		"title":       tis.processTemplate(integration.TitleTemplate, emailData),
-		"description": tis.processTemplate(integration.DescriptionTemplate, emailData),
-		"created_at":  time.Now(),
+	taskID := uuid.New() // Reserved so the integration record can reference it even if persistence fails.
+
+	if tis.taskService == nil {
+		return taskID, fmt.Errorf("task service not configured")
+	}
+
+	req := models.TaskRequest{
+		Title:       tis.processTemplate(integration.TitleTemplate, emailData),
+		Description: tis.processTemplate(integration.DescriptionTemplate, emailData),
+		Status:      "todo",
+		Priority:    "medium",
 	}
 
 	// Apply priority mapping
 	if sender, exists := emailData["sender"].(string); exists {
 		if priority, mapped := integration.PriorityMapping[sender]; mapped {
-			taskData["priority"] = priority
+			req.Priority = priority
 		}
-	}
-
-	// Apply assignee mapping
-	if sender, exists := emailData["sender"].(string); exists {
 		if assigneeID, mapped := integration.AssigneeMapping[sender]; mapped {
-			taskData["assignee_id"] = assigneeID
+			req.AssignedTo = assigneeID.String()
 		}
 	}
 
-	// Create task (would call actual task service)
-	taskID := uuid.New() // Placeholder
-	return taskID, nil
+	task, err := tis.taskService.CreateTask(tis.userID, req)
+	if err != nil {
+		return taskID, err
+	}
+	return task.ID, nil
 }
 
 func (tis *TaskIntegrationService) createTaskIntegrationRecord(taskID uuid.UUID, sourceType string, sourceID uuid.UUID, integrationType string, config map[string]interface{}) error {
@@ -572,7 +583,40 @@ func (tis *TaskIntegrationService) incrementTemplateUsage(templateID uuid.UUID) 
 	tis.db.Exec(query, templateID)
 }
 
-func (tis *TaskIntegrationService) createSubtask(subtaskData map[string]interface{}) {
-	// Would create subtask in database
-	// Placeholder implementation
+func (tis *TaskIntegrationService) createSubtask(subtaskData map[string]interface{}) error {
+	parentID, ok := subtaskData["parent_task_id"].(uuid.UUID)
+	if !ok {
+		if s, ok2 := subtaskData["parent_task_id"].(string); ok2 {
+			parsed, err := uuid.Parse(s)
+			if err != nil {
+				return err
+			}
+			parentID = parsed
+		} else {
+			return fmt.Errorf("subtask missing parent_task_id")
+		}
+	}
+
+	title, _ := subtaskData["title"].(string)
+	if title == "" {
+		return fmt.Errorf("subtask missing title")
+	}
+
+	id := uuid.New()
+	now := time.Now()
+	query := `
+		INSERT INTO task_subtasks (id, task_id, title, completed, "order", created_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`
+	completed := false
+	if c, ok := subtaskData["completed"].(bool); ok {
+		completed = c
+	}
+	order := 0
+	if o, ok := subtaskData["order"].(int); ok {
+		order = o
+	}
+
+	_, err := tis.db.Exec(query, id, parentID, title, completed, order, now)
+	return err
 }

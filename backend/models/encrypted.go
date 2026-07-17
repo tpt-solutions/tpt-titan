@@ -12,6 +12,7 @@ type EncryptedDocument struct {
 	ID          uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
 	UserID      uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
 	Title       string    `gorm:"size:255" json:"title"`
+	FileName    string    `gorm:"size:512" json:"file_name"`
 	ContentType string    `gorm:"size:50;not null" json:"content_type"` // spreadsheet, document, form, etc.
 	EncryptedData []byte  `gorm:"type:bytea;not null" json:"encrypted_data"`
 	Salt        []byte    `gorm:"type:bytea;not null" json:"salt"`
@@ -151,3 +152,19 @@ func (KeyBackup) TableName() string { return "key_backups" }
 func (RecoveryShare) TableName() string { return "recovery_shares" }
 func (HardwareKey) TableName() string { return "hardware_keys" }
 func (RecoveryAttempt) TableName() string { return "recovery_attempts" }
+
+// SpreadsheetChart stores a chart definition attached to a spreadsheet document.
+type SpreadsheetChart struct {
+	ID            uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	SpreadsheetID uuid.UUID `gorm:"type:uuid;not null;index" json:"spreadsheet_id"`
+	ChartType     string    `gorm:"size:20;not null" json:"chart_type"`
+	DataRange     string    `gorm:"size:50;not null" json:"data_range"`
+	Title         string    `gorm:"size:255" json:"title"`
+	XAxisLabel    string    `gorm:"size:100" json:"x_axis_label"`
+	YAxisLabel    string    `gorm:"size:100" json:"y_axis_label"`
+	Data          string    `gorm:"type:text" json:"data"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+func (SpreadsheetChart) TableName() string { return "spreadsheet_charts" }

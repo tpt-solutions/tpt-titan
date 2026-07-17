@@ -18,8 +18,9 @@ import (
 
 // WorkflowService handles workflow automation and execution
 type WorkflowService struct {
-	connectors map[string]WorkflowConnector
-	cron       *cron.Cron
+	connectors  map[string]WorkflowConnector
+	cron        *cron.Cron
+	cronEntries map[uuid.UUID]cron.EntryID
 }
 
 // WorkflowConnector represents an integration connector
@@ -31,8 +32,9 @@ type WorkflowConnector interface {
 // NewWorkflowService creates a new workflow service
 func NewWorkflowService() *WorkflowService {
 	service := &WorkflowService{
-		connectors: make(map[string]WorkflowConnector),
-		cron:       cron.New(),
+		connectors:  make(map[string]WorkflowConnector),
+		cron:        cron.New(),
+		cronEntries: make(map[uuid.UUID]cron.EntryID),
 	}
 
 	// Register built-in connectors
@@ -373,18 +375,26 @@ func (s *WorkflowService) executeDelay(config map[string]interface{}, inputData 
 	return inputData, nil
 }
 
-// scheduleWorkflow schedules a workflow for periodic execution
+// scheduleWorkflow schedules a workflow for periodic execution.
+// Re-scheduling an already-scheduled workflow removes the previous cron entry
+// first so it does not fire twice.
 func (s *WorkflowService) scheduleWorkflow(workflow *models.Workflow) {
-	// Remove existing schedule if any
-	// TODO: Implement job removal by workflow ID
+	if old, ok := s.cronEntries[workflow.ID]; ok {
+		s.cron.Remove(old)
+		delete(s.cronEntries, workflow.ID)
+	}
 
-	// Add new schedule
-	s.cron.AddFunc(workflow.Schedule, func() {
+	entryID, err := s.cron.AddFunc(workflow.Schedule, func() {
 		s.ExecuteWorkflow(workflow.ID, map[string]interface{}{
 			"trigger_type": "scheduled",
 			"scheduled_at": time.Now(),
 		})
 	})
+	if err != nil {
+		log.Printf("failed to schedule workflow %s: %v", workflow.ID, err)
+		return
+	}
+	s.cronEntries[workflow.ID] = entryID
 }
 
 // GetWorkflowTemplates returns available workflow templates

@@ -6,6 +6,7 @@ import (
 	"tpt-titan/backend/config"
 	"tpt-titan/backend/models"
 	"tpt-titan/backend/services"
+	"tpt-titan/backend/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -76,6 +77,13 @@ func CreateAIModel(c *gin.Context) {
 		return
 	}
 
+	// Encrypt the API key at rest before persisting it.
+	encryptedKey, err := utils.EncryptPassword(payload.APIKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encrypt API key"})
+		return
+	}
+
 	// Create the model
 	model := &models.AIModel{
 		UserID:       userID.(uuid.UUID),
@@ -84,7 +92,7 @@ func CreateAIModel(c *gin.Context) {
 		Provider:     payload.Provider,
 		ModelID:      payload.ModelID,
 		Capabilities: payload.Capabilities,
-		APIKey:       []byte(payload.APIKey), // TODO: Encrypt this
+		APIKey:       encryptedKey,
 		Endpoint:     payload.Endpoint,
 		Config:       payload.Config,
 		IsSystem:     false,

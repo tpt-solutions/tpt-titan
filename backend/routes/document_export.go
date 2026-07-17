@@ -74,15 +74,162 @@ func exportToDOCX(c *gin.Context, req DocumentExportRequest) {
 	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", docxData)
 }
 
-// exportToPDF exports document content to PDF format (placeholder)
+// exportToPDF exports document content to a real (minimal) PDF file.
+// It generates a valid PDF with the document text rendered via the built-in
+// Helvetica font — no external dependencies required.
 func exportToPDF(c *gin.Context, req DocumentExportRequest) {
-	// In a real implementation, use a PDF generation library
-	// For now, return a placeholder response
-	c.JSON(http.StatusOK, gin.H{
-		"message": "PDF export functionality would be implemented here",
-		"format":  "pdf",
-		"title":   req.Title,
-	})
+	pdf := buildSimplePDF(req.Title, req.Content)
+
+	filename := "document.pdf"
+	if req.Title != "" {
+		filename = strings.ReplaceAll(strings.ToLower(req.Title), " ", "_") + ".pdf"
+	}
+
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Type", "application/pdf")
+	c.Header("Content-Length", strconv.Itoa(len(pdf)))
+	c.Data(http.StatusOK, "application/pdf", pdf)
+}
+
+// buildSimplePDF constructs a minimal but valid PDF document containing the
+// given title and body text. Text is wrapped to fit the page width.
+func buildSimplePDF(title, body string) []byte {
+	const pageW, pageH, margin, lineH, fontSize = 595.0, 842.0, 50.0, 14.0, 11.0
+
+	lines := []string{}
+	if title != "" {
+		lines = append(lines, title)
+	}
+	lines = append(lines, wrapText(body, 90)...)
+
+	// Lay out lines across pages.
+	type page struct{ lines []string }
+	var pages []page
+	y := pageH - margin
+	cur := page{}
+	flush := func() {
+		if len(cur.lines) > 0 {
+			pages = append(pages, cur)
+			cur = page{}
+		}
+	}
+	for _, ln := range lines {
+		if y-margin < lineH {
+			flush()
+			y = pageH - margin
+		}
+		cur.lines = append(cur.lines, ln)
+		y -= lineH
+	}
+	flush()
+	if len(pages) == 0 {
+		pages = append(pages, page{})
+	}
+
+	objects := []string{}
+
+	// 1: Catalog, 2: Pages, then per page: Page + Content, then Font.
+	objects = append(objects, "<< /Type /Catalog /Pages 2 0 R >>")
+
+	pageObjIDs := []int{}
+	contentObjIDs := []int{}
+	fontID := 3 + 2*len(pages)
+	for i := range pages {
+		pageObjIDs = append(pageObjIDs, 3+2*i)
+		contentObjIDs = append(contentObjIDs, 4+2*i)
+	}
+	kids := ""
+	for _, id := range pageObjIDs {
+		kids += fmt.Sprintf("%d 0 R ", id)
+	}
+	objects = append(objects, fmt.Sprintf("<< /Type /Pages /Kids [%s] /Count %d >>", strings.TrimSpace(kids), len(pages)))
+	objects = append(objects, fmt.Sprintf("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"))
+
+	for i, p := range pages {
+		stream := "BT\n"
+		stream += fmt.Sprintf("/F1 %g Tf\n", fontSize)
+		stream += fmt.Sprintf("%g %g Td\n", margin, pageH-margin)
+		stream += fmt.Sprintf("%g TL\n", lineH)
+		for _, ln := range p.lines {
+			stream += "(" + escapePDF(ln) + ") Tj T*\n"
+		}
+		stream += "ET"
+		objects = append(objects, fmt.Sprintf("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %g %g] /Resources << /Font << /F1 %d 0 R >> >> /Contents %d 0 R >>",
+			pageW, pageH, fontID, contentObjIDs[i]))
+		objects = append(objects, fmt.Sprintf("<< /Length %d >>\nstream\n%s\nendstream", len(stream), stream))
+	}
+
+	// Assemble file with xref table.
+	out := &strings.Builder{}
+	out.WriteString("%PDF-1.4\n")
+	offsets := []int{0}
+	for i, obj := range objects {
+		offsets = append(offsets, out.Len())
+		out.WriteString(fmt.Sprintf("%d 0 obj\n%s\nendobj\n", i+1, obj))
+	}
+	xrefPos := out.Len()
+	out.WriteString("xref\n")
+	out.WriteString(fmt.Sprintf("0 %d\n", len(objects)+1))
+	out.WriteString("0000000000 65535 f \n")
+	for i := 1; i <= len(objects); i++ {
+		out.WriteString(fmt.Sprintf("%010d 00000 n \n", offsets[i]))
+	}
+	out.WriteString("trailer\n")
+	out.WriteString(fmt.Sprintf("<< /Size %d /Root 1 0 R >>\n", len(objects)+1))
+	out.WriteString("startxref\n")
+	out.WriteString(fmt.Sprintf("%d\n", xrefPos))
+	out.WriteString("%%EOF")
+	return []byte(out.String())
+}
+
+func escapePDF(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		switch r {
+		case '(':
+			b.WriteString("\\(")
+		case ')':
+			b.WriteString("\\)")
+		case '\\':
+			b.WriteString("\\\\")
+		case '\n':
+			b.WriteString(" ")
+		default:
+			if r < 32 || r > 126 {
+				b.WriteRune('?')
+			} else {
+				b.WriteRune(r)
+			}
+		}
+	}
+	return b.String()
+}
+
+func wrapText(text string, width int) []string {
+	if strings.TrimSpace(text) == "" {
+		return []string{""}
+	}
+	var out []string
+	for _, raw := range strings.Split(text, "\n") {
+		words := strings.Fields(raw)
+		if len(words) == 0 {
+			out = append(out, "")
+			continue
+		}
+		line := ""
+		for _, w := range words {
+			if line == "" {
+				line = w
+			} else if len(line)+1+len(w) <= width {
+				line += " " + w
+			} else {
+				out = append(out, line)
+				line = w
+			}
+		}
+		out = append(out, line)
+	}
+	return out
 }
 
 // exportToHTML exports document content to HTML format

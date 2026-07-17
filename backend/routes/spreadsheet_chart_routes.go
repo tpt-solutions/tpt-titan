@@ -1,7 +1,11 @@
 package routes
 
 import (
+	"encoding/json"
 	"net/http"
+
+	"tpt-titan/backend/config"
+	"tpt-titan/backend/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -61,44 +65,70 @@ func CreateChart(c *gin.Context) {
 
 	chartID := uuid.New()
 
-	chart := gin.H{
-		"id":            chartID,
-		"spreadsheet_id": req.SpreadsheetID,
-		"type":          req.ChartType,
-		"data_range":    req.DataRange,
-		"title":         req.Title,
-		"x_axis_label":  req.XAxisLabel,
-		"y_axis_label":  req.YAxisLabel,
-		"data":          req.Data,
-		"created_at":    "now",
+	dataJSON, _ := json.Marshal(req.Data)
+
+	chart := models.SpreadsheetChart{
+		ID:            chartID,
+		SpreadsheetID: req.SpreadsheetID,
+		ChartType:     req.ChartType,
+		DataRange:     req.DataRange,
+		Title:         req.Title,
+		XAxisLabel:    req.XAxisLabel,
+		YAxisLabel:    req.YAxisLabel,
+		Data:          string(dataJSON),
 	}
 
-	c.JSON(http.StatusCreated, chart)
+	if err := config.DB.Create(&chart).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save chart"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"id":             chart.ID,
+		"spreadsheet_id": chart.SpreadsheetID,
+		"type":           chart.ChartType,
+		"data_range":     chart.DataRange,
+		"title":          chart.Title,
+		"x_axis_label":   chart.XAxisLabel,
+		"y_axis_label":   chart.YAxisLabel,
+		"data":           req.Data,
+		"created_at":     chart.CreatedAt,
+	})
 }
 
 // GetCharts retrieves charts for a spreadsheet
 func GetCharts(c *gin.Context) {
 	spreadsheetIDStr := c.Param("id")
-	_, err := uuid.Parse(spreadsheetIDStr)
+	spreadsheetID, err := uuid.Parse(spreadsheetIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid spreadsheet ID"})
 		return
 	}
 
-	// In a real implementation, fetch from database
-	// For now, return mock data
-	charts := []gin.H{
-		{
-			"id":            uuid.New(),
-			"type":          "bar",
-			"data_range":    "A1:B5",
-			"title":         "Sales Data",
-			"x_axis_label":  "Products",
-			"y_axis_label":  "Revenue",
-		},
+	var charts []models.SpreadsheetChart
+	if err := config.DB.Where("spreadsheet_id = ?", spreadsheetID).Order("created_at DESC").Find(&charts).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve charts"})
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"charts": charts})
+	result := make([]gin.H, 0, len(charts))
+	for _, ch := range charts {
+		var data map[string]interface{}
+		_ = json.Unmarshal([]byte(ch.Data), &data)
+		result = append(result, gin.H{
+			"id":             ch.ID,
+			"spreadsheet_id": ch.SpreadsheetID,
+			"type":           ch.ChartType,
+			"data_range":     ch.DataRange,
+			"title":          ch.Title,
+			"x_axis_label":   ch.XAxisLabel,
+			"y_axis_label":   ch.YAxisLabel,
+			"data":           data,
+			"created_at":     ch.CreatedAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"charts": result})
 }
 
 // analyzeDataForCharts analyzes spreadsheet data and suggests appropriate charts

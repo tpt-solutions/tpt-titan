@@ -428,7 +428,8 @@ func UploadDocumentWithAI(c *gin.Context) {
 	document := &models.EncryptedDocument{
 		UserID:      userID.(uuid.UUID),
 		Title:       req.Title,
-		ContentType: "uploaded_file",
+		FileName:    req.FileName,
+		ContentType: req.FileType,
 		FileSize:    int64(len(fileData)),
 		Version:     1,
 		IsActive:    true,
@@ -665,7 +666,7 @@ func ProcessDocumentWithAI(c *gin.Context) {
 	}
 
 	// Start background processing
-	go processDocumentWithAI(docID, userID.(uuid.UUID), "uploaded_file", fileData, "uploaded_file", req.AnalysisType)
+	go processDocumentWithAI(docID, userID.(uuid.UUID), document.FileName, fileData, document.ContentType, req.AnalysisType)
 
 	c.JSON(http.StatusAccepted, gin.H{
 		"message": "AI processing started",
