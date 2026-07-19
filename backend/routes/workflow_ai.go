@@ -110,6 +110,38 @@ func PredictWorkflows(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"predictions": predictions})
 }
 
+// GenerateWorkflow turns a natural-language description into a draft workflow
+// canvas. The result is a *draft* — the frontend must let the user review and
+// confirm before persisting it (the approval gate the design requires). No
+// workflow row is created here.
+func GenerateWorkflow(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var req struct {
+		Prompt string `json:"prompt"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	canvas, err := workflowAIService.GenerateWorkflowFromPrompt(userID.(uuid.UUID), req.Prompt)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"draft":        canvas,
+		"node_count":   len(canvas.Nodes),
+		"needs_review": true,
+	})
+}
+
 // GetWorkflowInsights provides comprehensive workflow analytics
 func GetWorkflowInsights(c *gin.Context) {
 	userID, exists := c.Get("user_id")

@@ -467,3 +467,12 @@ func GetIntegrationConnectors(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"connectors": connectors})
 }
+
+// GetNamedConnectorTemplates returns browse-only named connector presets
+// (Slack/Discord/GitHub) that wrap the http.request connector with the right
+// URL/header conventions pre-filled. The frontend builder offers these as
+// starting points; selecting one yields an http.request node pre-filled from
+// each template's "config".
+func GetNamedConnectorTemplates(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"templates": workflowService.GetNamedConnectorTemplates()})
+}

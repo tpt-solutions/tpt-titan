@@ -1215,8 +1215,32 @@ export function optimizeWorkflow(id) {
 	return apiGet(`/ai/workflows/${id}/optimization`);
 }
 
+// AI-authored workflow generation: turns a natural-language description into a
+// draft workflow canvas (reviewed by the user before it is persisted).
+export function generateWorkflowFromPrompt(prompt) {
+	return apiPost('/ai/workflows/generate', { prompt });
+}
+
 export function getIntegrationConnectors() {
 	return apiGet('/connectors');
+}
+
+export function getNamedConnectorTemplates() {
+	return apiGet('/connectors/templates');
+}
+
+// Webhook delivery log (inbound/outbound call audit trail).
+export function getWebhookDeliveryLogs() {
+	return apiGet('/admin/webhook-logs');
+}
+
+// Admin outbound domain allowlist.
+export function getOutboundDomainAllowlist() {
+	return apiGet('/admin/outbound-domains');
+}
+
+export function updateOutboundDomainAllowlist(domains) {
+	return apiPut('/admin/outbound-domains', { domains });
 }
 
 /**

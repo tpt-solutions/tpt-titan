@@ -12,6 +12,8 @@
 		resolveAdminSecurityAlert,
 		getAdminSettings,
 		updateAdminSettings,
+		getOutboundDomainAllowlist,
+		updateOutboundDomainAllowlist,
 		formatApiError
 	} from '$lib/api.js';
 
@@ -44,6 +46,11 @@
 	let settings = null;
 	let settingsSaved = false;
 
+	// Outbound domain allowlist
+	let outboundDomains = '';
+	let outboundSaved = false;
+	let outboundError = null;
+
 	onMount(load);
 
 	async function load() {
@@ -65,6 +72,12 @@
 			} else if (tab === 'settings') {
 				const r = await getAdminSettings();
 				settings = r;
+				try {
+					const ol = await getOutboundDomainAllowlist();
+					outboundDomains = (ol.domains || []).join('\n');
+				} catch (e) {
+					outboundDomains = '';
+				}
 			}
 		} catch (err) {
 			error = formatApiError(err);
@@ -137,6 +150,22 @@
 			setTimeout(() => (settingsSaved = false), 3000);
 		} catch (err) {
 			error = formatApiError(err);
+		}
+	}
+
+	async function saveOutboundDomains() {
+		try {
+			outboundSaved = false;
+			outboundError = null;
+			const domains = outboundDomains
+				.split('\n')
+				.map((d) => d.trim())
+				.filter((d) => d.length > 0);
+			await updateOutboundDomainAllowlist(domains);
+			outboundSaved = true;
+			setTimeout(() => (outboundSaved = false), 3000);
+		} catch (err) {
+			outboundError = formatApiError(err);
 		}
 	}
 
@@ -386,6 +415,22 @@
 							</label>
 						{/each}
 					</div>
+				</section>
+
+				<section>
+					<h2 class="font-semibold text-gray-900 mb-2">Outbound domain allowlist</h2>
+					<p class="text-xs text-gray-500 mb-2">
+						Restrict which external domains workflows may call via the <code>http.request</code> connector.
+						One domain per line (e.g. <code>api.example.com</code> or <code>*.example.com</code>). Leave empty to allow all public destinations (SSRF protection still applies).
+					</p>
+					<textarea bind:value={outboundDomains} rows="4" placeholder={"api.example.com\n*.other.com"} class="w-full px-3 py-2 border border-gray-300 rounded font-mono text-sm"></textarea>
+					{#if outboundSaved}
+						<p class="text-sm text-green-700 mt-1">Outbound domain allowlist saved</p>
+					{/if}
+					{#if outboundError}
+						<p class="text-sm text-red-600 mt-1">{outboundError}</p>
+					{/if}
+					<button on:click={saveOutboundDomains} class="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Save allowlist</button>
 				</section>
 
 				<button on:click={saveSettings} class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Save settings</button>

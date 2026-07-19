@@ -793,6 +793,27 @@ var DefaultWorkflowTemplates = []WorkflowTemplate{
 			"viewport": {"x": 0, "y": 0, "zoom": 1}
 		}`,
 	},
+	{
+		Name:        "ERP Bridge (Form → signed ERP POST)",
+		Description: "When a form is submitted, POST its data to an external ERP REST API (e.g. tpt-free-erp) with an HMAC-SHA256 signature so the ERP can verify the call came from Titan. Fill in the ERP url and shared secret before activating.",
+		Category:    "integration",
+		Icon:        "🔗",
+		Color:       "#6f42c1",
+		IsSystem:    true,
+		IsPublic:    true,
+		TemplateData: `{
+			"nodes": [
+				{"id": "trigger-1", "type": "trigger", "position": {"x": 60, "y": 120}, "config": {"connector": "forms.submission", "form_id": ""}},
+				{"id": "erp-post", "type": "action", "position": {"x": 360, "y": 120}, "config": {"connector": "http.request", "method": "POST", "url": "https://erp.example.com/api/v1/records", "headers": {"Content-Type": "application/json"}, "body": "{\"source\": \"tpt-titan\", \"form_id\": \"{{form_id}}\", \"data\": {{submission}}", "signing_secret": "REPLACE_WITH_ERP_SHARED_SECRET", "retry_attempts": 2}},
+				{"id": "erp-task", "type": "action", "position": {"x": 680, "y": 120}, "config": {"connector": "tasks.create", "title": "Investigate ERP bridge failure", "priority": "high"}}
+			],
+			"connections": [
+				{"from": "trigger-1", "to": "erp-post"},
+				{"from": "erp-post", "to": "erp-task", "fromPort": "false"}
+			],
+			"viewport": {"x": 0, "y": 0, "zoom": 1}
+		}`,
+	},
 }
 
 // Default Integration Connectors

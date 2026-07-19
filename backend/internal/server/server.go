@@ -408,10 +408,12 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 				aiWorkflowGroup.GET("/template-recommendations", routes.GetSmartTemplateRecommendations)
 				aiWorkflowGroup.GET("/:workflowId/optimization", routes.OptimizeWorkflow)
 				aiWorkflowGroup.GET("/predictions", routes.PredictWorkflows)
+				aiWorkflowGroup.POST("/generate", routes.GenerateWorkflow)
 			}
 
 			// Integration connectors
 			protected.GET("/connectors", routes.GetIntegrationConnectors)
+			protected.GET("/connectors/templates", routes.GetNamedConnectorTemplates)
 
 			// MCP (Model Context Protocol) servers — bridge to external systems
 			mcpGroup := protected.Group("/mcp")
@@ -587,6 +589,9 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 				admin.POST("/security/alerts/:id/resolve", routes.ResolveSecurityAlert)
 				admin.GET("/settings", routes.GetSystemSettings)
 				admin.PUT("/settings", routes.UpdateSystemSettings)
+				admin.GET("/webhook-logs", routes.GetWebhookDeliveryLogs)
+				admin.GET("/outbound-domains", routes.GetOutboundDomainAllowlist)
+				admin.PUT("/outbound-domains", routes.UpdateOutboundDomainAllowlist)
 			}
 
 			// Voice notes and annotations routes

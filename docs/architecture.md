@@ -190,6 +190,13 @@ User Request → API Gateway → Service Layer → Database
 - **OAuth Integration**: Gmail, Outlook, etc.
 - **PGP Encryption**: End-to-end email encryption
 
+### External System Bridges (ERP / webhooks / MCP)
+- **Outbound HTTP connector (`http.request`)**: arbitrary URL/method/headers/body with SSRF validation (`utils.ValidateOutboundURL` blocks loopback/private/link-local destinations), bounded retry/backoff on 5xx, JSONPath-style response-field extraction, and HMAC-SHA256 request signing (`signing_secret` → `X-Titan-Signature` header).
+- **Inbound webhook trigger (`webhook.receive`)**: public `POST /api/v1/webhooks/:token` endpoint matched by per-workflow secret token; every inbound and outbound call is recorded in the `webhook_delivery_log` audit table.
+- **Admin outbound domain allowlist**: `outbound_domains` system setting restricts which external hosts `http.request` may call (policy layer above SSRF protection).
+- **ERP bridge (tpt-free-erp)**: a form-submission → signed `http.request` POST preset (`ERP Bridge (Form → signed ERP POST)` template) lets Titan push records to an external ERP REST API; the ERP verifies the call using the `X-Titan-Signature` HMAC. This is the concrete, in-repo portion of the bridge — the two products remain independently maintained and communicate only at the API boundary (a fuller MCP-based bridge is a further-out stretch).
+- **MCP connector**: `mcp.<server>.<tool>` connectors bridge to external systems speaking Model Context Protocol (JSON-RPC 2.0 over HTTP).
+
 ## Technology Stack Summary
 
 ### Backend

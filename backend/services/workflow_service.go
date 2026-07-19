@@ -2,6 +2,9 @@ package services
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +12,7 @@ import (
 	"net/http"
 	"net/smtp"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -504,6 +508,84 @@ func (s *WorkflowService) GetMCPConnectorDescriptors() []map[string]interface{} 
 	return out
 }
 
+// namedConnectorTemplates are convenience presets that wrap the generic
+// http.request connector with the right URL/header/method conventions already
+// filled in (Slack/Discord/GitHub shaped). The frontend builder can offer them
+// so a user picks "Slack" instead of hand-filling raw HTTP config; the resulting
+// node still executes via the real http.request connector (and gets the same
+// SSRF validation, retry/backoff, and signing it already supports).
+var namedConnectorTemplates = []map[string]interface{}{
+	{
+		"id":            "template.slack",
+		"name":          "Slack message",
+		"description":   "Post a message to a Slack incoming webhook.",
+		"app_name":      "slack",
+		"connector":     "http.request",
+		"connector_type": "action",
+		"config": map[string]interface{}{
+			"method": "POST",
+			"headers": map[string]interface{}{"Content-Type": "application/json"},
+			"body":   `{"text": "{{message}}"}`,
+		},
+	},
+	{
+		// ERP bridge: a signed outbound POST to an external ERP REST API. The
+		// signing_secret makes the ERP able to verify the call genuinely came
+		// from this Titan instance (the concrete, ERP-side-trustworthy mechanism
+		// the tpt-free-erp bridge needs). The user fills in `url` and
+		// `signing_secret`; the body is whatever the ERP endpoint expects.
+		"id":            "template.erp",
+		"name":          "ERP bridge (signed POST)",
+		"description":   "POST a signed request to an external ERP REST API (e.g. tpt-free-erp). The receiver can verify the HMAC-SHA256 X-Titan-Signature header.",
+		"app_name":      "erp",
+		"connector":     "http.request",
+		"connector_type": "action",
+		"config": map[string]interface{}{
+			"method":          "POST",
+			"headers":         map[string]interface{}{"Content-Type": "application/json"},
+			"body":            `{"event": "{{event}}", "payload": {{payload}}}`,
+			"signing_secret":  "{{erp_shared_secret}}",
+			"retry_attempts":  float64(2),
+		},
+	},
+	{
+		"id":            "template.discord",
+		"name":          "Discord message",
+		"description":   "Post a message to a Discord webhook.",
+		"app_name":      "discord",
+		"connector":     "http.request",
+		"connector_type": "action",
+		"config": map[string]interface{}{
+			"method": "POST",
+			"headers": map[string]interface{}{"Content-Type": "application/json"},
+			"body":   `{"content": "{{message}}"}`,
+		},
+	},
+	{
+		"id":            "template.github",
+		"name":          "GitHub (create issue)",
+		"description":   "Create an issue on a GitHub repo via the REST API.",
+		"app_name":      "github",
+		"connector":     "http.request",
+		"connector_type": "action",
+		"config": map[string]interface{}{
+			"method": "POST",
+			"headers": map[string]interface{}{
+				"Content-Type": "application/json",
+				"Accept":       "application/vnd.github+json",
+			},
+			"body": `{"title": "{{title}}", "body": "{{body}}"}`,
+		},
+	},
+}
+
+// GetNamedConnectorTemplates returns the browse-only catalog of named connector
+// templates (Slack/Discord/GitHub). The frontend offers these as starting
+// points; selecting one yields an http.request node pre-filled from "config".
+func (s *WorkflowService) GetNamedConnectorTemplates() []map[string]interface{} {
+	return namedConnectorTemplates
+}
+
 // FindFormTriggeredWorkflows returns the user's active workflows whose canvas
 // contains a "forms.submission" trigger node configured for the given form.
 func (s *WorkflowService) FindFormTriggeredWorkflows(userID uuid.UUID, formID uuid.UUID) ([]models.Workflow, error) {
@@ -673,23 +755,66 @@ func (c *HTTPRequestConnector) Execute(nodeConfig map[string]interface{}, inputD
 		return nil, fmt.Errorf("http.request connector: %w", err)
 	}
 
+	// Admin-level outbound domain allowlisting: a policy layer on top of the
+	// SSRF guard below. When an admin has configured outbound_domains, only
+	// those hosts may be called. An empty allowlist means "allow all public
+	// destinations" (SSRF validation still applies regardless).
+	if allowed, err := outboundDomainAllowed(targetURL); err != nil {
+		return nil, fmt.Errorf("http.request connector: %w", err)
+	} else if !allowed {
+		return nil, fmt.Errorf("http.request connector: destination %q is not in the admin-configured outbound domain allowlist", hostOf(targetURL))
+	}
+
 	method, _ := nodeConfig["method"].(string)
 	if method == "" {
 		method = http.MethodPost
 	}
 	method = strings.ToUpper(method)
 
-	var bodyReader io.Reader
+	var bodyBytes []byte
 	if rawBody, ok := nodeConfig["body"]; ok && rawBody != nil {
 		if bodyStr, isStr := rawBody.(string); isStr {
-			bodyReader = strings.NewReader(bodyStr)
+			bodyBytes = []byte(bodyStr)
 		} else {
 			encoded, err := json.Marshal(rawBody)
 			if err != nil {
 				return nil, fmt.Errorf("http.request connector: failed to encode body: %w", err)
 			}
-			bodyReader = bytes.NewReader(encoded)
+			bodyBytes = encoded
 		}
+	}
+
+	headers := map[string]interface{}{}
+	if h, ok := nodeConfig["headers"].(map[string]interface{}); ok {
+		headers = h
+	}
+
+	return c.executeHTTPRequest(nodeConfig, targetURL, method, bodyBytes, headers)
+}
+
+// executeHTTPRequest performs the actual HTTP call (with outbound signing,
+// retry/backoff and response-field extraction). It is split from Execute so
+// that the SSRF validation boundary stays in Execute and the request machinery
+// can be unit tested against a local httptest server without tripping the
+// private-address guard.
+func (c *HTTPRequestConnector) executeHTTPRequest(nodeConfig map[string]interface{}, targetURL, method string, bodyBytes []byte, headers map[string]interface{}) (map[string]interface{}, error) {
+	// Outbound request signing (HMAC-SHA256). When a shared secret is
+	// configured the body is signed and the signature is sent as a header so a
+	// receiver can verify the call genuinely came from this Titan instance.
+	if secret, _ := nodeConfig["signing_secret"].(string); secret != "" {
+		sig := signRequestPayload(method, targetURL, bodyBytes, secret)
+		if headers == nil {
+			headers = map[string]interface{}{}
+		}
+		headers["X-Titan-Signature"] = "sha256=" + sig
+		if _, present := headers["X-Titan-Timestamp"]; !present {
+			headers["X-Titan-Timestamp"] = time.Now().Unix()
+		}
+	}
+
+	var bodyReader io.Reader
+	if len(bodyBytes) > 0 {
+		bodyReader = bytes.NewReader(bodyBytes)
 	}
 
 	req, err := http.NewRequest(method, targetURL, bodyReader)
@@ -697,11 +822,9 @@ func (c *HTTPRequestConnector) Execute(nodeConfig map[string]interface{}, inputD
 		return nil, fmt.Errorf("http.request connector: failed to build request: %w", err)
 	}
 
-	if headers, ok := nodeConfig["headers"].(map[string]interface{}); ok {
-		for k, v := range headers {
-			if strVal, ok := v.(string); ok {
-				req.Header.Set(k, strVal)
-			}
+	for k, v := range headers {
+		if strVal, ok := v.(string); ok {
+			req.Header.Set(k, strVal)
 		}
 	}
 	if req.Header.Get("Content-Type") == "" && bodyReader != nil {
@@ -717,24 +840,156 @@ func (c *HTTPRequestConnector) Execute(nodeConfig map[string]interface{}, inputD
 	}
 	client := utils.SafeHTTPClient(time.Duration(timeoutSeconds * float64(time.Second)))
 
-	resp, err := client.Do(req)
+	// Retry/backoff for transient failures (timeouts, connection refused,
+	// 5xx). Bounded so a flaky network blip doesn't silently kill an otherwise
+	// working run, but a persistently failing endpoint gives up quickly.
+	maxAttempts := 1
+	if attempts, ok := nodeConfig["retry_attempts"].(float64); ok && attempts > 0 {
+		maxAttempts = int(attempts)
+		if maxAttempts > 5 {
+			maxAttempts = 5
+		}
+	}
+
+	// recordOutbound persists a delivery-log row for this outbound call. It is
+	// best-effort: failures are swallowed so they never affect the request.
+	recordOutbound := func(statusCode int, respBody []byte, callErr error, attempt int) {
+		entry := &models.WebhookDeliveryLog{
+			Direction:    "outbound",
+			Connector:    "http.request",
+			URL:          targetURL,
+			Host:         hostOf(targetURL),
+			Method:       method,
+			RequestBody:  truncateBytes(string(bodyBytes), deliveryLogBodyLimit),
+			StatusCode:   statusCode,
+			ResponseBody: truncateBytes(string(respBody), deliveryLogBodyLimit),
+		}
+		if callErr != nil {
+			entry.Error = fmt.Sprintf("attempt %d/%d: %v", attempt, maxAttempts, callErr)
+		}
+		if wfID, ok := nodeConfig["workflow_id"].(string); ok {
+			entry.WorkflowID = wfID
+		}
+		if nodeID, ok := nodeConfig["node_id"].(string); ok {
+			entry.NodeID = nodeID
+		}
+		RecordDeliveryLog(entry)
+	}
+
+	var resp *http.Response
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		resp, err = client.Do(req)
+		// Retry on transport errors AND on 5xx responses — a server-side blip
+		// that returns 503 should be retried the same way a refused connection
+		// would be, not treated as a permanent failure.
+		serverErr := err != nil || (resp != nil && resp.StatusCode >= 500)
+		if !serverErr {
+			break
+		}
+		lastErr = err
+		if attempt < maxAttempts {
+			backoff := time.Duration(attempt) * 300 * time.Millisecond
+			log.Printf("HTTPRequestConnector: attempt %d/%d to %s failed (status=%v, err=%v); retrying in %v", attempt, maxAttempts, targetURL, respStatusCode(resp), err, backoff)
+			time.Sleep(backoff)
+		}
+	}
 	if err != nil {
-		return nil, fmt.Errorf("http.request connector: request failed: %w", err)
+		recordOutbound(respStatusCode(resp), nil, lastErr, maxAttempts)
+		return nil, fmt.Errorf("http.request connector: request failed after %d attempt(s): %w", maxAttempts, lastErr)
+	}
+	if resp.StatusCode >= 500 {
+		recordOutbound(resp.StatusCode, nil, nil, maxAttempts)
+		return nil, fmt.Errorf("http.request connector: request returned server error %d after %d attempt(s)", resp.StatusCode, maxAttempts)
 	}
 	defer resp.Body.Close()
 
 	const maxResponseBytes = 1 << 20 // 1MB
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
 	if err != nil {
+		recordOutbound(respStatusCode(resp), nil, err, maxAttempts)
 		return nil, fmt.Errorf("http.request connector: failed to read response: %w", err)
 	}
 
 	log.Printf("HTTPRequestConnector: %s %s -> %d", method, targetURL, resp.StatusCode)
-	return map[string]interface{}{
+
+	result := map[string]interface{}{
 		"status_code":   resp.StatusCode,
 		"response_body": string(respBody),
 		"success":       resp.StatusCode < 400,
-	}, nil
+	}
+
+	// Response field extraction: pull a single JSON field out of the response
+	// body into GlobalData (by its "extract_field" key) so subsequent nodes can
+	// chain off a value the API returned (e.g. an order id) rather than only the
+	// raw body. Supports dotted JSONPath-style paths like "data.order.id".
+	if field, _ := nodeConfig["extract_field"].(string); field != "" && resp.StatusCode < 400 {
+		var parsed map[string]interface{}
+		if json.Unmarshal(respBody, &parsed) == nil {
+			if val, found := extractJSONField(parsed, field); found {
+				result["extracted_field"] = val
+				result["extracted_field_name"] = field
+			} else {
+				result["extracted_field_error"] = "field not found: " + field
+			}
+		} else {
+			result["extracted_field_error"] = "response body is not valid JSON"
+		}
+	}
+
+	recordOutbound(resp.StatusCode, respBody, nil, maxAttempts)
+
+	return result, nil
+}
+
+// signRequestPayload returns the hex HMAC-SHA256 of the canonical request
+// payload (method + "\n" + url + "\n" + body). A receiver recomputes the same
+// digest over the received method/url/body and compares it to the
+// X-Titan-Signature header to verify authenticity and integrity.
+func signRequestPayload(method, url string, body []byte, secret string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(strings.ToUpper(method)))
+	mac.Write([]byte("\n"))
+	mac.Write([]byte(url))
+	mac.Write([]byte("\n"))
+	mac.Write(body)
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// extractJSONField reads a value from a decoded JSON object using a dotted
+// JSONPath-style path (e.g. "data.order.id"). Missing intermediate segments
+// yield (nil, false). Arrays may be indexed by integer segment.
+func extractJSONField(root map[string]interface{}, path string) (interface{}, bool) {
+	segments := strings.Split(path, ".")
+	var cur interface{} = root
+	for _, seg := range segments {
+		switch node := cur.(type) {
+		case map[string]interface{}:
+			next, ok := node[seg]
+			if !ok {
+				return nil, false
+			}
+			cur = next
+		case []interface{}:
+			idx, err := strconv.Atoi(seg)
+			if err != nil || idx < 0 || idx >= len(node) {
+				return nil, false
+			}
+			cur = node[idx]
+		default:
+			return nil, false
+		}
+	}
+	return cur, true
+}
+
+// respStatusCode safely returns an HTTP response's status code, or -1 when the
+// response is nil (e.g. on a transport error before any response was received).
+func respStatusCode(resp *http.Response) int {
+	if resp == nil {
+		return -1
+	}
+	return resp.StatusCode
 }
 
 func (c *HTTPRequestConnector) GetConfigSchema() map[string]interface{} {
@@ -761,6 +1016,20 @@ func (c *HTTPRequestConnector) GetConfigSchema() map[string]interface{} {
 				"description": "Request timeout in seconds",
 				"minimum":     1,
 				"maximum":     60,
+			},
+			"retry_attempts": map[string]interface{}{
+				"type":        "number",
+				"description": "Bounded retry-with-backoff on transient failures (timeouts, 5xx). 1 = no retry (default). Max 5.",
+				"minimum":     1,
+				"maximum":     5,
+			},
+			"extract_field": map[string]interface{}{
+				"type":        "string",
+				"description": "Dotted JSONPath-style path into the response body (e.g. \"data.order.id\") whose value is copied into GlobalData as extracted_field for downstream nodes to chain on.",
+			},
+			"signing_secret": map[string]interface{}{
+				"type":        "string",
+				"description": "If set, the request body is signed with HMAC-SHA256 and sent as the X-Titan-Signature header so a receiver can verify the call came from this Titan instance.",
 			},
 		},
 		"required": []string{"url"},

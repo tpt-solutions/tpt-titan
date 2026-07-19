@@ -4,6 +4,7 @@
 		getMonitoringMetrics,
 		getMonitoringHealth,
 		getMonitoringAlerts,
+		getWebhookDeliveryLogs,
 		formatApiError
 	} from '$lib/api.js';
 
@@ -17,6 +18,7 @@
 	let error = null;
 	let loading = false;
 	let timer = null;
+	let deliveryLogs = [];
 
 	onMount(refresh);
 	onDestroy(() => clearInterval(timer));
@@ -33,6 +35,12 @@
 			metrics = m;
 			health = h;
 			alerts = a.alerts || [];
+			try {
+				const logs = await getWebhookDeliveryLogs();
+				deliveryLogs = logs.logs || [];
+			} catch (e) {
+				deliveryLogs = [];
+			}
 		} catch (err) {
 			error = formatApiError(err);
 		} finally {
@@ -177,6 +185,38 @@
 				{:else}
 					<div class="text-center text-gray-400 py-6">No alerts</div>
 				{/each}
+			</div>
+		</div>
+
+		<div class="mt-6">
+			<h2 class="font-semibold text-gray-900 mb-2">Webhook delivery log</h2>
+			<div class="overflow-x-auto bg-white border border-gray-200 rounded-lg">
+				<table class="w-full text-sm">
+					<thead class="bg-gray-50 text-gray-500 text-left">
+						<tr>
+							<th class="px-3 py-2">Time</th>
+							<th class="px-3 py-2">Dir</th>
+							<th class="px-3 py-2">Host</th>
+							<th class="px-3 py-2">Method</th>
+							<th class="px-3 py-2">Status</th>
+							<th class="px-3 py-2">Connector</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-gray-100">
+						{#each deliveryLogs as l}
+							<tr>
+								<td class="px-3 py-2 text-gray-500">{new Date(l.created_at).toLocaleString()}</td>
+								<td class="px-3 py-2">{l.direction}</td>
+								<td class="px-3 py-2 max-w-xs truncate">{l.host || '—'}</td>
+								<td class="px-3 py-2">{l.method || '—'}</td>
+								<td class="px-3 py-2">{l.status_code || (l.error ? 'ERR' : '—')}</td>
+								<td class="px-3 py-2">{l.connector}</td>
+							</tr>
+						{:else}
+							<tr><td colspan="6" class="px-3 py-6 text-center text-gray-400">No webhook calls recorded yet</td></tr>
+						{/each}
+					</tbody>
+				</table>
 			</div>
 		</div>
 	{/if}

@@ -12,6 +12,7 @@
 		createWorkflowFromTemplate,
 		getWorkflowInsights,
 		optimizeWorkflow,
+		generateWorkflowFromPrompt,
 		formatApiError
 	} from '$lib/api.js';
 
@@ -27,6 +28,12 @@
 	let loading = false;
 	let insights = null;
 	let dryRunResult = null;
+
+	// AI-authored workflow generation (draft only; user reviews before saving).
+	let aiPrompt = '';
+	let aiDraft = null;
+	let aiGenError = null;
+	let aiGenLoading = false;
 
 	onMount(load);
 
@@ -78,15 +85,37 @@
 		}
 	}
 
-	async function dryRun(wf) {
-		error = null;
-		dryRunResult = null;
+	async function generateWorkflow() {
+		aiGenError = null;
+		aiDraft = null;
+		aiGenLoading = true;
 		try {
-			const res = await dryRunWorkflow(wf.id);
-			const exec = await pollExecution(res.execution_id);
-			dryRunResult = buildDryRunView(exec);
+			const res = await generateWorkflowFromPrompt(aiPrompt);
+			aiDraft = res.draft;
 		} catch (err) {
-			error = formatApiError(err);
+			aiGenError = formatApiError(err);
+		} finally {
+			aiGenLoading = false;
+		}
+	}
+
+	// Save the reviewed AI draft as a new workflow (opens the builder pre-filled
+	// with the generated canvas for final editing/approval).
+	async function useAiDraft() {
+		if (!aiDraft) return;
+		try {
+			await createWorkflow({
+				name: aiPrompt.slice(0, 60) || 'AI-generated workflow',
+				description: aiPrompt,
+				canvas_data: JSON.stringify(aiDraft),
+				trigger_type: 'manual',
+				is_active: false
+			});
+			aiDraft = null;
+			aiPrompt = '';
+			await load();
+		} catch (err) {
+			aiGenError = formatApiError(err);
 		}
 	}
 
@@ -179,6 +208,31 @@
 
 	{#if error}
 		<div class="mb-6 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">{error}</div>
+	{/if}
+
+	{#if view === 'list'}
+		<div class="bg-white border border-indigo-200 rounded-lg p-4 mb-6">
+			<h2 class="font-semibold text-gray-900 mb-1">Generate a workflow with AI</h2>
+			<p class="text-xs text-gray-500 mb-3">Describe what you want in plain language. The AI returns a draft workflow you review before saving — nothing is created until you confirm.</p>
+			<div class="flex gap-2">
+				<textarea bind:value={aiPrompt} rows="2" placeholder="e.g. When a form is submitted with priority high, create a task and email the team" class="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"></textarea>
+				<button on:click={generateWorkflow} disabled={aiGenLoading || !aiPrompt.trim()} class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white px-4 py-2 rounded text-sm self-start">
+					{aiGenLoading ? 'Generating…' : 'Generate'}
+				</button>
+			</div>
+			{#if aiGenError}
+				<p class="text-sm text-red-600 mt-2">{aiGenError}</p>
+			{/if}
+			{#if aiDraft}
+				<div class="mt-4 border border-gray-200 rounded p-3">
+					<div class="flex items-center justify-between mb-2">
+						<p class="text-sm font-medium text-gray-800">Draft ({aiDraft.nodes?.length ?? 0} nodes, {aiDraft.connections?.length ?? 0} connections) — review before saving</p>
+						<button on:click={useAiDraft} class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs">Use this draft</button>
+					</div>
+					<pre class="text-xs bg-gray-50 rounded p-2 overflow-x-auto max-h-72">{JSON.stringify(aiDraft, null, 2)}</pre>
+				</div>
+			{/if}
+		</div>
 	{/if}
 
 	{#if view === 'builder'}

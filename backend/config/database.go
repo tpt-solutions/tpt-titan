@@ -138,6 +138,8 @@ func migrateDatabase(db *gorm.DB) error {
 		&models.SystemSetting{},
 		// MCP servers (Model Context Protocol bridges)
 		&models.MCPServer{},
+		// Webhook delivery log (inbound/outbound call audit trail)
+		&models.WebhookDeliveryLog{},
 	); err != nil {
 		return fmt.Errorf("failed to migrate: %w", err)
 	}
