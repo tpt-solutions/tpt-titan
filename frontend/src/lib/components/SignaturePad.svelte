@@ -1,6 +1,6 @@
 <!-- frontend/src/lib/components/SignaturePad.svelte -->
 <script>
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, createEventDispatcher } from 'svelte';
 
 	export let value = ''; // Base64 encoded signature image
 	export let width = 400;
@@ -14,15 +14,18 @@
 
 	const dispatch = createEventDispatcher();
 
+	/** @type {HTMLCanvasElement} */
 	let canvas;
+	/** @type {CanvasRenderingContext2D} */
 	let ctx;
 	let isDrawing = false;
 	let hasSignature = false;
+	/** @type {{x: number, y: number}[]} */
 	let points = [];
 
 	onMount(() => {
 		if (canvas) {
-			ctx = canvas.getContext('2d');
+			ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
 			setupCanvas();
 			
 			// Load existing signature if provided
@@ -51,10 +54,11 @@
 		ctx.fillRect(0, 0, width, height);
 	}
 
+	/** @param {MouseEvent | TouchEvent} e */
 	function getPoint(e) {
 		const rect = canvas.getBoundingClientRect();
-		const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-		const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+		const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+		const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 		
 		return {
 			x: clientX - rect.left,
@@ -62,6 +66,7 @@
 		};
 	}
 
+	/** @param {MouseEvent | TouchEvent} e */
 	function startDrawing(e) {
 		if (disabled) return;
 		e.preventDefault();
@@ -74,6 +79,7 @@
 		ctx.moveTo(point.x, point.y);
 	}
 
+	/** @param {MouseEvent | TouchEvent} e */
 	function draw(e) {
 		if (!isDrawing || disabled) return;
 		e.preventDefault();
@@ -106,6 +112,7 @@
 		dispatch('change', { value: dataUrl });
 	}
 
+	/** @param {string} dataUrl */
 	function loadSignature(dataUrl) {
 		if (!ctx) return;
 		
@@ -160,31 +167,38 @@
 	}
 
 	// Touch event handlers for mobile
+	/** @param {TouchEvent} e */
 	function handleTouchStart(e) {
 		startDrawing(e);
 	}
 
+	/** @param {TouchEvent} e */
 	function handleTouchMove(e) {
 		draw(e);
 	}
 
+	/** @param {TouchEvent} e */
 	function handleTouchEnd(e) {
 		stopDrawing();
 	}
 
 	// Mouse event handlers
+	/** @param {MouseEvent} e */
 	function handleMouseDown(e) {
 		startDrawing(e);
 	}
 
+	/** @param {MouseEvent} e */
 	function handleMouseMove(e) {
 		draw(e);
 	}
 
+	/** @param {MouseEvent} e */
 	function handleMouseUp(e) {
 		stopDrawing();
 	}
 
+	/** @param {MouseEvent} e */
 	function handleMouseLeave(e) {
 		stopDrawing();
 	}
