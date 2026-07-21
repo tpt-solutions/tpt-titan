@@ -3,8 +3,6 @@ package services
 import (
 	"os"
 	"os/exec"
-	"runtime"
-	"strconv"
 	"strings"
 )
 
@@ -23,34 +21,8 @@ func detectGPU() bool {
 }
 
 // detectCPUSpeedMHz returns the detected CPU base frequency in MHz, or 0 if it
-// cannot be determined without elevated APIs.
-func detectCPUSpeedMHz() int {
-	switch runtime.GOOS {
-	case "linux":
-		if data, err := os.ReadFile("/proc/cpuinfo"); err == nil {
-			for _, line := range strings.Split(string(data), "\n") {
-				if strings.HasPrefix(line, "cpu MHz") || strings.HasPrefix(line, "clock") {
-					if idx := strings.Index(line, ":"); idx >= 0 {
-						if mhz, err := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(line[idx+1:], "MHz"))); err == nil {
-							return mhz
-						}
-					}
-				}
-			}
-		}
-	case "darwin":
-		if out, err := runCmd("sysctl", "-n", "hw.cpufrequency"); err == nil {
-			if hz, err := strconv.ParseInt(strings.TrimSpace(out), 10, 64); err == nil && hz > 0 {
-				return int(hz / 1_000_000)
-			}
-		}
-	case "windows":
-		if mhz, ok := detectCPUSpeedWindowsMHz(); ok {
-			return mhz
-		}
-	}
-	return 0
-}
+// cannot be determined. Platform-specific implementations are in the
+// hardware_detect_windows.go and hardware_detect_other.go files.
 
 // runCmd runs a command and returns trimmed stdout, or an error.
 func runCmd(name string, args ...string) (string, error) {

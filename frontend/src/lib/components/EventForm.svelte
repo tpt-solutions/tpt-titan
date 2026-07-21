@@ -3,6 +3,7 @@
 	import { contacts } from '$lib/stores';
 	import SpeechService from '../services/speech.js';
 
+	/** @type {any} */
 	export let event = null; // null for create, object for edit
 	export let selectedDate = null; // Pre-selected date for new events
 	export let calendars = [];

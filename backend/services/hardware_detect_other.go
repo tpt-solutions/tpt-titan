@@ -5,6 +5,8 @@ package services
 
 import (
 	"os"
+	"strconv"
+	"strings"
 
 	"golang.org/x/sys/unix"
 )
@@ -45,4 +47,29 @@ func detectFreeDiskGB() (int, bool) {
 // vendor SDKs, so it conservatively reports false.
 func detectGPUPlatform() bool {
 	return false
+}
+
+// detectCPUSpeedMHz returns the detected CPU base frequency in MHz, or 0 if
+// it cannot be determined.
+func detectCPUSpeedMHz() int {
+	// Linux: read from /proc/cpuinfo
+	if data, err := os.ReadFile("/proc/cpuinfo"); err == nil {
+		for _, line := range strings.Split(string(data), "\n") {
+			if strings.HasPrefix(line, "cpu MHz") || strings.HasPrefix(line, "clock") {
+				if idx := strings.Index(line, ":"); idx >= 0 {
+					s := strings.TrimSpace(strings.TrimSuffix(line[idx+1:], "MHz"))
+					if mhz, err := strconv.Atoi(s); err == nil {
+						return mhz
+					}
+				}
+			}
+		}
+	}
+	// macOS: sysctl
+	if out, err := runCmd("sysctl", "-n", "hw.cpufrequency"); err == nil {
+		if hz, err := strconv.ParseInt(strings.TrimSpace(out), 10, 64); err == nil && hz > 0 {
+			return int(hz / 1_000_000)
+		}
+	}
+	return 0
 }

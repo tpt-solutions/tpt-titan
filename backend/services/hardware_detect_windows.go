@@ -91,6 +91,14 @@ func detectGPUPlatform() bool {
 	return len(subKeys) > 0
 }
 
+// detectCPUSpeedMHz returns the CPU base frequency in MHz using the registry.
+func detectCPUSpeedMHz() int {
+	if mhz, ok := detectCPUSpeedWindowsMHz(); ok {
+		return mhz
+	}
+	return 0
+}
+
 // detectCPUSpeedWindowsMHz reads the CPU nominal frequency (MHz) from the
 // registry. Returns ok=false if unavailable.
 func detectCPUSpeedWindowsMHz() (int, bool) {

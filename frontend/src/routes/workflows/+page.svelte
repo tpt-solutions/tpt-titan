@@ -21,12 +21,15 @@
 	export let params = null;
 
 	let workflows = [];
+	/** @type {any[]} */
 	let templates = [];
 	let view = 'list'; // 'list' | 'builder'
 	let editingId = null;
 	let error = null;
 	let loading = false;
+	/** @type {any} */
 	let insights = null;
+	/** @type {any} */
 	let dryRunResult = null;
 
 	// AI-authored workflow generation (draft only; user reviews before saving).
@@ -80,6 +83,18 @@
 		try {
 			await executeWorkflow(wf.id);
 			alert('Workflow execution started');
+		} catch (err) {
+			error = formatApiError(err);
+		}
+	}
+
+	async function dryRun(wf) {
+		error = null;
+		dryRunResult = null;
+		try {
+			const res = await dryRunWorkflow(wf.id);
+			const exec = await pollExecution(res.execution_id || res.id);
+			dryRunResult = buildDryRunView(exec);
 		} catch (err) {
 			error = formatApiError(err);
 		}
