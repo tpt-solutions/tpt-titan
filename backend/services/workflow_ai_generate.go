@@ -23,16 +23,16 @@ type WorkflowCanvas struct {
 // workflow can never reference a connector that doesn't exist (and thus can
 // never silently no-op). This is the safety gate the brainstorm asked for.
 var knownConnectors = map[string]bool{
-	"forms.submission":        true,
-	"webhook.receive":         true,
-	"http.request":            true,
-	"email.send":              true,
-	"calendar.create_event":   true,
-	"tasks.create":            true,
-	"spreadsheet.update":      true,
-	"logic.condition":         true,
-	"logic.delay":             true,
-	"notifications.send":      true,
+	"forms.submission":      true,
+	"webhook.receive":       true,
+	"http.request":          true,
+	"email.send":            true,
+	"calendar.create_event": true,
+	"tasks.create":          true,
+	"spreadsheet.update":    true,
+	"logic.condition":       true,
+	"logic.delay":           true,
+	"notifications.send":    true,
 }
 
 // aiGenerateFunc is the model-calling hook. It is a package var so tests can

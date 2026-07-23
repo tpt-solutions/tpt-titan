@@ -309,11 +309,11 @@ func TestApprovalRequest_RespondedAt_CanBeSet(t *testing.T) {
 func TestNotificationTemplate_Types(t *testing.T) {
 	for _, notifType := range []string{"email", "sms", "in_app"} {
 		tmpl := NotificationTemplate{
-			ID:      uuid.New(),
-			Name:    "Welcome",
-			Type:    notifType,
-			Subject: "Hello {{name}}",
-			Body:    "Welcome to the platform, {{name}}!",
+			ID:        uuid.New(),
+			Name:      "Welcome",
+			Type:      notifType,
+			Subject:   "Hello {{name}}",
+			Body:      "Welcome to the platform, {{name}}!",
 			Variables: []string{"name"},
 		}
 		if tmpl.Type != notifType {

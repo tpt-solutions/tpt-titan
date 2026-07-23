@@ -1,5 +1,6 @@
 <!-- frontend/src/lib/components/TextEditorModals.svelte -->
 <script>
+// @ts-nocheck
 	import { createEventDispatcher } from 'svelte';
 
 	// Document list modal

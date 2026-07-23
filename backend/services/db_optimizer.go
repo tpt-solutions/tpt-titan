@@ -35,17 +35,17 @@ type IndexRecommendation struct {
 
 // DatabaseMetrics represents database performance metrics
 type DatabaseMetrics struct {
-	ActiveConnections   int           `json:"active_connections"`
-	IdleConnections     int           `json:"idle_connections"`
-	TotalConnections    int           `json:"total_connections"`
-	WaitCount           int64         `json:"wait_count"`
-	WaitTime            time.Duration `json:"wait_time"`
-	QueryCount          int64         `json:"query_count"`
-	SlowQueryCount      int64         `json:"slow_query_count"`
-	CacheHitRatio       float64       `json:"cache_hit_ratio"`
-	IndexHitRatio       float64       `json:"index_hit_ratio"`
-	TableBloatPercent   float64       `json:"table_bloat_percent"`
-	IndexBloatPercent   float64       `json:"index_bloat_percent"`
+	ActiveConnections int           `json:"active_connections"`
+	IdleConnections   int           `json:"idle_connections"`
+	TotalConnections  int           `json:"total_connections"`
+	WaitCount         int64         `json:"wait_count"`
+	WaitTime          time.Duration `json:"wait_time"`
+	QueryCount        int64         `json:"query_count"`
+	SlowQueryCount    int64         `json:"slow_query_count"`
+	CacheHitRatio     float64       `json:"cache_hit_ratio"`
+	IndexHitRatio     float64       `json:"index_hit_ratio"`
+	TableBloatPercent float64       `json:"table_bloat_percent"`
+	IndexBloatPercent float64       `json:"index_bloat_percent"`
 }
 
 // NewDatabaseOptimizer creates a new database optimizer

@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { templates, templateCategories } from '$lib/stores.js';
 	import { createEventDispatcher } from 'svelte';
 

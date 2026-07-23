@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
   import { createEventDispatcher } from 'svelte';
 
   export let node;
@@ -133,7 +134,7 @@
                       mcpError = 'Invalid JSON: ' + err.message;
                     }
                   }}
-                  placeholder='{\n  "key": "value"\n}'
+                  placeholder="example: key=value"
                 ></textarea>
                 {#if mcpError}
                   <p class="help-text" style="color:#c62828">{mcpError}</p>

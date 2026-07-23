@@ -12,11 +12,11 @@ import (
 
 // DocumentExportRequest represents a document export request
 type DocumentExportRequest struct {
-	Content   string `json:"content" binding:"required"`
-	Format    string `json:"format" binding:"required"` // "pdf", "docx", "html", "markdown"
-	Title     string `json:"title,omitempty"`
-	Template  string `json:"template,omitempty"`
-	Options   map[string]interface{} `json:"options,omitempty"`
+	Content  string                 `json:"content" binding:"required"`
+	Format   string                 `json:"format" binding:"required"` // "pdf", "docx", "html", "markdown"
+	Title    string                 `json:"title,omitempty"`
+	Template string                 `json:"template,omitempty"`
+	Options  map[string]interface{} `json:"options,omitempty"`
 }
 
 // ExportDocument exports a document to various formats
@@ -366,7 +366,7 @@ func GetDOCXFeatures(c *gin.Context) {
 // ConvertDocument converts between document formats
 func ConvertDocument(c *gin.Context) {
 	var req struct {
-		Content   string `json:"content" binding:"required"`
+		Content    string `json:"content" binding:"required"`
 		FromFormat string `json:"from_format" binding:"required"` // "html", "markdown", "text"
 		ToFormat   string `json:"to_format" binding:"required"`   // "docx", "pdf", "html", "markdown"
 		Title      string `json:"title,omitempty"`
@@ -639,7 +639,7 @@ func ValidateDocumentContent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"valid": len(errors) == 0,
+		"valid":  len(errors) == 0,
 		"errors": errors,
 	})
 }

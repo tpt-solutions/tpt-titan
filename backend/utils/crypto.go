@@ -101,9 +101,9 @@ func DeriveKeyFromPassword(password string, salt []byte) (*KeyManager, error) {
 
 // ShamirSecretSharing implements threshold cryptography for key recovery
 type ShamirSecretSharing struct {
-	secret []byte
-	shares [][]byte
-	threshold int
+	secret      []byte
+	shares      [][]byte
+	threshold   int
 	totalShares int
 }
 
@@ -170,8 +170,8 @@ func (sss *ShamirSecretSharing) GetShares() [][]byte {
 
 // HardwareSecurityKey represents a USB drive + face ID recovery system
 type HardwareSecurityKey struct {
-	deviceID   string
-	publicKey  []byte
+	deviceID     string
+	publicKey    []byte
 	encryptedKey []byte
 	faceTemplate []byte // Facial recognition template
 }

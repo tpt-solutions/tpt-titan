@@ -346,7 +346,7 @@ func GetRecommendedModels(c *gin.Context) {
 	recommendations := aiService.GetRecommendedModels(hardware)
 
 	c.JSON(http.StatusOK, gin.H{
-		"hardware":       hardware,
+		"hardware":        hardware,
 		"recommendations": recommendations,
 	})
 }
@@ -376,7 +376,7 @@ func SetupRecommendedModels(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":        "Recommended models and tasks have been set up",
+		"message":         "Recommended models and tasks have been set up",
 		"recommendations": recommendations,
 	})
 }

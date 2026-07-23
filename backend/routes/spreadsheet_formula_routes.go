@@ -16,10 +16,10 @@ type EvaluateFormulaRequest struct {
 
 // EvaluateFormulaResponse is the result of evaluating a spreadsheet formula
 type EvaluateFormulaResponse struct {
-	Result      interface{} `json:"result"`
-	DataType    string      `json:"data_type"`
-	Error       string      `json:"error,omitempty"`
-	DependsOn   []string    `json:"depends_on,omitempty"`
+	Result    interface{} `json:"result"`
+	DataType  string      `json:"data_type"`
+	Error     string      `json:"error,omitempty"`
+	DependsOn []string    `json:"depends_on,omitempty"`
 }
 
 // EvaluateFormula evaluates a spreadsheet formula

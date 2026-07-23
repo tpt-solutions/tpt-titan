@@ -26,12 +26,12 @@ func SaveMathCanvas(c *gin.Context) {
 	}
 
 	var req struct {
-		Name        string                          `json:"name" binding:"required"`
-		Description string                          `json:"description"`
-		Strokes     []services.HandwritingStroke    `json:"strokes"`
-		Recognized  *services.RecognitionResult     `json:"recognized,omitempty"`
-		Width       int                             `json:"width"`
-		Height      int                             `json:"height"`
+		Name        string                       `json:"name" binding:"required"`
+		Description string                       `json:"description"`
+		Strokes     []services.HandwritingStroke `json:"strokes"`
+		Recognized  *services.RecognitionResult  `json:"recognized,omitempty"`
+		Width       int                          `json:"width"`
+		Height      int                          `json:"height"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -74,10 +74,10 @@ func GetMathCanvases(c *gin.Context) {
 // GenerateEquationImage generates an image representation of an equation
 func GenerateEquationImage(c *gin.Context) {
 	var req struct {
-		LaTeX    string `json:"latex" binding:"required"`
-		Format   string `json:"format"`   // "png", "svg", "pdf"
-		Size     string `json:"size"`     // "small", "medium", "large"
-		Color    string `json:"color"`    // hex color
+		LaTeX  string `json:"latex" binding:"required"`
+		Format string `json:"format"` // "png", "svg", "pdf"
+		Size   string `json:"size"`   // "small", "medium", "large"
+		Color  string `json:"color"`  // hex color
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {

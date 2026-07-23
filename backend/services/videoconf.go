@@ -211,17 +211,17 @@ func (s *VideoConfService) JoinMeeting(meetingID uuid.UUID, email, name string) 
 
 	// Create new participant
 	participant := models.Participant{
-		ID:         uuid.New(),
-		MeetingID:  meetingID,
-		Email:      email,
-		Name:       name,
-		Role:       "participant",
-		JoinedAt:   time.Now(),
-		IsMuted:    true,  // Default to muted
-		IsVideoOn:  false, // Default to video off
+		ID:            uuid.New(),
+		MeetingID:     meetingID,
+		Email:         email,
+		Name:          name,
+		Role:          "participant",
+		JoinedAt:      time.Now(),
+		IsMuted:       true,  // Default to muted
+		IsVideoOn:     false, // Default to video off
 		IsScreenShare: false,
-		IPAddress:  "", // Would be populated from request
-		UserAgent:  "", // Would be populated from request
+		IPAddress:     "", // Would be populated from request
+		UserAgent:     "", // Would be populated from request
 	}
 
 	query := `
@@ -388,12 +388,12 @@ func (s *VideoConfService) SendMeetingMessage(meetingID, participantID uuid.UUID
 	}
 
 	meetingMessage := models.MeetingChatMessage{
-		ID:           uuid.New(),
-		MeetingID:    meetingID,
+		ID:            uuid.New(),
+		MeetingID:     meetingID,
 		ParticipantID: participantID,
-		Message:      message,
-		MessageType:  "text",
-		CreatedAt:    time.Now(),
+		Message:       message,
+		MessageType:   "text",
+		CreatedAt:     time.Now(),
 	}
 
 	query := `

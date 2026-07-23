@@ -68,11 +68,11 @@ var migrations = []migration{
 				&models.WorkflowConnection{},
 				&models.WorkflowExecution{},
 				&models.WorkflowTemplate{},
-			&models.SystemSetting{},
-			&models.SpreadsheetChart{},
-			&models.MCPServer{},
-		)
-	},
+				&models.SystemSetting{},
+				&models.SpreadsheetChart{},
+				&models.MCPServer{},
+			)
+		},
 	},
 	{
 		Version: "0002",

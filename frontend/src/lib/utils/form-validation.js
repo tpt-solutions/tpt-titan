@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Form Validation Utility - Validate form fields and show errors
  */

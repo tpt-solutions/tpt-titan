@@ -26,10 +26,10 @@ import (
 
 // EmailAttachmentService handles email attachments
 type EmailAttachmentService struct {
-	db         *sql.DB
-	storageSvc *StorageService // Would be implemented for file storage
-	maxSize    int64           // Maximum attachment size in bytes
-	allowedTypes []string      // Allowed MIME types
+	db           *sql.DB
+	storageSvc   *StorageService // Would be implemented for file storage
+	maxSize      int64           // Maximum attachment size in bytes
+	allowedTypes []string        // Allowed MIME types
 }
 
 // EmailAttachment represents an email attachment
@@ -38,10 +38,10 @@ type EmailAttachment struct {
 	EmailID     uuid.UUID `json:"email_id"`
 	Filename    string    `json:"filename"`
 	ContentType string    `json:"content_type"`
-	Size        int64     `json:"size"`        // Size in bytes
-	Hash        string    `json:"hash"`        // SHA256 hash for integrity
+	Size        int64     `json:"size"` // Size in bytes
+	Hash        string    `json:"hash"` // SHA256 hash for integrity
 	StoragePath string    `json:"storage_path"`
-	IsInline    bool      `json:"is_inline"`   // True for inline images
+	IsInline    bool      `json:"is_inline"`            // True for inline images
 	ContentID   string    `json:"content_id,omitempty"` // For inline attachments
 	CreatedAt   time.Time `json:"created_at"`
 }

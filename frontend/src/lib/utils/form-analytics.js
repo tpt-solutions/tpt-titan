@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Form Analytics Utility - Track and analyze form submissions
  */

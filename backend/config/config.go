@@ -11,16 +11,16 @@ import (
 // LoadAndValidate loads configuration and validates required fields
 func LoadAndValidate() *Config {
 	cfg := Load()
-	
+
 	// Validate required configuration
 	if cfg.JWT.Secret == "" {
 		log.Fatal("JWT_SECRET is required. Please set a secure secret key (min 32 characters recommended)")
 	}
-	
+
 	if len(cfg.JWT.Secret) < 32 {
 		log.Println("WARNING: JWT_SECRET should be at least 32 characters for security")
 	}
-	
+
 	return cfg
 }
 
@@ -73,12 +73,12 @@ type EmailConfig struct {
 }
 
 type AIConfig struct {
-	OllamaHost      string
-	OllamaPort      string
-	OpenRouterKey   string
-	DefaultModels   []string
-	EnableLocalAI   bool
-	EnableOnlineAI  bool
+	OllamaHost     string
+	OllamaPort     string
+	OpenRouterKey  string
+	DefaultModels  []string
+	EnableLocalAI  bool
+	EnableOnlineAI bool
 }
 
 type SpeechConfig struct {
@@ -97,24 +97,24 @@ type SpeechConfig struct {
 }
 
 type P2PConfig struct {
-	Enabled             bool   // Enable P2P mode
-	ServiceName         string // mDNS service name
-	ServiceType         string // mDNS service type
-	Port                int    // P2P listening port
-	DiscoveryTimeout    int    // Peer discovery timeout (seconds)
-	SyncInterval        int    // Sync interval (seconds)
-	MaxPeers            int    // Maximum number of peers to connect to
-	EnableEncryption    bool   // Encrypt P2P communications
-	EnableCompression   bool   // Compress data transfers
-	ConflictStrategy    string // "last_write_wins" or "manual_merge"
+	Enabled           bool   // Enable P2P mode
+	ServiceName       string // mDNS service name
+	ServiceType       string // mDNS service type
+	Port              int    // P2P listening port
+	DiscoveryTimeout  int    // Peer discovery timeout (seconds)
+	SyncInterval      int    // Sync interval (seconds)
+	MaxPeers          int    // Maximum number of peers to connect to
+	EnableEncryption  bool   // Encrypt P2P communications
+	EnableCompression bool   // Compress data transfers
+	ConflictStrategy  string // "last_write_wins" or "manual_merge"
 
 	// Remote access configuration
-	AllowRemoteAccess   bool   // Allow remote connections via cloud relay
-	RemoteAccessMode    string // "automatic", "relay_only", "vpn_required"
-	CloudRelayEnabled   bool   // Use cloud relay for remote connections
-	RelayServerURL      string // Cloud relay server URL
-	AutoDetectTopology  bool   // Automatically choose P2P vs relay
-	PreferredTopology   string // "mesh", "star", "hybrid"
+	AllowRemoteAccess  bool   // Allow remote connections via cloud relay
+	RemoteAccessMode   string // "automatic", "relay_only", "vpn_required"
+	CloudRelayEnabled  bool   // Use cloud relay for remote connections
+	RelayServerURL     string // Cloud relay server URL
+	AutoDetectTopology bool   // Automatically choose P2P vs relay
+	PreferredTopology  string // "mesh", "star", "hybrid"
 }
 
 func Load() *Config {
@@ -189,12 +189,12 @@ func Load() *Config {
 			ConflictStrategy:  getEnv("P2P_CONFLICT_STRATEGY", "last_write_wins"),
 
 			// Remote access - enabled by default for ease of use
-			AllowRemoteAccess: getEnvAsBool("P2P_ALLOW_REMOTE", true),
-			RemoteAccessMode:  getEnv("P2P_REMOTE_MODE", "automatic"),
-			CloudRelayEnabled: getEnvAsBool("P2P_CLOUD_RELAY", true),
-			RelayServerURL:    getEnv("P2P_RELAY_URL", "https://relay.tpt-titan.com"),
+			AllowRemoteAccess:  getEnvAsBool("P2P_ALLOW_REMOTE", true),
+			RemoteAccessMode:   getEnv("P2P_REMOTE_MODE", "automatic"),
+			CloudRelayEnabled:  getEnvAsBool("P2P_CLOUD_RELAY", true),
+			RelayServerURL:     getEnv("P2P_RELAY_URL", "https://relay.tpt-titan.com"),
 			AutoDetectTopology: getEnvAsBool("P2P_AUTO_TOPOLOGY", true),
-			PreferredTopology: getEnv("P2P_TOPOLOGY", "hybrid"),
+			PreferredTopology:  getEnv("P2P_TOPOLOGY", "hybrid"),
 		},
 	}
 }

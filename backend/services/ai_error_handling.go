@@ -27,15 +27,15 @@ const (
 
 // AIError provides detailed error information for AI operations
 type AIError struct {
-	Type        AIErrorType
-	Service     string
-	Operation   string
-	UserID      uuid.UUID
-	RequestID   uuid.UUID
-	Message     string
-	Details     map[string]interface{}
-	Timestamp   time.Time
-	Retryable   bool
+	Type            AIErrorType
+	Service         string
+	Operation       string
+	UserID          uuid.UUID
+	RequestID       uuid.UUID
+	Message         string
+	Details         map[string]interface{}
+	Timestamp       time.Time
+	Retryable       bool
 	SuggestedAction string
 }
 
@@ -45,11 +45,11 @@ func (e AIError) Error() string {
 
 // AIErrorHandler manages error handling and recovery for AI services
 type AIErrorHandler struct {
-	maxRetries       int
-	baseRetryDelay   time.Duration
-	maxRetryDelay    time.Duration
-	circuitBreakers  map[string]*CircuitBreaker
-	errorHistory     map[string][]AIError
+	maxRetries      int
+	baseRetryDelay  time.Duration
+	maxRetryDelay   time.Duration
+	circuitBreakers map[string]*CircuitBreaker
+	errorHistory    map[string][]AIError
 }
 
 // CircuitBreaker implements circuit breaker pattern for AI services
@@ -73,11 +73,11 @@ const (
 // NewAIErrorHandler creates a new AI error handler
 func NewAIErrorHandler() *AIErrorHandler {
 	return &AIErrorHandler{
-		maxRetries:     3,
-		baseRetryDelay: time.Second,
-		maxRetryDelay:  time.Minute,
+		maxRetries:      3,
+		baseRetryDelay:  time.Second,
+		maxRetryDelay:   time.Minute,
 		circuitBreakers: make(map[string]*CircuitBreaker),
-		errorHistory:   make(map[string][]AIError),
+		errorHistory:    make(map[string][]AIError),
 	}
 }
 
@@ -162,7 +162,7 @@ func (h *AIErrorHandler) GetRetryDelay(attempt int, aiErr *AIError) time.Duratio
 	}
 
 	// Add jitter to prevent thundering herd
-	jitter := time.Duration(rand.Int63n(int64(delay/10)))
+	jitter := time.Duration(rand.Int63n(int64(delay / 10)))
 	delay += jitter
 
 	// Special handling for rate limits
@@ -237,7 +237,7 @@ func (h *AIErrorHandler) updateCircuitBreaker(service string, aiErr *AIError) {
 			serviceName:      service,
 			failureThreshold: 5,
 			resetTimeout:     time.Minute * 5,
-			state:           CircuitClosed,
+			state:            CircuitClosed,
 		}
 		h.circuitBreakers[service] = cb
 	}

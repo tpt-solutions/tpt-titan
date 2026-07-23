@@ -33,20 +33,24 @@
 	export let documentId = null;
 
 	// ── Document state ─────────────────────────────────────────────
+	/** @type {any} */
 	let currentDocument = null;
 	let documentTitle = 'Untitled Document';
 	let isSaving = false;
 	let isLoading = false;
 	let saveStatus = '';
 	let hasUnsavedChanges = false;
+	/** @type {any} */
 	let autoSaveTimer = null;
 
 	// ── Editor content ─────────────────────────────────────────────
+	/** @type {any[]} */
 	let blocks = [];
 	let markdownContent = '';
 	let selectedBlockIndex = 0;
 
 	// ── Rich-text DOM ref ──────────────────────────────────────────
+	/** @type {any} */
 	let richTextEditorElement = null;
 
 	// ── Modal visibility ───────────────────────────────────────────
@@ -57,16 +61,21 @@
 	let showAIAssistant = false;
 
 	// ── Modal data ─────────────────────────────────────────────────
+	/** @type {any[]} */
 	let documentList = [];
+	/** @type {any[]} */
 	let versionHistory = [];
+	/** @type {any[]} */
 	let aiSuggestions = [];
 	let documentSummary = '';
 	let showTextAnalysis = false;
+	/** @type {any} */
 	let textAnalysis = null;
 
 	// ── Find & replace ─────────────────────────────────────────────
 	let findText = '';
 	let replaceText = '';
+	/** @type {any[]} */
 	let findResults = [];
 	let currentFindIndex = -1;
 	let isCaseSensitive = false;
@@ -74,8 +83,11 @@
 
 	// ── Speech ─────────────────────────────────────────────────────
 	let isReadingAloud = false;
+	/** @type {any} */
 	let speechSettings = null;
+	/** @type {any[]} */
 	let availableVoices = [];
+	/** @type {any} */
 	let selectedVoiceModel = null;
 
 	// ── AI ─────────────────────────────────────────────────────────
@@ -86,14 +98,18 @@
 
 	// ── AI Document processing/analysis ───────────────────────────
 	let showDocumentAnalysis = false;
+	/** @type {any} */
 	let documentAnalysis = null;
+	/** @type {any} */
 	let documentAnalysisStatus = null;
+	/** @type {any[]} */
 	let documentAnalyses = [];
 
 	// ── History (Undo/Redo) ────────────────────────────────────────
 	let editorHistory = new EditorHistory(100);
 	let canUndo = false;
 	let canRedo = false;
+	/** @type {any} */
 	let debouncedHistoryPush;
 
 	// ── Lifecycle ──────────────────────────────────────────────────
@@ -105,7 +121,7 @@
 		// Speech init
 		try {
 			availableVoices = await SpeechService.getAvailableModels('tts');
-			speechSettings = await SpeechService.getSpeechSettings();
+			speechSettings = await /** @type {any} */ (SpeechService).getSpeechSettings();
 			if (availableVoices.length > 0) selectedVoiceModel = availableVoices[0];
 		} catch (error) {
 			console.error('Failed to initialize speech:', error);
@@ -155,6 +171,7 @@
 		updateHistoryState();
 	}
 
+	/** @param {any} state */
 	function restoreFromHistory(state) {
 		if (state.type === 'blocks') {
 			blocks = JSON.parse(JSON.stringify(state.content));
@@ -209,18 +226,19 @@
 
 	async function loadDocumentList() {
 		try {
-			const response = await getDocuments();
-			documentList = response.documents.filter(doc => doc.content_type === 'text');
+			const response = /** @type {any} */ (await getDocuments());
+			documentList = response.documents.filter(/** @param {any} doc */ doc => doc.content_type === 'text');
 			showDocumentList = true;
 		} catch (error) {
 			console.error('Failed to load documents:', error);
 		}
 	}
 
+	/** @param {any} doc */
 	async function loadDocument(doc) {
 		isLoading = true;
 		try {
-			const response = await getDocument(doc.id);
+			const response = /** @type {any} */ (await getDocument(doc.id));
 			currentDocument = doc;
 			documentTitle = doc.title;
 			if (response.content && typeof response.content === 'object') {
@@ -244,7 +262,7 @@
 	async function loadVersionHistory() {
 		if (!currentDocument) return;
 		try {
-			const response = await getDocumentVersions(currentDocument.id);
+			const response = /** @type {any} */ (await getDocumentVersions(currentDocument.id));
 			versionHistory = response.versions;
 			showVersionHistory = true;
 		} catch (error) {
@@ -252,6 +270,7 @@
 		}
 	}
 
+	/** @param {any} version */
 	async function restoreVersion(version) {
 		if (!currentDocument) return;
 		try {
@@ -278,12 +297,16 @@
 
 
 	// ── PDF Export ─────────────────────────────────────────────────
+	/** @param {any} blockType */
 	function getFontSize(blockType) {
+		/** @type {any} */
 		const sizes = { heading1: 18, heading2: 16, heading3: 14, text: 12, list: 12, quote: 12, code: 10, math: 12, table: 12, image: 12 };
 		return sizes[blockType] || 12;
 	}
 
+	/** @param {any} blockType */
 	function getLineHeight(blockType) {
+		/** @type {any} */
 		const heights = { heading1: 8, heading2: 7, heading3: 6, text: 6, list: 6, quote: 6, code: 5, math: 6, table: 6, image: 6 };
 		return heights[blockType] || 6;
 	}
@@ -298,7 +321,7 @@
 			doc.setFontSize(getFontSize(block.type));
 			const content = block.content;
 			const lines = doc.splitTextToSize(content, 170);
-			lines.forEach(line => {
+			lines.forEach(/** @param {any} line */ line => {
 				if (yPosition > 270) { doc.addPage(); yPosition = 30; }
 				doc.text(line, 20, yPosition);
 				yPosition += getLineHeight(block.type);
@@ -310,6 +333,7 @@
 	}
 
 	// ── Block editor helpers ───────────────────────────────────────
+	/** @param {any} event */
 	function handleAddBlock(event) {
 		const afterIndex = event.detail;
 		const newBlock = { id: Date.now() + Math.random(), type: 'text', content: '', properties: {} };
@@ -319,6 +343,7 @@
 		markAsChanged();
 	}
 
+	/** @param {any} event */
 	function handleDeleteBlock(event) {
 		const blockIndex = event.detail;
 		if (blocks.length > 1) {
@@ -329,6 +354,7 @@
 		}
 	}
 
+	/** @param {any} event */
 	function handleBlockContentChange(event) {
 		const { index, content } = event.detail;
 		blocks[index].content = content;
@@ -337,6 +363,7 @@
 	}
 
 	// ── Keyboard shortcuts ─────────────────────────────────────────
+	/** @param {any} event */
 	function handleGlobalKeyDown(event) {
 		// Handle undo/redo
 		if (handleUndoRedoKeyboard(event, undo, redo)) {
@@ -353,10 +380,15 @@
 		return '';
 	}
 
+	/**
+	 * @param {string} text
+	 * @param {number} maxLength
+	 */
 	function splitTextIntoChunks(text, maxLength) {
+		/** @type {string[]} */
 		const chunks = [];
 		let currentChunk = '';
-		const sentences = text.split(/[.!?]+/).filter(s => s.trim());
+		const sentences = text.split(/[.!?]+/).filter(/** @param {any} s */ s => s.trim());
 		for (const sentence of sentences) {
 			const trimmed = sentence.trim();
 			if (!trimmed) continue;
@@ -394,7 +426,7 @@
 			}
 		} catch (error) {
 			console.error('Read aloud error:', error);
-			alert('Failed to read document aloud: ' + error.message);
+			alert('Failed to read document aloud: ' + /** @type {any} */ (error).message);
 		} finally {
 			isReadingAloud = false;
 		}
@@ -419,6 +451,7 @@
 		return '';
 	}
 
+	/** @param {any} newText */
 	function replaceSelectedText(newText) {
 		if (editorMode === 'blocks') {
 			if (selectedBlockIndex >= 0 && selectedBlockIndex < blocks.length) {
@@ -434,6 +467,7 @@
 		}
 	}
 
+	/** @param {any} text */
 	function insertTextAfterSelection(text) {
 		if (editorMode === 'blocks') {
 			if (selectedBlockIndex >= 0 && selectedBlockIndex < blocks.length) {
@@ -522,7 +556,7 @@
 			alert('AI processing started. Check the Analysis panel for results.');
 		} catch (error) {
 			console.error('Failed to process document:', error);
-			alert('Failed to process document: ' + error.message);
+			alert('Failed to process document: ' + /** @type {any} */ (error).message);
 		} finally {
 			isProcessingDocument = false;
 		}
@@ -541,7 +575,7 @@
 			documentAnalysisStatus = null;
 		}
 		try {
-			const res = await getDocumentAnalyses(currentDocument.id);
+			const res = /** @type {any} */ (await getDocumentAnalyses(currentDocument.id));
 			documentAnalyses = res.analyses || [];
 		} catch (error) {
 			documentAnalyses = [];
@@ -553,6 +587,7 @@
 		showDocumentAnalysis = true;
 	}
 
+	/** @param {any} suggestion */
 	function applyAISuggestion(suggestion) {
 		replaceSelectedText(suggestion);
 		showAIAssistant = false;
@@ -580,6 +615,7 @@
 		}
 	}
 
+	/** @param {number} index */
 	function selectFindResult(index) {
 		if (findResults.length === 0 || index < 0 || index >= findResults.length) return;
 		currentFindIndex = index;
@@ -647,6 +683,7 @@
 	}
 
 	// ── Export Handler ───────────────────────────────────────────────
+	/** @param {any} event */
 	function handleExport(event) {
 		const format = event.detail?.format || 'pdf';
 		const content = {
@@ -658,10 +695,10 @@
 		};
 		
 		try {
-			exportDocument(content, format);
+			exportDocument(content.mode, /** @type {any} */ (content), content.title, format);
 		} catch (error) {
 			console.error('Export failed:', error);
-			alert('Export failed: ' + error.message);
+			alert('Export failed: ' + /** @type {any} */ (error).message);
 		}
 	}
 

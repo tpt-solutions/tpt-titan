@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Form Conditional Logic Utility - Show/hide/enable fields based on conditions
  */

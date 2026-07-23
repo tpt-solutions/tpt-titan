@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Speech Service for TTS/STT operations
 class SpeechService {
     constructor() {

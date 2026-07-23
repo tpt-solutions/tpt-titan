@@ -26,27 +26,27 @@ type BackupService struct {
 
 // BackupMetadata contains metadata about a backup
 type BackupMetadata struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Type        string    `json:"type"` // "full", "incremental", "user_data"
-	CreatedAt   time.Time `json:"created_at"`
-	Size        int64     `json:"size"`
-	Checksum    string    `json:"checksum"`
+	ID          uuid.UUID  `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	Type        string     `json:"type"` // "full", "incremental", "user_data"
+	CreatedAt   time.Time  `json:"created_at"`
+	Size        int64      `json:"size"`
+	Checksum    string     `json:"checksum"`
 	UserID      *uuid.UUID `json:"user_id,omitempty"`
 	Tables      []string   `json:"tables"`
-	RecordCount int       `json:"record_count"`
+	RecordCount int        `json:"record_count"`
 }
 
 // BackupConfig contains backup configuration
 type BackupConfig struct {
-	Path           string
-	RetentionDays  int
-	MaxBackups     int
-	Compress       bool
-	Encrypt        bool
-	IncludeFiles   bool
-	Schedule       string // cron expression
+	Path          string
+	RetentionDays int
+	MaxBackups    int
+	Compress      bool
+	Encrypt       bool
+	IncludeFiles  bool
+	Schedule      string // cron expression
 }
 
 // NewBackupService creates a new backup service
@@ -258,7 +258,7 @@ func (bs *BackupService) ListBackups(userID *uuid.UUID) ([]BackupMetadata, error
 			continue
 		}
 
-			_, err := uuid.Parse(entry.Name())
+		_, err := uuid.Parse(entry.Name())
 		if err != nil {
 			continue // Skip invalid backup directories
 		}

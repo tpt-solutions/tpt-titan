@@ -15,18 +15,18 @@ type FormRelationshipService struct {
 
 // Relationship represents a relationship between two forms/tables
 type Relationship struct {
-	ID              uuid.UUID `json:"id"`
-	Name            string    `json:"name"`
-	Description     string    `json:"description"`
-	SourceFormID    uuid.UUID `json:"source_form_id"`
-	SourceField     string    `json:"source_field"`
-	TargetFormID    uuid.UUID `json:"target_form_id"`
-	TargetField     string    `json:"target_field"`
-	RelationshipType string   `json:"relationship_type"` // "one-to-one", "one-to-many", "many-to-many"
-	CascadeDelete   bool      `json:"cascade_delete"`
-	CascadeUpdate   bool      `json:"cascade_update"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	ID               uuid.UUID `json:"id"`
+	Name             string    `json:"name"`
+	Description      string    `json:"description"`
+	SourceFormID     uuid.UUID `json:"source_form_id"`
+	SourceField      string    `json:"source_field"`
+	TargetFormID     uuid.UUID `json:"target_form_id"`
+	TargetField      string    `json:"target_field"`
+	RelationshipType string    `json:"relationship_type"` // "one-to-one", "one-to-many", "many-to-many"
+	CascadeDelete    bool      `json:"cascade_delete"`
+	CascadeUpdate    bool      `json:"cascade_update"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 // LookupField represents a lookup field that references another form
@@ -36,24 +36,24 @@ type LookupField struct {
 	FieldID        uuid.UUID `json:"field_id"`
 	RelatedFormID  uuid.UUID `json:"related_form_id"`
 	RelatedFieldID uuid.UUID `json:"related_field_id"`
-	DisplayField   string    `json:"display_field"`   // Field to display in dropdown
-	FilterField    string    `json:"filter_field,omitempty"`    // Field to filter by
-	FilterValue    string    `json:"filter_value,omitempty"`    // Value to filter by
-	AllowMultiple  bool      `json:"allow_multiple"` // Allow multiple selections
+	DisplayField   string    `json:"display_field"`          // Field to display in dropdown
+	FilterField    string    `json:"filter_field,omitempty"` // Field to filter by
+	FilterValue    string    `json:"filter_value,omitempty"` // Value to filter by
+	AllowMultiple  bool      `json:"allow_multiple"`         // Allow multiple selections
 	CreatedAt      time.Time `json:"created_at"`
 }
 
 // FormIntegration represents integration between forms and external systems
 type FormIntegration struct {
-	ID          uuid.UUID            `json:"id"`
-	FormID      uuid.UUID            `json:"form_id"`
-	Name        string               `json:"name"`
-	Type        string               `json:"type"`        // "webhook", "api", "email", "sms"
-	Trigger     string               `json:"trigger"`     // "on_submit", "on_update", "on_delete"
-	Config      map[string]interface{} `json:"config"`      // Configuration specific to integration type
-	IsActive    bool                 `json:"is_active"`
-	CreatedAt   time.Time            `json:"created_at"`
-	UpdatedAt   time.Time            `json:"updated_at"`
+	ID        uuid.UUID              `json:"id"`
+	FormID    uuid.UUID              `json:"form_id"`
+	Name      string                 `json:"name"`
+	Type      string                 `json:"type"`    // "webhook", "api", "email", "sms"
+	Trigger   string                 `json:"trigger"` // "on_submit", "on_update", "on_delete"
+	Config    map[string]interface{} `json:"config"`  // Configuration specific to integration type
+	IsActive  bool                   `json:"is_active"`
+	CreatedAt time.Time              `json:"created_at"`
+	UpdatedAt time.Time              `json:"updated_at"`
 }
 
 // NewFormRelationshipService creates a new form relationship service
@@ -409,9 +409,9 @@ func (frs *FormRelationshipService) executeAPIIntegration(integration FormIntegr
 // GetFormHierarchy gets the hierarchy of related forms
 func (frs *FormRelationshipService) GetFormHierarchy(formID uuid.UUID) (map[string]interface{}, error) {
 	hierarchy := map[string]interface{}{
-		"form_id":    formID,
-		"children":   []map[string]interface{}{},
-		"parents":    []map[string]interface{}{},
+		"form_id":  formID,
+		"children": []map[string]interface{}{},
+		"parents":  []map[string]interface{}{},
 	}
 
 	// Get child relationships (where this form is the source)
@@ -431,8 +431,8 @@ func (frs *FormRelationshipService) GetFormHierarchy(formID uuid.UUID) (map[stri
 			childrenRows.Scan(&relID, &relName, &targetFormID)
 			hierarchy["children"] = append(hierarchy["children"].([]map[string]interface{}), map[string]interface{}{
 				"relationship_id": relID,
-				"name":           relName,
-				"form_id":        targetFormID,
+				"name":            relName,
+				"form_id":         targetFormID,
 			})
 		}
 		childrenRows.Close()
@@ -455,8 +455,8 @@ func (frs *FormRelationshipService) GetFormHierarchy(formID uuid.UUID) (map[stri
 			parentsRows.Scan(&relID, &relName, &sourceFormID)
 			hierarchy["parents"] = append(hierarchy["parents"].([]map[string]interface{}), map[string]interface{}{
 				"relationship_id": relID,
-				"name":           relName,
-				"form_id":        sourceFormID,
+				"name":            relName,
+				"form_id":         sourceFormID,
 			})
 		}
 		parentsRows.Close()

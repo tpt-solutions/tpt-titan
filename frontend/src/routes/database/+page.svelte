@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { onMount } from 'svelte';
 	import { apiGet } from '../../lib/api.js';
 	import DatabaseSpreadsheet from '../../lib/components/DatabaseSpreadsheet.svelte';

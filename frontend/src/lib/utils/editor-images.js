@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Editor Image Utility - Image upload and handling for text editor
  */

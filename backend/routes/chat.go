@@ -224,8 +224,8 @@ func GetMessages(c *gin.Context) {
 	}
 
 	// Parse pagination parameters
-	limit := 50  // default
-	offset := 0  // default
+	limit := 50 // default
+	offset := 0 // default
 
 	if limitStr := c.Query("limit"); limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 200 {

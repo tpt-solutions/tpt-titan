@@ -13,23 +13,23 @@ import (
 
 // DatabaseTableInfo represents metadata about a database table
 type DatabaseTableInfo struct {
-	Name        string                 `json:"name"`
-	Columns     []DatabaseColumnInfo   `json:"columns"`
-	PrimaryKey  string                 `json:"primary_key"`
-	Constraints []DatabaseConstraint  `json:"constraints"`
+	Name          string                 `json:"name"`
+	Columns       []DatabaseColumnInfo   `json:"columns"`
+	PrimaryKey    string                 `json:"primary_key"`
+	Constraints   []DatabaseConstraint   `json:"constraints"`
 	Relationships []DatabaseRelationship `json:"relationships"`
 }
 
 // DatabaseColumnInfo represents column metadata
 type DatabaseColumnInfo struct {
-	Name         string `json:"name"`
-	Type         string `json:"type"`
-	Nullable     bool   `json:"nullable"`
-	DefaultValue string `json:"default_value,omitempty"`
-	MaxLength    int    `json:"max_length,omitempty"`
-	IsPrimaryKey bool   `json:"is_primary_key"`
-	IsForeignKey bool   `json:"is_foreign_key"`
-	ForeignTable string `json:"foreign_table,omitempty"`
+	Name          string `json:"name"`
+	Type          string `json:"type"`
+	Nullable      bool   `json:"nullable"`
+	DefaultValue  string `json:"default_value,omitempty"`
+	MaxLength     int    `json:"max_length,omitempty"`
+	IsPrimaryKey  bool   `json:"is_primary_key"`
+	IsForeignKey  bool   `json:"is_foreign_key"`
+	ForeignTable  string `json:"foreign_table,omitempty"`
 	ForeignColumn string `json:"foreign_column,omitempty"`
 }
 
@@ -43,11 +43,11 @@ type DatabaseConstraint struct {
 
 // DatabaseRelationship represents foreign key relationships
 type DatabaseRelationship struct {
-	Name           string `json:"name"`
-	SourceTable    string `json:"source_table"`
-	SourceColumn   string `json:"source_column"`
-	TargetTable    string `json:"target_table"`
-	TargetColumn   string `json:"target_column"`
+	Name             string `json:"name"`
+	SourceTable      string `json:"source_table"`
+	SourceColumn     string `json:"source_column"`
+	TargetTable      string `json:"target_table"`
+	TargetColumn     string `json:"target_column"`
 	RelationshipType string `json:"relationship_type"`
 }
 
@@ -390,11 +390,11 @@ func getTableMetadata(db *sql.DB, tableName string) (*DatabaseTableInfo, error) 
 
 			// Add relationship
 			relationship := DatabaseRelationship{
-				Name:            constraintName,
-				SourceTable:     tableName,
-				SourceColumn:    columnName,
-				TargetTable:     foreignTable,
-				TargetColumn:    foreignColumn,
+				Name:             constraintName,
+				SourceTable:      tableName,
+				SourceColumn:     columnName,
+				TargetTable:      foreignTable,
+				TargetColumn:     foreignColumn,
 				RelationshipType: "many-to-one",
 			}
 			tableInfo.Relationships = append(tableInfo.Relationships, relationship)

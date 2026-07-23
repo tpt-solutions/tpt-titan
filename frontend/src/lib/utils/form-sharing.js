@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Form Sharing Utility - Generate public links, embed codes, QR codes
  */

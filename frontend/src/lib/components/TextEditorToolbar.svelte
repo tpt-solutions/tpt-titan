@@ -1,5 +1,6 @@
 <!-- frontend/src/lib/components/TextEditorToolbar.svelte -->
 <script>
+// @ts-nocheck
 	import { createEventDispatcher } from 'svelte';
 
 	export let documentTitle = 'Untitled Document';

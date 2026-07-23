@@ -264,16 +264,16 @@ func (s *AIService) checkOllamaUpgrades(currentModels []models.AIModel, hardware
 			if s.isUpgradeCandidate(current.ModelID, available.Name, hardware) {
 				sizeGB := parseSizeToGB(available.Size)
 				upgrade := models.UpgradeOption{
-					ID:             fmt.Sprintf("ollama-%s-%s", current.ModelID, available.Name),
-					CurrentModel:   current.ModelID,
-					NewModel:       available.Name,
-					Provider:       "ollama",
-					SizeGB:         sizeGB,
-					Capabilities:   available.Capabilities,
+					ID:              fmt.Sprintf("ollama-%s-%s", current.ModelID, available.Name),
+					CurrentModel:    current.ModelID,
+					NewModel:        available.Name,
+					Provider:        "ollama",
+					SizeGB:          sizeGB,
+					Capabilities:    available.Capabilities,
 					PerformanceGain: s.assessPerformanceGain(current.ModelID, available.Name),
-					Compatibility:  s.checkCompatibility(sizeGB, hardware),
-					Reasoning:      s.generateUpgradeReasoning(current.ModelID, available.Name),
-					RiskLevel:      "low", // Ollama upgrades are generally safe
+					Compatibility:   s.checkCompatibility(sizeGB, hardware),
+					Reasoning:       s.generateUpgradeReasoning(current.ModelID, available.Name),
+					RiskLevel:       "low", // Ollama upgrades are generally safe
 				}
 
 				// Serialize requirements
@@ -330,8 +330,8 @@ func (s *AIService) checkOpenRouterUpgrades(currentModels []models.AIModel, hard
 
 // openRouterModel is the subset of the OpenRouter /api/v1/models response we use.
 type openRouterModel struct {
-	ID           string `json:"id"`
-	Architecture string `json:"architecture"`
+	ID            string `json:"id"`
+	Architecture  string `json:"architecture"`
 	ContextLength string `json:"context_length"`
 }
 
@@ -413,8 +413,6 @@ func (s *AIService) generateUpgradeReasoning(currentModel, newModel string) stri
 	return fmt.Sprintf("Model update to %s with improved training data", newModel)
 }
 
-
-
 // DetectHardware attempts to detect system hardware capabilities
 func (s *AIService) DetectHardware() (*HardwareInfo, error) {
 	// This is a basic implementation - in production, you'd use system calls
@@ -422,11 +420,11 @@ func (s *AIService) DetectHardware() (*HardwareInfo, error) {
 	// TODO: Implement actual hardware detection using runtime.NumCPU(), syscall, etc.
 
 	info := &HardwareInfo{
-		RAMGB:     8,  // Conservative default - most users have at least 8GB
+		RAMGB:     8,     // Conservative default - most users have at least 8GB
 		HasGPU:    false, // Conservative - assume no GPU unless detected
-		CPUCores:  4,  // Most systems have at least 4 cores
-		CPUSpeed:  2000, // 2GHz base speed
-		DiskSpace: 50, // 50GB free space minimum
+		CPUCores:  4,     // Most systems have at least 4 cores
+		CPUSpeed:  2000,  // 2GHz base speed
+		DiskSpace: 50,    // 50GB free space minimum
 	}
 
 	// Try to detect actual RAM (simplified)

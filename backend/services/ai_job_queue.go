@@ -14,22 +14,22 @@ import (
 
 // Job represents an AI processing job
 type Job struct {
-	ID          uuid.UUID              `json:"id"`
-	UserID      uuid.UUID              `json:"user_id"`
-	Type        string                 `json:"type"`        // "document_analysis", "email_categorization", etc.
-	Priority    JobPriority            `json:"priority"`
-	Status      JobStatus              `json:"status"`
-	Input       map[string]interface{} `json:"input"`
-	Output      map[string]interface{} `json:"output,omitempty"`
-	Error       string                 `json:"error,omitempty"`
-	Progress    float64                `json:"progress"`    // 0.0 to 1.0
-	CreatedAt   time.Time              `json:"created_at"`
-	StartedAt   *time.Time             `json:"started_at,omitempty"`
-	CompletedAt *time.Time             `json:"completed_at,omitempty"`
-	EstimatedDuration time.Duration    `json:"estimated_duration"`
-	WorkerID    string                 `json:"worker_id,omitempty"`
-	RetryCount  int                    `json:"retry_count"`
-	MaxRetries  int                    `json:"max_retries"`
+	ID                uuid.UUID              `json:"id"`
+	UserID            uuid.UUID              `json:"user_id"`
+	Type              string                 `json:"type"` // "document_analysis", "email_categorization", etc.
+	Priority          JobPriority            `json:"priority"`
+	Status            JobStatus              `json:"status"`
+	Input             map[string]interface{} `json:"input"`
+	Output            map[string]interface{} `json:"output,omitempty"`
+	Error             string                 `json:"error,omitempty"`
+	Progress          float64                `json:"progress"` // 0.0 to 1.0
+	CreatedAt         time.Time              `json:"created_at"`
+	StartedAt         *time.Time             `json:"started_at,omitempty"`
+	CompletedAt       *time.Time             `json:"completed_at,omitempty"`
+	EstimatedDuration time.Duration          `json:"estimated_duration"`
+	WorkerID          string                 `json:"worker_id,omitempty"`
+	RetryCount        int                    `json:"retry_count"`
+	MaxRetries        int                    `json:"max_retries"`
 }
 
 // JobPriority defines job execution priority
@@ -55,15 +55,15 @@ const (
 
 // JobQueue manages background AI processing jobs
 type JobQueue struct {
-	mu           sync.RWMutex
-	jobs         map[uuid.UUID]*Job
-	queue        []*Job // Priority queue
-	workers      []*Worker
-	maxWorkers   int
-	maxRetries   int
-	stopChan     chan bool
-	jobChan      chan *Job
-	resultChan   chan *JobResult
+	mu         sync.RWMutex
+	jobs       map[uuid.UUID]*Job
+	queue      []*Job // Priority queue
+	workers    []*Worker
+	maxWorkers int
+	maxRetries int
+	stopChan   chan bool
+	jobChan    chan *Job
+	resultChan chan *JobResult
 }
 
 // Worker processes jobs
@@ -140,16 +140,16 @@ func (jq *JobQueue) SubmitJob(userID uuid.UUID, jobType string, input map[string
 	defer jq.mu.Unlock()
 
 	job := &Job{
-		ID:               uuid.New(),
-		UserID:           userID,
-		Type:             jobType,
-		Priority:         PriorityNormal,
-		Status:           StatusQueued,
-		Input:            input,
-		Progress:         0.0,
-		CreatedAt:        time.Now(),
+		ID:                uuid.New(),
+		UserID:            userID,
+		Type:              jobType,
+		Priority:          PriorityNormal,
+		Status:            StatusQueued,
+		Input:             input,
+		Progress:          0.0,
+		CreatedAt:         time.Now(),
 		EstimatedDuration: jq.estimateJobDuration(jobType, input),
-		MaxRetries:       jq.maxRetries,
+		MaxRetries:        jq.maxRetries,
 	}
 
 	// Store job
@@ -472,9 +472,9 @@ func (jq *JobQueue) insertIntoQueue(job *Job) {
 // estimateJobDuration estimates how long a job will take
 func (jq *JobQueue) estimateJobDuration(jobType string, input map[string]interface{}) time.Duration {
 	baseEstimates := map[string]time.Duration{
-		"document_analysis":    time.Minute * 2,
-		"email_categorization": time.Second * 30,
-		"speech_synthesis":     time.Minute * 1,
+		"document_analysis":     time.Minute * 2,
+		"email_categorization":  time.Second * 30,
+		"speech_synthesis":      time.Minute * 1,
 		"workflow_optimization": time.Minute * 3,
 	}
 
@@ -623,11 +623,11 @@ func (jq *JobQueue) processDocumentAnalysis(job *Job) *JobResult {
 		JobID:   job.ID,
 		Success: true,
 		Output: map[string]interface{}{
-			"analysis":        "Document analyzed successfully",
-			"word_count":      wordCount,
-			"character_count": charCount,
+			"analysis":               "Document analyzed successfully",
+			"word_count":             wordCount,
+			"character_count":        charCount,
 			"estimated_read_minutes": readMinutes,
-			"key_topics":      topics,
+			"key_topics":             topics,
 		},
 	}
 }
@@ -713,10 +713,10 @@ func (jq *JobQueue) processSpeechSynthesis(job *Job) *JobResult {
 		JobID:   job.ID,
 		Success: true,
 		Output: map[string]interface{}{
-			"text":           text,
+			"text":                       text,
 			"estimated_duration_seconds": durationSec,
-			"synthesized":    false,
-			"note":           "no TTS provider configured; duration is an estimate",
+			"synthesized":                false,
+			"note":                       "no TTS provider configured; duration is an estimate",
 		},
 	}
 }

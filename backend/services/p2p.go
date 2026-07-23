@@ -15,19 +15,19 @@ import (
 
 // P2PService handles peer-to-peer networking for local collaboration
 type P2PService struct {
-	config     *config.P2PConfig
-	peers      map[string]*Peer // peerID -> Peer
-	peerMutex  sync.RWMutex
-	discovery  *PeerDiscovery
-	relay      *CloudRelay
-	listener   net.Listener
-	running    bool
-	stopChan   chan struct{}
+	config    *config.P2PConfig
+	peers     map[string]*Peer // peerID -> Peer
+	peerMutex sync.RWMutex
+	discovery *PeerDiscovery
+	relay     *CloudRelay
+	listener  net.Listener
+	running   bool
+	stopChan  chan struct{}
 
 	// Connection management
-	localPeers   map[string]*Peer // Direct local network peers
-	remotePeers  map[string]*Peer // Remote peers via relay
-	peerID       string           // This instance's unique peer ID
+	localPeers  map[string]*Peer // Direct local network peers
+	remotePeers map[string]*Peer // Remote peers via relay
+	peerID      string           // This instance's unique peer ID
 
 	// Callbacks for handling spreadsheet events
 	onPeerConnected    func(peerID string)
@@ -51,11 +51,11 @@ type Peer struct {
 
 // P2PMessage represents messages exchanged between peers
 type P2PMessage struct {
-	Type         string                 `json:"type"`
-	PeerID       string                 `json:"peer_id"`
-	Timestamp    time.Time              `json:"timestamp"`
-	SpreadsheetID uuid.UUID             `json:"spreadsheet_id,omitempty"`
-	Data         map[string]interface{} `json:"data,omitempty"`
+	Type          string                 `json:"type"`
+	PeerID        string                 `json:"peer_id"`
+	Timestamp     time.Time              `json:"timestamp"`
+	SpreadsheetID uuid.UUID              `json:"spreadsheet_id,omitempty"`
+	Data          map[string]interface{} `json:"data,omitempty"`
 }
 
 // PeerDiscovery handles mDNS peer discovery
@@ -69,31 +69,31 @@ type PeerDiscovery struct {
 
 // CloudRelay handles remote connections via cloud relay servers
 type CloudRelay struct {
-	serverURL  string
-	token      string // Authentication token
-	connected  bool
-	conn       net.Conn
-	encoder    *json.Encoder
-	decoder    *json.Decoder
-	mutex      sync.Mutex
+	serverURL string
+	token     string // Authentication token
+	connected bool
+	conn      net.Conn
+	encoder   *json.Encoder
+	decoder   *json.Decoder
+	mutex     sync.Mutex
 }
 
 // RelayMessage represents messages sent through the cloud relay
 type RelayMessage struct {
-	Type      string                 `json:"type"`
-	Token     string                 `json:"token"`
+	Type       string                 `json:"type"`
+	Token      string                 `json:"token"`
 	TargetPeer string                 `json:"target_peer,omitempty"`
-	Data      map[string]interface{} `json:"data"`
-	Timestamp time.Time              `json:"timestamp"`
+	Data       map[string]interface{} `json:"data"`
+	Timestamp  time.Time              `json:"timestamp"`
 }
 
 // NewP2PService creates a new P2P service
 func NewP2PService(cfg *config.P2PConfig) *P2PService {
 	return &P2PService{
-		config:     cfg,
-		peers:      make(map[string]*Peer),
-		stopChan:   make(chan struct{}),
-		discovery:  NewPeerDiscovery(cfg.ServiceName, cfg.ServiceType, cfg.Port),
+		config:    cfg,
+		peers:     make(map[string]*Peer),
+		stopChan:  make(chan struct{}),
+		discovery: NewPeerDiscovery(cfg.ServiceName, cfg.ServiceType, cfg.Port),
 	}
 }
 
@@ -489,9 +489,9 @@ func (p2p *P2PService) GetConnectedPeers() []map[string]interface{} {
 	for _, peer := range p2p.peers {
 		if peer.IsConnected {
 			peers = append(peers, map[string]interface{}{
-				"id":       peer.ID,
-				"name":     peer.Name,
-				"address":  peer.Address,
+				"id":        peer.ID,
+				"name":      peer.Name,
+				"address":   peer.Address,
 				"last_seen": peer.LastSeen,
 			})
 		}

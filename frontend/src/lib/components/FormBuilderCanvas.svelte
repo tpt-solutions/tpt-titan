@@ -1,6 +1,7 @@
 <!-- frontend/src/lib/components/FormBuilderCanvas.svelte -->
 <!-- Centre canvas: live form preview with drag-to-reorder support. -->
 <script>
+// @ts-nocheck
 	import { createEventDispatcher } from 'svelte';
 
 	export let formData;

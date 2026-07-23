@@ -10,12 +10,12 @@ import (
 
 // RateLimiter manages API call rates for AI services
 type RateLimiter struct {
-	mu             sync.RWMutex
-	userLimits     map[string]*UserRateLimit
-	serviceLimits  map[string]*ServiceRateLimit
-	globalLimits   *GlobalRateLimit
-	cleanupTicker  *time.Ticker
-	stopCleanup    chan bool
+	mu            sync.RWMutex
+	userLimits    map[string]*UserRateLimit
+	serviceLimits map[string]*ServiceRateLimit
+	globalLimits  *GlobalRateLimit
+	cleanupTicker *time.Ticker
+	stopCleanup   chan bool
 }
 
 // UserRateLimit tracks per-user rate limits
@@ -69,13 +69,13 @@ type RateLimitConfig struct {
 // DefaultRateLimitConfig returns sensible defaults for rate limiting
 func DefaultRateLimitConfig() *RateLimitConfig {
 	return &RateLimitConfig{
-		UserMaxRequestsPerHour:     1000, // 1000 requests per user per hour
-		UserMaxRequestsPerDay:      5000, // 5000 requests per user per day
-		ServiceMaxRequestsPerMinute: 500, // 500 requests per service per minute
-		ServiceBurstLimit:           100, // Allow bursts up to 100 requests
+		UserMaxRequestsPerHour:      1000, // 1000 requests per user per hour
+		UserMaxRequestsPerDay:       5000, // 5000 requests per user per day
+		ServiceMaxRequestsPerMinute: 500,  // 500 requests per service per minute
+		ServiceBurstLimit:           100,  // Allow bursts up to 100 requests
 		GlobalMaxRequestsPerMinute:  2000, // 2000 requests globally per minute
-		ExpensiveOperationLimit:     50,  // 50 expensive operations per hour
-		CleanupInterval:            time.Minute * 5,
+		ExpensiveOperationLimit:     50,   // 50 expensive operations per hour
+		CleanupInterval:             time.Minute * 5,
 	}
 }
 

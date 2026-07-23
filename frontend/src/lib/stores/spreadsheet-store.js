@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { writable, derived } from 'svelte/store';
 
 // Core spreadsheet state

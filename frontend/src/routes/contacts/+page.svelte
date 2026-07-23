@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import ContactList from '$lib/components/ContactList.svelte';

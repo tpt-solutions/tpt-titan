@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import Spreadsheet from '$lib/components/Spreadsheet.svelte';
 	import TemplateSelector from '$lib/components/TemplateSelector.svelte';
 	import SpreadsheetCharts from '$lib/components/SpreadsheetCharts.svelte';

@@ -41,21 +41,21 @@ type ContactCategory struct {
 
 // VCardContact represents a contact in vCard format
 type VCardContact struct {
-	UID         string            `json:"uid"`
-	FullName    string            `json:"full_name"`
-	FirstName   string            `json:"first_name,omitempty"`
-	LastName    string            `json:"last_name,omitempty"`
-	Email       []string          `json:"email"`
-	Phone       []PhoneNumber     `json:"phone"`
-	Address     []Address         `json:"address"`
-	Organization string           `json:"organization,omitempty"`
-	Title       string            `json:"title,omitempty"`
-	Photo       *ContactPhoto     `json:"photo,omitempty"`
-	Birthday    *time.Time        `json:"birthday,omitempty"`
-	Notes       string            `json:"notes,omitempty"`
-	Categories  []string          `json:"categories"`
-	URLs        []string          `json:"urls"`
-	SocialMedia map[string]string `json:"social_media,omitempty"`
+	UID          string            `json:"uid"`
+	FullName     string            `json:"full_name"`
+	FirstName    string            `json:"first_name,omitempty"`
+	LastName     string            `json:"last_name,omitempty"`
+	Email        []string          `json:"email"`
+	Phone        []PhoneNumber     `json:"phone"`
+	Address      []Address         `json:"address"`
+	Organization string            `json:"organization,omitempty"`
+	Title        string            `json:"title,omitempty"`
+	Photo        *ContactPhoto     `json:"photo,omitempty"`
+	Birthday     *time.Time        `json:"birthday,omitempty"`
+	Notes        string            `json:"notes,omitempty"`
+	Categories   []string          `json:"categories"`
+	URLs         []string          `json:"urls"`
+	SocialMedia  map[string]string `json:"social_media,omitempty"`
 	CustomFields map[string]string `json:"custom_fields,omitempty"`
 }
 
@@ -84,23 +84,23 @@ type ContactPhoto struct {
 
 // ImportResult represents the result of an import operation
 type ImportResult struct {
-	TotalContacts   int      `json:"total_contacts"`
-	ImportedCount   int      `json:"imported_count"`
-	SkippedCount    int      `json:"skipped_count"`
-	ErrorCount      int      `json:"error_count"`
-	DuplicateCount  int      `json:"duplicate_count"`
-	NewGroups       []string `json:"new_groups"`
-	Errors          []string `json:"errors"`
+	TotalContacts  int      `json:"total_contacts"`
+	ImportedCount  int      `json:"imported_count"`
+	SkippedCount   int      `json:"skipped_count"`
+	ErrorCount     int      `json:"error_count"`
+	DuplicateCount int      `json:"duplicate_count"`
+	NewGroups      []string `json:"new_groups"`
+	Errors         []string `json:"errors"`
 }
 
 // ExportOptions represents options for contact export
 type ExportOptions struct {
-	Format          string   `json:"format"` // "vcard", "csv", "json"
-	IncludePhotos   bool     `json:"include_photos"`
-	GroupIDs        []uuid.UUID `json:"group_ids,omitempty"` // Export specific groups
-	ContactIDs      []uuid.UUID `json:"contact_ids,omitempty"` // Export specific contacts
-	IncludePrivate  bool     `json:"include_private"`
-	MaxPhotoSize    int      `json:"max_photo_size,omitempty"` // Max photo size in bytes
+	Format         string      `json:"format"` // "vcard", "csv", "json"
+	IncludePhotos  bool        `json:"include_photos"`
+	GroupIDs       []uuid.UUID `json:"group_ids,omitempty"`   // Export specific groups
+	ContactIDs     []uuid.UUID `json:"contact_ids,omitempty"` // Export specific contacts
+	IncludePrivate bool        `json:"include_private"`
+	MaxPhotoSize   int         `json:"max_photo_size,omitempty"` // Max photo size in bytes
 }
 
 // NewContactImportExportService creates a new contact import/export service
@@ -461,12 +461,12 @@ func (cies *ContactImportExportService) parseVCardData(vCardData string) []VCard
 func (cies *ContactImportExportService) parseSingleVCard(vCardText string) *VCardContact {
 	lines := strings.Split(vCardText, "\n")
 	vCard := &VCardContact{
-		Email:       []string{},
-		Phone:       []PhoneNumber{},
-		Address:     []Address{},
-		Categories:  []string{},
-		URLs:        []string{},
-		SocialMedia: make(map[string]string),
+		Email:        []string{},
+		Phone:        []PhoneNumber{},
+		Address:      []Address{},
+		Categories:   []string{},
+		URLs:         []string{},
+		SocialMedia:  make(map[string]string),
 		CustomFields: make(map[string]string),
 	}
 

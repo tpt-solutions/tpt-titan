@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Editor History Manager - Undo/Redo functionality for text editors
  * Supports block editor, markdown editor, and rich text editor

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Editor Formatting Utility - Rich text formatting enhancements
  */

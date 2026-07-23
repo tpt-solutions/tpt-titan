@@ -55,9 +55,9 @@ func GetSystemStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"users": gin.H{
-			"total":     totalUsers,
-			"active":    activeUsers,
-			"verified":  verifiedUsers,
+			"total":    totalUsers,
+			"active":   activeUsers,
+			"verified": verifiedUsers,
 		},
 		"content": gin.H{
 			"documents":     totalDocuments,
@@ -145,17 +145,17 @@ func GetUsers(c *gin.Context) {
 	var users []gin.H
 	for rows.Next() {
 		var user struct {
-			ID                   uuid.UUID  `json:"id"`
-			Username             string     `json:"username"`
-			Email                string     `json:"email"`
-			FirstName            *string    `json:"first_name"`
-			LastName             *string    `json:"last_name"`
-			IsActive             bool       `json:"is_active"`
-			IsVerified           bool       `json:"is_verified"`
-			LastLoginAt          *string    `json:"last_login_at"`
-			CreatedAt            string     `json:"created_at"`
-			FailedLoginAttempts  int        `json:"failed_login_attempts"`
-			LockedUntil          *string    `json:"locked_until"`
+			ID                  uuid.UUID `json:"id"`
+			Username            string    `json:"username"`
+			Email               string    `json:"email"`
+			FirstName           *string   `json:"first_name"`
+			LastName            *string   `json:"last_name"`
+			IsActive            bool      `json:"is_active"`
+			IsVerified          bool      `json:"is_verified"`
+			LastLoginAt         *string   `json:"last_login_at"`
+			CreatedAt           string    `json:"created_at"`
+			FailedLoginAttempts int       `json:"failed_login_attempts"`
+			LockedUntil         *string   `json:"locked_until"`
 		}
 
 		err := rows.Scan(
@@ -168,17 +168,17 @@ func GetUsers(c *gin.Context) {
 		}
 
 		users = append(users, gin.H{
-			"id":                     user.ID,
-			"username":               user.Username,
-			"email":                  user.Email,
-			"first_name":             user.FirstName,
-			"last_name":              user.LastName,
-			"is_active":              user.IsActive,
-			"is_verified":            user.IsVerified,
-			"last_login_at":          user.LastLoginAt,
-			"created_at":             user.CreatedAt,
-			"failed_login_attempts":  user.FailedLoginAttempts,
-			"locked_until":           user.LockedUntil,
+			"id":                    user.ID,
+			"username":              user.Username,
+			"email":                 user.Email,
+			"first_name":            user.FirstName,
+			"last_name":             user.LastName,
+			"is_active":             user.IsActive,
+			"is_verified":           user.IsVerified,
+			"last_login_at":         user.LastLoginAt,
+			"created_at":            user.CreatedAt,
+			"failed_login_attempts": user.FailedLoginAttempts,
+			"locked_until":          user.LockedUntil,
 		})
 	}
 
@@ -217,7 +217,7 @@ func GetUsers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"users":       users,
+		"users": users,
 		"pagination": gin.H{
 			"page":       page,
 			"limit":      limit,
@@ -397,16 +397,16 @@ func GetSystemLogs(c *gin.Context) {
 	var logs []gin.H
 	for rows.Next() {
 		var log struct {
-			Timestamp    string `json:"timestamp"`
-			EventType    string `json:"event_type"`
-			Severity     string `json:"severity"`
+			Timestamp    string     `json:"timestamp"`
+			EventType    string     `json:"event_type"`
+			Severity     string     `json:"severity"`
 			UserID       *uuid.UUID `json:"user_id"`
-			IPAddress    *string `json:"ip_address"`
-			ResourceType *string `json:"resource_type"`
+			IPAddress    *string    `json:"ip_address"`
+			ResourceType *string    `json:"resource_type"`
 			ResourceID   *uuid.UUID `json:"resource_id"`
-			Action       *string `json:"action"`
-			Status       *string `json:"status"`
-			Details      *string `json:"details"`
+			Action       *string    `json:"action"`
+			Status       *string    `json:"status"`
+			Details      *string    `json:"details"`
 		}
 
 		err := rows.Scan(
@@ -440,13 +440,13 @@ func GetDatabaseStats(c *gin.Context) {
 	db := c.MustGet("db").(*sql.DB)
 
 	var stats struct {
-		TableCount    int     `json:"table_count"`
-		TotalSizeMB   float64 `json:"total_size_mb"`
-		IndexSizeMB   float64 `json:"index_size_mb"`
-		TableSizeMB   float64 `json:"table_size_mb"`
-		ActiveConn    int     `json:"active_connections"`
-		IdleConn      int     `json:"idle_connections"`
-		TotalConn     int     `json:"total_connections"`
+		TableCount  int     `json:"table_count"`
+		TotalSizeMB float64 `json:"total_size_mb"`
+		IndexSizeMB float64 `json:"index_size_mb"`
+		TableSizeMB float64 `json:"table_size_mb"`
+		ActiveConn  int     `json:"active_connections"`
+		IdleConn    int     `json:"idle_connections"`
+		TotalConn   int     `json:"total_connections"`
 	}
 
 	// Get table count
@@ -521,15 +521,15 @@ func GetSecurityAlerts(c *gin.Context) {
 	var alerts []gin.H
 	for rows.Next() {
 		var alert struct {
-			ID         uuid.UUID `json:"id"`
-			EventType  string    `json:"event_type"`
-			Severity   string    `json:"severity"`
-			SourceIP   *string   `json:"source_ip"`
+			ID         uuid.UUID  `json:"id"`
+			EventType  string     `json:"event_type"`
+			Severity   string     `json:"severity"`
+			SourceIP   *string    `json:"source_ip"`
 			UserID     *uuid.UUID `json:"user_id"`
-			Details    string    `json:"details"`
-			CreatedAt  string    `json:"created_at"`
-			Resolved   bool      `json:"resolved"`
-			ResolvedAt *string   `json:"resolved_at"`
+			Details    string     `json:"details"`
+			CreatedAt  string     `json:"created_at"`
+			Resolved   bool       `json:"resolved"`
+			ResolvedAt *string    `json:"resolved_at"`
 		}
 
 		err := rows.Scan(
@@ -595,9 +595,9 @@ func GetSystemSettings(c *gin.Context) {
 			"session_timeout_hours":    24,
 		},
 		"storage": map[string]interface{}{
-			"max_file_size_mb":       100,
-			"backup_retention_days":  30,
-			"storage_quota_gb":       10,
+			"max_file_size_mb":      100,
+			"backup_retention_days": 30,
+			"storage_quota_gb":      10,
 		},
 		"features": map[string]interface{}{
 			"ai_enabled":                 true,

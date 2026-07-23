@@ -214,10 +214,10 @@ func GetProjects(c *gin.Context) {
 	resp := make([]map[string]interface{}, 0, len(projects))
 	for _, p := range projects {
 		resp = append(resp, map[string]interface{}{
-			"id":         p.ID.String(),
-			"name":       p.Name,
-			"color":      p.Color,
-			"createdAt":  p.CreatedAt,
+			"id":        p.ID.String(),
+			"name":      p.Name,
+			"color":     p.Color,
+			"createdAt": p.CreatedAt,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"projects": resp})
@@ -240,9 +240,9 @@ func CreateProject(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"project": map[string]interface{}{
-		"id":         project.ID.String(),
-		"name":       project.Name,
-		"color":      project.Color,
-		"createdAt":  project.CreatedAt,
+		"id":        project.ID.String(),
+		"name":      project.Name,
+		"color":     project.Color,
+		"createdAt": project.CreatedAt,
 	}})
 }

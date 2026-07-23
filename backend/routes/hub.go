@@ -10,8 +10,8 @@ import (
 	"tpt-titan/backend/services"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
 // Hub manages WebSocket client connections for real-time chat

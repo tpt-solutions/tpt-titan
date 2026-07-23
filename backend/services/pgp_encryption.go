@@ -28,19 +28,19 @@ type PGPEncryptionService struct {
 
 // PGPKeyPair represents a PGP key pair
 type PGPKeyPair struct {
-	ID          uuid.UUID              `json:"id"`
-	UserID      uuid.UUID              `json:"user_id"`
-	Name        string                 `json:"name"`
-	Email       string                 `json:"email"`
-	PublicKey   string                 `json:"public_key"`   // ASCII-armored public key
-	PrivateKey  string                 `json:"private_key"`  // Encrypted private key
-	KeyID       string                 `json:"key_id"`       // Key fingerprint/ID
-	Algorithm   string                 `json:"algorithm"`    // RSA, ECC, etc.
-	KeySize     int                    `json:"key_size"`     // Key size in bits
-	CreatedAt   time.Time              `json:"created_at"`
-	LastUsed    *time.Time             `json:"last_used,omitempty"`
-	IsDefault   bool                   `json:"is_default"`
-	IsActive    bool                   `json:"is_active"`
+	ID         uuid.UUID  `json:"id"`
+	UserID     uuid.UUID  `json:"user_id"`
+	Name       string     `json:"name"`
+	Email      string     `json:"email"`
+	PublicKey  string     `json:"public_key"`  // ASCII-armored public key
+	PrivateKey string     `json:"private_key"` // Encrypted private key
+	KeyID      string     `json:"key_id"`      // Key fingerprint/ID
+	Algorithm  string     `json:"algorithm"`   // RSA, ECC, etc.
+	KeySize    int        `json:"key_size"`    // Key size in bits
+	CreatedAt  time.Time  `json:"created_at"`
+	LastUsed   *time.Time `json:"last_used,omitempty"`
+	IsDefault  bool       `json:"is_default"`
+	IsActive   bool       `json:"is_active"`
 }
 
 // PublicKeyInfo represents public key information
@@ -76,10 +76,10 @@ type DecryptionResult struct {
 
 // SignatureResult represents the result of a signing operation
 type SignatureResult struct {
-	Signature   string    `json:"signature"`
-	KeyID       string    `json:"key_id"`
-	Algorithm   string    `json:"algorithm"`
-	SignedAt    time.Time `json:"signed_at"`
+	Signature string    `json:"signature"`
+	KeyID     string    `json:"key_id"`
+	Algorithm string    `json:"algorithm"`
+	SignedAt  time.Time `json:"signed_at"`
 }
 
 // KeyServerRequest represents a request to a key server

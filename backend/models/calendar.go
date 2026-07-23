@@ -9,15 +9,15 @@ import (
 
 // Calendar represents a user's calendar
 type Calendar struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
-	Name        string     `json:"name" db:"name"`
-	Description *string    `json:"description,omitempty" db:"description"`
-	Color       string     `json:"color" db:"color"`
-	IsDefault   bool       `json:"is_default" db:"is_default"`
-	IsShared    bool       `json:"is_shared" db:"is_shared"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+	ID          uuid.UUID `json:"id" db:"id"`
+	UserID      uuid.UUID `json:"user_id" db:"user_id"`
+	Name        string    `json:"name" db:"name"`
+	Description *string   `json:"description,omitempty" db:"description"`
+	Color       string    `json:"color" db:"color"`
+	IsDefault   bool      `json:"is_default" db:"is_default"`
+	IsShared    bool      `json:"is_shared" db:"is_shared"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // CalendarRequest represents the request payload for creating/updating calendars
@@ -43,56 +43,56 @@ type CalendarResponse struct {
 
 // Event represents a calendar event
 type Event struct {
-	ID               uuid.UUID  `json:"id" db:"id"`
-	CalendarID       uuid.UUID  `json:"calendar_id" db:"calendar_id"`
-	UserID           uuid.UUID  `json:"user_id" db:"user_id"`
-	Title            string     `json:"title" db:"title"`
-	Description      *string    `json:"description,omitempty" db:"description"`
-	Location         *string    `json:"location,omitempty" db:"location"`
-	StartTime        time.Time  `json:"start_time" db:"start_time"`
-	EndTime          time.Time  `json:"end_time" db:"end_time"`
-	IsAllDay         bool       `json:"is_all_day" db:"is_all_day"`
-	RecurrenceRule   *string    `json:"recurrence_rule,omitempty" db:"recurrence_rule"`
-	RecurrenceID     *uuid.UUID `json:"recurrence_id,omitempty" db:"recurrence_id"`
-	ReminderMinutes  int        `json:"reminder_minutes" db:"reminder_minutes"`
-	IsCompleted      bool       `json:"is_completed" db:"is_completed"`
-	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at" db:"updated_at"`
+	ID              uuid.UUID  `json:"id" db:"id"`
+	CalendarID      uuid.UUID  `json:"calendar_id" db:"calendar_id"`
+	UserID          uuid.UUID  `json:"user_id" db:"user_id"`
+	Title           string     `json:"title" db:"title"`
+	Description     *string    `json:"description,omitempty" db:"description"`
+	Location        *string    `json:"location,omitempty" db:"location"`
+	StartTime       time.Time  `json:"start_time" db:"start_time"`
+	EndTime         time.Time  `json:"end_time" db:"end_time"`
+	IsAllDay        bool       `json:"is_all_day" db:"is_all_day"`
+	RecurrenceRule  *string    `json:"recurrence_rule,omitempty" db:"recurrence_rule"`
+	RecurrenceID    *uuid.UUID `json:"recurrence_id,omitempty" db:"recurrence_id"`
+	ReminderMinutes int        `json:"reminder_minutes" db:"reminder_minutes"`
+	IsCompleted     bool       `json:"is_completed" db:"is_completed"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // EventRequest represents the request payload for creating/updating events
 type EventRequest struct {
-	CalendarID      uuid.UUID  `json:"calendar_id" binding:"required"`
-	Title           string     `json:"title" binding:"required"`
-	Description     *string    `json:"description,omitempty"`
-	Location        *string    `json:"location,omitempty"`
-	StartTime       time.Time  `json:"start_time" binding:"required"`
-	EndTime         time.Time  `json:"end_time" binding:"required"`
-	IsAllDay        bool       `json:"is_all_day"`
-	RecurrenceRule  *string    `json:"recurrence_rule,omitempty"`
-	ReminderMinutes int        `json:"reminder_minutes"`
+	CalendarID      uuid.UUID   `json:"calendar_id" binding:"required"`
+	Title           string      `json:"title" binding:"required"`
+	Description     *string     `json:"description,omitempty"`
+	Location        *string     `json:"location,omitempty"`
+	StartTime       time.Time   `json:"start_time" binding:"required"`
+	EndTime         time.Time   `json:"end_time" binding:"required"`
+	IsAllDay        bool        `json:"is_all_day"`
+	RecurrenceRule  *string     `json:"recurrence_rule,omitempty"`
+	ReminderMinutes int         `json:"reminder_minutes"`
 	AttendeeIDs     []uuid.UUID `json:"attendee_ids,omitempty"`
 }
 
 // EventResponse represents the response payload for events
 type EventResponse struct {
-	ID               uuid.UUID             `json:"id"`
-	CalendarID       uuid.UUID             `json:"calendar_id"`
-	CalendarName     string                `json:"calendar_name"`
-	CalendarColor    string                `json:"calendar_color"`
-	Title            string                `json:"title"`
-	Description      *string               `json:"description,omitempty"`
-	Location         *string               `json:"location,omitempty"`
-	StartTime        time.Time             `json:"start_time"`
-	EndTime          time.Time             `json:"end_time"`
-	IsAllDay         bool                  `json:"is_all_day"`
-	RecurrenceRule   *string               `json:"recurrence_rule,omitempty"`
-	RecurrenceID     *uuid.UUID            `json:"recurrence_id,omitempty"`
-	ReminderMinutes  int                   `json:"reminder_minutes"`
-	IsCompleted      bool                  `json:"is_completed"`
-	Attendees        []EventAttendeeResponse `json:"attendees,omitempty"`
-	CreatedAt        time.Time             `json:"created_at"`
-	UpdatedAt        time.Time             `json:"updated_at"`
+	ID              uuid.UUID               `json:"id"`
+	CalendarID      uuid.UUID               `json:"calendar_id"`
+	CalendarName    string                  `json:"calendar_name"`
+	CalendarColor   string                  `json:"calendar_color"`
+	Title           string                  `json:"title"`
+	Description     *string                 `json:"description,omitempty"`
+	Location        *string                 `json:"location,omitempty"`
+	StartTime       time.Time               `json:"start_time"`
+	EndTime         time.Time               `json:"end_time"`
+	IsAllDay        bool                    `json:"is_all_day"`
+	RecurrenceRule  *string                 `json:"recurrence_rule,omitempty"`
+	RecurrenceID    *uuid.UUID              `json:"recurrence_id,omitempty"`
+	ReminderMinutes int                     `json:"reminder_minutes"`
+	IsCompleted     bool                    `json:"is_completed"`
+	Attendees       []EventAttendeeResponse `json:"attendees,omitempty"`
+	CreatedAt       time.Time               `json:"created_at"`
+	UpdatedAt       time.Time               `json:"updated_at"`
 }
 
 // EventAttendee represents an event attendee
@@ -118,15 +118,15 @@ type EventAttendeeResponse struct {
 // ToResponse converts a Calendar to CalendarResponse
 func (c *Calendar) ToResponse() CalendarResponse {
 	return CalendarResponse{
-		ID:         c.ID,
-		Name:       c.Name,
+		ID:          c.ID,
+		Name:        c.Name,
 		Description: c.Description,
-		Color:      c.Color,
-		IsDefault:  c.IsDefault,
-		IsShared:   c.IsShared,
-		EventCount: 0, // This will be populated by the service
-		CreatedAt:  c.CreatedAt,
-		UpdatedAt:  c.UpdatedAt,
+		Color:       c.Color,
+		IsDefault:   c.IsDefault,
+		IsShared:    c.IsShared,
+		EventCount:  0, // This will be populated by the service
+		CreatedAt:   c.CreatedAt,
+		UpdatedAt:   c.UpdatedAt,
 	}
 }
 

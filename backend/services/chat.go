@@ -619,8 +619,8 @@ func (s *ChatService) CreateDirectMessage(userID, otherUserID uuid.UUID) (*model
 
 	// Room doesn't exist, create a new one
 	req := models.ChatRoomRequest{
-		RoomType: "direct",
-		UserIDs:  []uuid.UUID{otherUserID},
+		RoomType:  "direct",
+		UserIDs:   []uuid.UUID{otherUserID},
 		IsPrivate: true,
 	}
 

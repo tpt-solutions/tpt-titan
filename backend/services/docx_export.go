@@ -23,14 +23,14 @@ type DocumentContent struct {
 
 // ContentBlock represents a block of content (paragraph, heading, list, etc.)
 type ContentBlock struct {
-	Type    string                 `json:"type"`    // "paragraph", "heading", "list", "table", "image", "code", "quote"
-	Level   int                    `json:"level,omitempty"`   // For headings and lists
-	Text    string                 `json:"text,omitempty"`
-	Style   map[string]interface{} `json:"style,omitempty"`   // Formatting styles
-	Items   []string               `json:"items,omitempty"`   // For lists
-	Table   *TableData             `json:"table,omitempty"`   // For tables
-	Image   *ImageData             `json:"image,omitempty"`   // For images
-	Code    *CodeBlock             `json:"code,omitempty"`    // For code blocks
+	Type  string                 `json:"type"`            // "paragraph", "heading", "list", "table", "image", "code", "quote"
+	Level int                    `json:"level,omitempty"` // For headings and lists
+	Text  string                 `json:"text,omitempty"`
+	Style map[string]interface{} `json:"style,omitempty"` // Formatting styles
+	Items []string               `json:"items,omitempty"` // For lists
+	Table *TableData             `json:"table,omitempty"` // For tables
+	Image *ImageData             `json:"image,omitempty"` // For images
+	Code  *CodeBlock             `json:"code,omitempty"`  // For code blocks
 }
 
 // TableData represents table content
@@ -814,9 +814,9 @@ func (des *DOCXExportService) GetDOCXMetadata(docxData []byte) (map[string]inter
 	// In a real implementation, parse the DOCX file and extract metadata
 	// For now, return basic info
 	return map[string]interface{}{
-		"format":      "DOCX",
-		"size_bytes":  len(docxData),
-		"created_at":  time.Now(),
-		"creator":     "TPT Titan",
+		"format":     "DOCX",
+		"size_bytes": len(docxData),
+		"created_at": time.Now(),
+		"creator":    "TPT Titan",
 	}, nil
 }

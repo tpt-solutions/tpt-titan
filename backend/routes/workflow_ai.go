@@ -172,9 +172,9 @@ func GetWorkflowInsights(c *gin.Context) {
 	}
 
 	insights := gin.H{
-		"usage_analysis": usageAnalysis,
+		"usage_analysis":           usageAnalysis,
 		"template_recommendations": recommendations,
-		"workflow_predictions": predictions,
+		"workflow_predictions":     predictions,
 		"summary": gin.H{
 			"total_workflows": len(usageAnalysis.Patterns),
 			"active_workflows": func() int {
@@ -192,10 +192,10 @@ func GetWorkflowInsights(c *gin.Context) {
 					return 0
 				}
 				return float64(usageAnalysis.PerformanceMetrics.SuccessfulExecutions) /
-					   float64(usageAnalysis.PerformanceMetrics.TotalExecutions) * 100
+					float64(usageAnalysis.PerformanceMetrics.TotalExecutions) * 100
 			}(),
 			"recommendations_count": len(usageAnalysis.Recommendations),
-			"predictions_count": len(predictions),
+			"predictions_count":     len(predictions),
 		},
 	}
 

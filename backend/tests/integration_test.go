@@ -65,9 +65,9 @@ func (suite *IntegrationTestSuite) TestHealthCheck() {
 // TestUserRegistration tests user registration flow
 func (suite *IntegrationTestSuite) TestUserRegistration() {
 	userData := map[string]interface{}{
-		"username": "testuser",
-		"email":    "test@example.com",
-		"password": "SecurePass123!",
+		"username":   "testuser",
+		"email":      "test@example.com",
+		"password":   "SecurePass123!",
 		"first_name": "Test",
 		"last_name":  "User",
 	}
@@ -141,10 +141,10 @@ func (suite *IntegrationTestSuite) TestGDPRCompliance() {
 // TestCalendarSharing tests calendar sharing functionality
 func (suite *IntegrationTestSuite) TestCalendarSharing() {
 	shareData := map[string]interface{}{
-		"calendar_id": "test-calendar-id",
+		"calendar_id":    "test-calendar-id",
 		"shared_with_id": "test-user-id",
-		"permission": "view",
-		"message": "Test sharing",
+		"permission":     "view",
+		"message":        "Test sharing",
 	}
 
 	jsonData, _ := json.Marshal(shareData)

@@ -398,10 +398,10 @@ func (sms *SpreadsheetMathService) evaluateRange(rangeExpr string, cellResolver 
 // arithmeticParser is a recursive-descent parser for spreadsheet arithmetic
 // expressions supporting +, -, *, /, parentheses, numbers, and cell references.
 type arithmeticParser struct {
-	sms         *SpreadsheetMathService
-	resolver    func(string) (interface{}, error)
-	expr        string
-	pos         int
+	sms      *SpreadsheetMathService
+	resolver func(string) (interface{}, error)
+	expr     string
+	pos      int
 }
 
 // evaluateArithmetic evaluates arithmetic expressions with proper operator

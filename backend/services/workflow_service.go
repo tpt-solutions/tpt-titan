@@ -161,12 +161,12 @@ func (s *WorkflowService) ExecuteWorkflow(workflowID uuid.UUID, triggerData map[
 
 	// Create execution record
 	execution := &models.WorkflowExecution{
-		WorkflowID:   workflowID,
-		UserID:       workflow.UserID,
-		Status:       "running",
-		TriggerType:  "manual",
-		IsDryRun:     dryRun,
-		StartedAt:    time.Now(),
+		WorkflowID:  workflowID,
+		UserID:      workflow.UserID,
+		Status:      "running",
+		TriggerType: "manual",
+		IsDryRun:    dryRun,
+		StartedAt:   time.Now(),
 	}
 
 	triggerDataJSON, _ := json.Marshal(triggerData)
@@ -214,12 +214,12 @@ func (s *WorkflowService) executeWorkflowAsync(execution *models.WorkflowExecuti
 
 	// Execute workflow
 	executionContext := &WorkflowExecutionContext{
-		ExecutionID:  execution.ID,
-		WorkflowID:   workflow.ID,
-		UserID:       workflow.UserID,
-		NodeStates:   make(map[string]interface{}),
-		GlobalData:   triggerData,
-		DryRun:       dryRun,
+		ExecutionID: execution.ID,
+		WorkflowID:  workflow.ID,
+		UserID:      workflow.UserID,
+		NodeStates:  make(map[string]interface{}),
+		GlobalData:  triggerData,
+		DryRun:      dryRun,
 	}
 
 	// Execute starting nodes
@@ -261,7 +261,7 @@ func (s *WorkflowService) executeNode(node map[string]interface{}, ctx *Workflow
 
 	// Update node state
 	ctx.NodeStates[nodeID] = map[string]interface{}{
-		"status":    "running",
+		"status":     "running",
 		"started_at": time.Now(),
 	}
 
@@ -285,11 +285,11 @@ func (s *WorkflowService) executeNode(node map[string]interface{}, ctx *Workflow
 		if ctx.DryRun {
 			action, _ := nodeConfig["action"].(string)
 			result = map[string]interface{}{
-				"dry_run":      true,
-				"node_name":    node["name"],
+				"dry_run":       true,
+				"node_name":     node["name"],
 				"would_execute": connectorName,
-				"action":       action,
-				"with_config":  nodeConfig,
+				"action":        action,
+				"with_config":   nodeConfig,
 			}
 		} else {
 			result, err = s.connectors[connectorName].Execute(nodeConfig, ctx.GlobalData)
@@ -497,12 +497,12 @@ func (s *WorkflowService) GetMCPConnectorDescriptors() []map[string]interface{} 
 			desc = m
 		}
 		out = append(out, map[string]interface{}{
-			"id":          name,
-			"name":        name,
-			"description": desc,
-			"app_name":    "mcp",
+			"id":             name,
+			"name":           name,
+			"description":    desc,
+			"app_name":       "mcp",
 			"connector_type": "action",
-			"is_mcp":      true,
+			"is_mcp":         true,
 		})
 	}
 	return out
@@ -516,16 +516,16 @@ func (s *WorkflowService) GetMCPConnectorDescriptors() []map[string]interface{} 
 // SSRF validation, retry/backoff, and signing it already supports).
 var namedConnectorTemplates = []map[string]interface{}{
 	{
-		"id":            "template.slack",
-		"name":          "Slack message",
-		"description":   "Post a message to a Slack incoming webhook.",
-		"app_name":      "slack",
-		"connector":     "http.request",
+		"id":             "template.slack",
+		"name":           "Slack message",
+		"description":    "Post a message to a Slack incoming webhook.",
+		"app_name":       "slack",
+		"connector":      "http.request",
 		"connector_type": "action",
 		"config": map[string]interface{}{
-			"method": "POST",
+			"method":  "POST",
 			"headers": map[string]interface{}{"Content-Type": "application/json"},
-			"body":   `{"text": "{{message}}"}`,
+			"body":    `{"text": "{{message}}"}`,
 		},
 	},
 	{
@@ -534,39 +534,39 @@ var namedConnectorTemplates = []map[string]interface{}{
 		// from this Titan instance (the concrete, ERP-side-trustworthy mechanism
 		// the tpt-free-erp bridge needs). The user fills in `url` and
 		// `signing_secret`; the body is whatever the ERP endpoint expects.
-		"id":            "template.erp",
-		"name":          "ERP bridge (signed POST)",
-		"description":   "POST a signed request to an external ERP REST API (e.g. tpt-free-erp). The receiver can verify the HMAC-SHA256 X-Titan-Signature header.",
-		"app_name":      "erp",
-		"connector":     "http.request",
+		"id":             "template.erp",
+		"name":           "ERP bridge (signed POST)",
+		"description":    "POST a signed request to an external ERP REST API (e.g. tpt-free-erp). The receiver can verify the HMAC-SHA256 X-Titan-Signature header.",
+		"app_name":       "erp",
+		"connector":      "http.request",
 		"connector_type": "action",
 		"config": map[string]interface{}{
-			"method":          "POST",
-			"headers":         map[string]interface{}{"Content-Type": "application/json"},
-			"body":            `{"event": "{{event}}", "payload": {{payload}}}`,
-			"signing_secret":  "{{erp_shared_secret}}",
-			"retry_attempts":  float64(2),
+			"method":         "POST",
+			"headers":        map[string]interface{}{"Content-Type": "application/json"},
+			"body":           `{"event": "{{event}}", "payload": {{payload}}}`,
+			"signing_secret": "{{erp_shared_secret}}",
+			"retry_attempts": float64(2),
 		},
 	},
 	{
-		"id":            "template.discord",
-		"name":          "Discord message",
-		"description":   "Post a message to a Discord webhook.",
-		"app_name":      "discord",
-		"connector":     "http.request",
+		"id":             "template.discord",
+		"name":           "Discord message",
+		"description":    "Post a message to a Discord webhook.",
+		"app_name":       "discord",
+		"connector":      "http.request",
 		"connector_type": "action",
 		"config": map[string]interface{}{
-			"method": "POST",
+			"method":  "POST",
 			"headers": map[string]interface{}{"Content-Type": "application/json"},
-			"body":   `{"content": "{{message}}"}`,
+			"body":    `{"content": "{{message}}"}`,
 		},
 	},
 	{
-		"id":            "template.github",
-		"name":          "GitHub (create issue)",
-		"description":   "Create an issue on a GitHub repo via the REST API.",
-		"app_name":      "github",
-		"connector":     "http.request",
+		"id":             "template.github",
+		"name":           "GitHub (create issue)",
+		"description":    "Create an issue on a GitHub repo via the REST API.",
+		"app_name":       "github",
+		"connector":      "http.request",
 		"connector_type": "action",
 		"config": map[string]interface{}{
 			"method": "POST",
@@ -708,7 +708,7 @@ func (c *FormSubmissionConnector) GetConfigSchema() map[string]interface{} {
 		"type": "object",
 		"properties": map[string]interface{}{
 			"form_id": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "ID of the form to monitor",
 			},
 		},
@@ -1097,15 +1097,15 @@ func (c *EmailSendConnector) GetConfigSchema() map[string]interface{} {
 		"type": "object",
 		"properties": map[string]interface{}{
 			"to": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Email recipient",
 			},
 			"subject": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Email subject",
 			},
 			"body": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Email body",
 			},
 		},
@@ -1189,15 +1189,15 @@ func (c *CalendarEventConnector) GetConfigSchema() map[string]interface{} {
 		"type": "object",
 		"properties": map[string]interface{}{
 			"title": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Event title",
 			},
 			"start_time": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Event start time",
 			},
 			"duration": map[string]interface{}{
-				"type": "number",
+				"type":        "number",
 				"description": "Event duration in minutes",
 			},
 		},
@@ -1268,17 +1268,16 @@ func (c *TaskCreateConnector) Execute(nodeConfig map[string]interface{}, inputDa
 	}, nil
 }
 
-
 func (c *TaskCreateConnector) GetConfigSchema() map[string]interface{} {
 	return map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
 			"title": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Task title",
 			},
 			"description": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Task description",
 			},
 			"priority": map[string]interface{}{
@@ -1326,15 +1325,15 @@ func (c *SpreadsheetUpdateConnector) GetConfigSchema() map[string]interface{} {
 		"type": "object",
 		"properties": map[string]interface{}{
 			"spreadsheet_id": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "ID of the spreadsheet to update",
 			},
 			"range": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Cell range to update (e.g., A1:B2)",
 			},
 			"values": map[string]interface{}{
-				"type": "array",
+				"type":        "array",
 				"description": "Array of values to insert",
 			},
 		},
@@ -1357,11 +1356,11 @@ func (c *ConditionConnector) GetConfigSchema() map[string]interface{} {
 		"type": "object",
 		"properties": map[string]interface{}{
 			"condition": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Condition expression",
 			},
 			"field": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Field to evaluate",
 			},
 			"operator": map[string]interface{}{
@@ -1389,10 +1388,10 @@ func (c *DelayConnector) GetConfigSchema() map[string]interface{} {
 		"type": "object",
 		"properties": map[string]interface{}{
 			"delay_seconds": map[string]interface{}{
-				"type": "number",
+				"type":        "number",
 				"description": "Delay duration in seconds",
-				"minimum": 1,
-				"maximum": 86400, // 24 hours
+				"minimum":     1,
+				"maximum":     86400, // 24 hours
 			},
 		},
 		"required": []string{"delay_seconds"},
@@ -1434,11 +1433,11 @@ func (c *NotificationConnector) GetConfigSchema() map[string]interface{} {
 		"type": "object",
 		"properties": map[string]interface{}{
 			"title": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Notification title",
 			},
 			"message": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Notification message",
 			},
 			"type": map[string]interface{}{

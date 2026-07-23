@@ -13,8 +13,6 @@ import (
 	"tpt-titan/backend/config"
 )
 
-
-
 // CreateSpreadsheet creates a new spreadsheet
 func CreateSpreadsheet(c *gin.Context) {
 	userIDInterface, exists := c.Get("user_id")
@@ -45,7 +43,6 @@ func CreateSpreadsheet(c *gin.Context) {
 		return
 	}
 
-
 	// Create spreadsheet in database
 	spreadsheetID := uuid.New()
 	query := `
@@ -55,11 +52,11 @@ func CreateSpreadsheet(c *gin.Context) {
 	`
 
 	var spreadsheet struct {
-		ID       uuid.UUID `json:"id"`
-		Name     string    `json:"name"`
-		OwnerID  uuid.UUID `json:"owner_id"`
-		Version  int       `json:"version"`
-		CreatedAt string   `json:"created_at"`
+		ID        uuid.UUID `json:"id"`
+		Name      string    `json:"name"`
+		OwnerID   uuid.UUID `json:"owner_id"`
+		Version   int       `json:"version"`
+		CreatedAt string    `json:"created_at"`
 	}
 
 	err = db.QueryRow(query, spreadsheetID, userID, req.Name).Scan(
@@ -76,13 +73,13 @@ func CreateSpreadsheet(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"id":        spreadsheet.ID,
-		"name":      spreadsheet.Name,
-		"owner_id":  spreadsheet.OwnerID,
-		"version":   spreadsheet.Version,
+		"id":         spreadsheet.ID,
+		"name":       spreadsheet.Name,
+		"owner_id":   spreadsheet.OwnerID,
+		"version":    spreadsheet.Version,
 		"created_at": spreadsheet.CreatedAt,
-		"data":      make(map[string]interface{}),
-		"formulas":  make(map[string]string),
+		"data":       make(map[string]interface{}),
+		"formulas":   make(map[string]string),
 	})
 }
 
@@ -101,7 +98,6 @@ func GetSpreadsheet(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get database connection"})
 		return
 	}
-
 
 	// Get spreadsheet metadata
 	var spreadsheet struct {
@@ -210,7 +206,6 @@ func UpdateSpreadsheetCell(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get database connection"})
 		return
 	}
-
 
 	// Determine data type and convert value to string
 	var valueStr, dataType string
@@ -333,9 +328,9 @@ func UpdateSpreadsheetBatch(c *gin.Context) {
 	newVersion := req.Version + 1
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":      "Batch update successful",
+		"message":       "Batch update successful",
 		"updated_cells": len(req.Updates),
-		"new_version": newVersion,
+		"new_version":   newVersion,
 	})
 }
 
@@ -354,17 +349,17 @@ func GetSpreadsheetChanges(c *gin.Context) {
 	// In a real implementation, get changes from version history
 	changes := []gin.H{
 		{
-			"version":       sinceVersion + 1,
+			"version":        sinceVersion + 1,
 			"cell_reference": "A1",
-			"old_value":     "Old Product",
-			"new_value":     "New Product",
-			"changed_by":    uuid.New(),
-			"changed_at":    "2025-12-26T07:28:00Z",
+			"old_value":      "Old Product",
+			"new_value":      "New Product",
+			"changed_by":     uuid.New(),
+			"changed_at":     "2025-12-26T07:28:00Z",
 		},
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"changes": changes,
+		"changes":         changes,
 		"current_version": sinceVersion + 1,
 	})
 }
@@ -414,11 +409,11 @@ func LockSpreadsheetCells(c *gin.Context) {
 
 	// In a real implementation, acquire locks in database/cache
 	c.JSON(http.StatusOK, gin.H{
-		"message":         "Cells locked successfully",
-		"locked_cells":    req.CellReferences,
-		"locked_by":       userID,
-		"lock_duration":   req.LockDuration,
-		"expires_at":      "2025-12-26T07:33:00Z", // 5 minutes from now
+		"message":       "Cells locked successfully",
+		"locked_cells":  req.CellReferences,
+		"locked_by":     userID,
+		"lock_duration": req.LockDuration,
+		"expires_at":    "2025-12-26T07:33:00Z", // 5 minutes from now
 	})
 }
 
@@ -455,14 +450,12 @@ func UnlockSpreadsheetCells(c *gin.Context) {
 
 	// In a real implementation, release locks
 	c.JSON(http.StatusOK, gin.H{
-		"message":          "Cells unlocked successfully",
-		"spreadsheet_id":   spreadsheetID,
-		"unlocked_cells":   req.CellReferences,
-		"unlocked_by":      userID,
+		"message":        "Cells unlocked successfully",
+		"spreadsheet_id": spreadsheetID,
+		"unlocked_cells": req.CellReferences,
+		"unlocked_by":    userID,
 	})
 }
-
-
 
 func isValidCellReference(ref string) bool {
 	ref = strings.ToUpper(strings.TrimSpace(ref))

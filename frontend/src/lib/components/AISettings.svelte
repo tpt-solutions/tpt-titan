@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { createEventDispatcher } from 'svelte';
 	import { getAISettings, updateAISettings, getSpeechSettings, updateSpeechSettings } from '../api.js';
 

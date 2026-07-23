@@ -22,7 +22,7 @@ func TestSpreadsheetMathService_Power(t *testing.T) {
 		{"power(0, 5)", []float64{0, 5}, 0, false},
 		{"power(1, 10)", []float64{1, 10}, 1, false},
 		{"too many args", []float64{2, 3, 4}, 8, false}, // Should ignore extra args
-		{"too few args", []float64{2}, 0, false},       // Should handle gracefully
+		{"too few args", []float64{2}, 0, false},        // Should handle gracefully
 	}
 
 	for _, tt := range tests {

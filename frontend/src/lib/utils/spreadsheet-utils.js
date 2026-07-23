@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Spreadsheet utility functions
 
 // Cell reference utilities

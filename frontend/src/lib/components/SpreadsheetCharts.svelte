@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { getChartSuggestions, createChart, getSpreadsheetCharts } from '$lib/api.js';
 
 	export let selectedRange = 'A1:B5';

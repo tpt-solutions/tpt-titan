@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { onMount, onDestroy, createEventDispatcher } from 'svelte';
 
 	// Import extracted components

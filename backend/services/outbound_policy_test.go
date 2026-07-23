@@ -60,8 +60,8 @@ func TestOutboundDomainAllowed_ExactAndSuffixMatch(t *testing.T) {
 	}{
 		{"https://api.example.com/x", true},
 		{"https://sub.api.example.com/x", true}, // suffix match
-		{"https://a.other.com/x", true},          // wildcard
-		{"https://other.com/x", true},            // wildcard base
+		{"https://a.other.com/x", true},         // wildcard
+		{"https://other.com/x", true},           // wildcard base
 		{"https://evil.com/x", false},
 	}
 	for _, c := range cases {

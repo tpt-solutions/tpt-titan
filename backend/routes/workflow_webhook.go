@@ -71,5 +71,3 @@ func ReceiveWebhook(c *gin.Context) {
 	logInbound(http.StatusAccepted, "")
 	c.JSON(http.StatusAccepted, gin.H{"status": "accepted"})
 }
-
-

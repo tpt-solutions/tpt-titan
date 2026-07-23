@@ -47,15 +47,15 @@ func GetSyncFolders(c *gin.Context) {
 	resp := make([]map[string]interface{}, 0, len(folders))
 	for _, f := range folders {
 		resp = append(resp, map[string]interface{}{
-			"id":         f.ID.String(),
-			"name":       f.Name,
-			"path":       f.LocalPath,
-			"local_path": f.LocalPath,
+			"id":          f.ID.String(),
+			"name":        f.Name,
+			"path":        f.LocalPath,
+			"local_path":  f.LocalPath,
 			"remote_path": f.RemotePath,
-			"is_active":  f.IsActive,
-			"sync_mode":  f.SyncMode,
-			"last_sync":  f.LastSync,
-			"created_at": f.CreatedAt,
+			"is_active":   f.IsActive,
+			"sync_mode":   f.SyncMode,
+			"last_sync":   f.LastSync,
+			"created_at":  f.CreatedAt,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"folders": resp})
@@ -97,15 +97,15 @@ func CreateSyncFolder(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"folder": map[string]interface{}{
-		"id":         created.ID.String(),
-		"name":       created.Name,
-		"path":       created.LocalPath,
-		"local_path": created.LocalPath,
+		"id":          created.ID.String(),
+		"name":        created.Name,
+		"path":        created.LocalPath,
+		"local_path":  created.LocalPath,
 		"remote_path": created.RemotePath,
-		"is_active":  created.IsActive,
-		"sync_mode":  created.SyncMode,
-		"last_sync":  created.LastSync,
-		"created_at": created.CreatedAt,
+		"is_active":   created.IsActive,
+		"sync_mode":   created.SyncMode,
+		"last_sync":   created.LastSync,
+		"created_at":  created.CreatedAt,
 	}})
 }
 
@@ -160,9 +160,9 @@ func SyncFolderRoute(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":       "Sync completed",
-		"changes":       response.Changes,
-		"conflicts":     response.Conflicts,
+		"message":         "Sync completed",
+		"changes":         response.Changes,
+		"conflicts":       response.Conflicts,
 		"next_sync_token": response.NextSyncToken,
 	})
 }

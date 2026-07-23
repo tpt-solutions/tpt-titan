@@ -125,11 +125,11 @@ func (s *VoiceService) GetVoiceNoteTags(userID uuid.UUID) ([]string, error) {
 // GetVoiceNoteStats returns statistics about voice notes
 func (s *VoiceService) GetVoiceNoteStats(userID uuid.UUID) (map[string]interface{}, error) {
 	var stats struct {
-		TotalNotes     int64
-		TotalDuration  int64
-		FavoriteCount  int64
-		PublicCount    int64
-		TotalSize      int64
+		TotalNotes    int64
+		TotalDuration int64
+		FavoriteCount int64
+		PublicCount   int64
+		TotalSize     int64
 	}
 
 	// Get basic counts
@@ -142,11 +142,11 @@ func (s *VoiceService) GetVoiceNoteStats(userID uuid.UUID) (map[string]interface
 	s.db.Model(&models.VoiceNote{}).Where("user_id = ?", userID).Select("COALESCE(SUM(file_size), 0)").Scan(&stats.TotalSize)
 
 	result := map[string]interface{}{
-		"total_notes":     stats.TotalNotes,
-		"total_duration":  stats.TotalDuration,
-		"favorite_count":  stats.FavoriteCount,
-		"public_count":    stats.PublicCount,
-		"total_size":      stats.TotalSize,
+		"total_notes":    stats.TotalNotes,
+		"total_duration": stats.TotalDuration,
+		"favorite_count": stats.FavoriteCount,
+		"public_count":   stats.PublicCount,
+		"total_size":     stats.TotalSize,
 	}
 
 	return result, nil

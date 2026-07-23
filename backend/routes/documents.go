@@ -20,7 +20,7 @@ import (
 type DocumentRequest struct {
 	Title       string                 `json:"title" binding:"required"`
 	ContentType string                 `json:"content_type" binding:"required"` // text, spreadsheet, form
-	Content     map[string]interface{} `json:"content" binding:"required"`     // JSON content of the document
+	Content     map[string]interface{} `json:"content" binding:"required"`      // JSON content of the document
 }
 
 // GetDocuments returns all documents for the authenticated user
@@ -41,12 +41,12 @@ func GetDocuments(c *gin.Context) {
 	var response []gin.H
 	for _, doc := range documents {
 		response = append(response, gin.H{
-			"id":          doc.ID,
-			"title":       doc.Title,
+			"id":           doc.ID,
+			"title":        doc.Title,
 			"content_type": doc.ContentType,
-			"version":     doc.Version,
-			"created_at":  doc.CreatedAt,
-			"updated_at":  doc.UpdatedAt,
+			"version":      doc.Version,
+			"created_at":   doc.CreatedAt,
+			"updated_at":   doc.UpdatedAt,
 		})
 	}
 
@@ -399,8 +399,8 @@ type DocumentUploadRequest struct {
 	FileName      string `json:"file_name" binding:"required"`
 	FileData      string `json:"file_data" binding:"required"` // Base64 encoded file data
 	FileType      string `json:"file_type" binding:"required"` // "pdf", "image", etc.
-	ProcessWithAI bool   `json:"process_with_ai"`             // Whether to process with AI
-	AnalysisType  string `json:"analysis_type,omitempty"`     // "ocr", "invoice", "receipt", "business_card", "contract"
+	ProcessWithAI bool   `json:"process_with_ai"`              // Whether to process with AI
+	AnalysisType  string `json:"analysis_type,omitempty"`      // "ocr", "invoice", "receipt", "business_card", "contract"
 }
 
 // UploadDocumentWithAI uploads a document and optionally processes it with AI
@@ -460,12 +460,12 @@ func UploadDocumentWithAI(c *gin.Context) {
 	}
 
 	response := gin.H{
-		"id":          document.ID,
-		"title":       document.Title,
-		"file_type":   req.FileType,
-		"file_size":   document.FileSize,
-		"created_at":  document.CreatedAt,
-		"status":      "uploaded",
+		"id":         document.ID,
+		"title":      document.Title,
+		"file_type":  req.FileType,
+		"file_size":  document.FileSize,
+		"created_at": document.CreatedAt,
+		"status":     "uploaded",
 	}
 
 	// If AI processing is requested, start background processing
@@ -600,15 +600,15 @@ func processDocumentWithAI(documentID, userID uuid.UUID, fileName string, fileDa
 		wsMessage := models.WebSocketMessage{
 			Type: models.WSDocumentProcessed,
 			Data: gin.H{
-				"document_id":    documentID,
-				"analysis_id":    analysis.ID,
-				"status":         "completed",
-				"text_content":   result.TextContent,
-				"confidence":     result.Confidence,
-				"pages":          result.Pages,
-				"fields_count":   len(result.Fields),
-				"tables_count":   len(result.Tables),
-				"message":        "AI document processing completed successfully",
+				"document_id":  documentID,
+				"analysis_id":  analysis.ID,
+				"status":       "completed",
+				"text_content": result.TextContent,
+				"confidence":   result.Confidence,
+				"pages":        result.Pages,
+				"fields_count": len(result.Fields),
+				"tables_count": len(result.Tables),
+				"message":      "AI document processing completed successfully",
 			},
 		}
 		wsHub.BroadcastToUser(userID, wsMessage)
@@ -715,18 +715,18 @@ func GetDocumentAnalysis(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"analysis_id":    analysis.ID,
-		"document_id":    analysis.DocumentID,
-		"status":         analysis.Status,
-		"text_content":   analysis.TextContent,
-		"fields":         fields,
-		"tables":         tables,
-		"confidence":     analysis.Confidence,
-		"pages":          analysis.Pages,
-		"language":       analysis.Language,
+		"analysis_id":     analysis.ID,
+		"document_id":     analysis.DocumentID,
+		"status":          analysis.Status,
+		"text_content":    analysis.TextContent,
+		"fields":          fields,
+		"tables":          tables,
+		"confidence":      analysis.Confidence,
+		"pages":           analysis.Pages,
+		"language":        analysis.Language,
 		"processing_time": analysis.ProcessingTime,
-		"created_at":     analysis.CreatedAt,
-		"error":          analysis.Error,
+		"created_at":      analysis.CreatedAt,
+		"error":           analysis.Error,
 	})
 }
 
@@ -758,19 +758,19 @@ func GetDocumentProcessingStatus(c *gin.Context) {
 	if err != nil {
 		// No analysis found - document not processed yet
 		c.JSON(http.StatusOK, gin.H{
-			"status": "not_processed",
+			"status":  "not_processed",
 			"message": "Document has not been processed with AI yet",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status": analysis.Status,
-		"analysis_id": analysis.ID,
-		"error": analysis.Error,
+		"status":          analysis.Status,
+		"analysis_id":     analysis.ID,
+		"error":           analysis.Error,
 		"processing_time": analysis.ProcessingTime,
-		"created_at": analysis.CreatedAt,
-		"updated_at": analysis.UpdatedAt,
+		"created_at":      analysis.CreatedAt,
+		"updated_at":      analysis.UpdatedAt,
 	})
 }
 

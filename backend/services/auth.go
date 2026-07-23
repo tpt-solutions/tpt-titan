@@ -23,9 +23,9 @@ import (
 
 // AuthService handles authentication and authorization
 type AuthService struct {
-	db         *sql.DB
-	jwtSecret  []byte
-	cache      *CacheService
+	db        *sql.DB
+	jwtSecret []byte
+	cache     *CacheService
 }
 
 // UserCredentials represents login credentials
@@ -47,11 +47,11 @@ type RegisterRequest struct {
 // LoginResponse represents successful login response
 type LoginResponse struct {
 	User         models.UserResponse `json:"user"`
-	AccessToken  string             `json:"access_token"`
-	RefreshToken string             `json:"refresh_token"`
-	TokenType    string             `json:"token_type"`
-	ExpiresIn    int64              `json:"expires_in"`
-	RequiresTOTP bool               `json:"requires_totp,omitempty"`
+	AccessToken  string              `json:"access_token"`
+	RefreshToken string              `json:"refresh_token"`
+	TokenType    string              `json:"token_type"`
+	ExpiresIn    int64               `json:"expires_in"`
+	RequiresTOTP bool                `json:"requires_totp,omitempty"`
 }
 
 // TOTPSecret represents TOTP setup information

@@ -15,7 +15,7 @@ type QueryBuilderService struct {
 // QueryElement represents an element in the visual query builder
 type QueryElement struct {
 	ID       string                 `json:"id"`
-	Type     string                 `json:"type"`      // "table", "field", "filter", "join", "sort", "group"
+	Type     string                 `json:"type"` // "table", "field", "filter", "join", "sort", "group"
 	Table    string                 `json:"table,omitempty"`
 	Field    string                 `json:"field,omitempty"`
 	Alias    string                 `json:"alias,omitempty"`
@@ -34,27 +34,27 @@ type Position struct {
 
 // QueryResult represents the result of executing a visual query
 type QueryResult struct {
-	Columns []QueryColumn     `json:"columns"`
-	Rows    [][]interface{}   `json:"rows"`
-	SQL     string            `json:"sql"`
-	Count   int               `json:"count"`
+	Columns []QueryColumn   `json:"columns"`
+	Rows    [][]interface{} `json:"rows"`
+	SQL     string          `json:"sql"`
+	Count   int             `json:"count"`
 }
 
 // QueryColumn represents a column in query results
 type QueryColumn struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Table    string `json:"table"`
-	Alias    string `json:"alias,omitempty"`
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Table string `json:"table"`
+	Alias string `json:"alias,omitempty"`
 }
 
 // JoinDefinition represents a join between tables
 type JoinDefinition struct {
-	LeftTable   string `json:"left_table"`
-	RightTable  string `json:"right_table"`
-	LeftField   string `json:"left_field"`
-	RightField  string `json:"right_field"`
-	JoinType    string `json:"join_type"` // "INNER", "LEFT", "RIGHT", "FULL OUTER"
+	LeftTable  string `json:"left_table"`
+	RightTable string `json:"right_table"`
+	LeftField  string `json:"left_field"`
+	RightField string `json:"right_field"`
+	JoinType   string `json:"join_type"` // "INNER", "LEFT", "RIGHT", "FULL OUTER"
 }
 
 // FilterCondition represents a filter condition
@@ -145,15 +145,15 @@ func (qbs *QueryBuilderService) BuildSQLFromElements(elements []QueryElement) (s
 
 // QueryContext holds the complete query information
 type QueryContext struct {
-	Tables        []string
-	TableAliases  map[string]string
-	Fields        []QueryField
-	Joins         []JoinDefinition
-	Filters       []FilterCondition
-	Sorts         []SortDefinition
-	Groups        []GroupDefinition
-	Limit         int
-	Offset        int
+	Tables       []string
+	TableAliases map[string]string
+	Fields       []QueryField
+	Joins        []JoinDefinition
+	Filters      []FilterCondition
+	Sorts        []SortDefinition
+	Groups       []GroupDefinition
+	Limit        int
+	Offset       int
 }
 
 // QueryField represents a field in a query
@@ -405,9 +405,9 @@ func (qbs *QueryBuilderService) GetAvailableTables() ([]map[string]interface{}, 
 
 		// Get table info
 		tableInfo := map[string]interface{}{
-			"name":    tableName,
-			"schema":  "public",
-			"type":    "table",
+			"name":   tableName,
+			"schema": "public",
+			"type":   "table",
 		}
 
 		// Get column information
@@ -446,11 +446,11 @@ func (qbs *QueryBuilderService) getTableColumns(tableName string) ([]map[string]
 		}
 
 		column := map[string]interface{}{
-			"name":         colName,
-			"type":         dataType,
-			"nullable":     isNullable.String == "YES",
-			"primary_key":  false, // Would need additional query
-			"foreign_key":  false, // Would need additional query
+			"name":        colName,
+			"type":        dataType,
+			"nullable":    isNullable.String == "YES",
+			"primary_key": false, // Would need additional query
+			"foreign_key": false, // Would need additional query
 		}
 
 		if columnDefault.Valid {
@@ -480,7 +480,7 @@ func (qbs *QueryBuilderService) ValidateQuery(elements []QueryElement) []string 
 			// Validate join has required fields
 			if joinData, ok := element.Data["join"].(map[string]interface{}); ok {
 				if joinData["left_table"] == nil || joinData["right_table"] == nil ||
-				   joinData["left_field"] == nil || joinData["right_field"] == nil {
+					joinData["left_field"] == nil || joinData["right_field"] == nil {
 					errors = append(errors, "Join is missing required fields")
 				}
 			} else {

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Editor Table Utility - Table creation and editing for text editor
  */

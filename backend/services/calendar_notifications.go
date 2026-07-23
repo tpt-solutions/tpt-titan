@@ -12,63 +12,63 @@ import (
 
 // CalendarNotificationService handles calendar reminders and notifications
 type CalendarNotificationService struct {
-	db              *sql.DB
-	emailService    *EmailService
-	websocketSvc    interface{} // WebSocket service interface (placeholder)
-	smsService      interface{} // SMS service interface (placeholder)
+	db           *sql.DB
+	emailService *EmailService
+	websocketSvc interface{} // WebSocket service interface (placeholder)
+	smsService   interface{} // SMS service interface (placeholder)
 }
 
 // NotificationType represents different types of notifications
 type NotificationType string
 
 const (
-	NotificationTypeEmail     NotificationType = "email"
-	NotificationTypeInApp     NotificationType = "in_app"
-	NotificationTypeSMS       NotificationType = "sms"
-	NotificationTypePush      NotificationType = "push"
+	NotificationTypeEmail NotificationType = "email"
+	NotificationTypeInApp NotificationType = "in_app"
+	NotificationTypeSMS   NotificationType = "sms"
+	NotificationTypePush  NotificationType = "push"
 )
 
 // Reminder represents a calendar reminder configuration
 type Reminder struct {
-	ID          uuid.UUID       `json:"id"`
-	EventID     uuid.UUID       `json:"event_id"`
-	UserID      uuid.UUID       `json:"user_id"`
-	Type        NotificationType `json:"type"`
-	MinutesBefore int           `json:"minutes_before"` // Minutes before event
-	Message     string          `json:"message,omitempty"`
-	SentAt      *time.Time      `json:"sent_at,omitempty"`
-	Status      string          `json:"status"` // "pending", "sent", "failed"
-	CreatedAt   time.Time       `json:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at"`
+	ID            uuid.UUID        `json:"id"`
+	EventID       uuid.UUID        `json:"event_id"`
+	UserID        uuid.UUID        `json:"user_id"`
+	Type          NotificationType `json:"type"`
+	MinutesBefore int              `json:"minutes_before"` // Minutes before event
+	Message       string           `json:"message,omitempty"`
+	SentAt        *time.Time       `json:"sent_at,omitempty"`
+	Status        string           `json:"status"` // "pending", "sent", "failed"
+	CreatedAt     time.Time        `json:"created_at"`
+	UpdatedAt     time.Time        `json:"updated_at"`
 }
 
 // EventNotification represents a notification sent for an event
 type EventNotification struct {
-	ID        uuid.UUID       `json:"id"`
-	EventID   uuid.UUID       `json:"event_id"`
-	UserID    uuid.UUID       `json:"user_id"`
-	Type      NotificationType `json:"type"`
-	Title     string          `json:"title"`
-	Message   string          `json:"message"`
-	SentAt    time.Time       `json:"sent_at"`
-	Status    string          `json:"status"`
+	ID      uuid.UUID        `json:"id"`
+	EventID uuid.UUID        `json:"event_id"`
+	UserID  uuid.UUID        `json:"user_id"`
+	Type    NotificationType `json:"type"`
+	Title   string           `json:"title"`
+	Message string           `json:"message"`
+	SentAt  time.Time        `json:"sent_at"`
+	Status  string           `json:"status"`
 }
 
 // NotificationSettings represents user notification preferences
 type NotificationSettings struct {
-	UserID                    uuid.UUID `json:"user_id"`
-	EmailReminders           bool      `json:"email_reminders"`
-	InAppReminders           bool      `json:"in_app_reminders"`
-	SMSReminders             bool      `json:"sms_reminders"`
-	PushReminders            bool      `json:"push_reminders"`
-	DefaultReminderMinutes   int       `json:"default_reminder_minutes"`
-	EmailForAllDayEvents     bool      `json:"email_for_all_day_events"`
-	EmailForTentativeEvents  bool      `json:"email_for_tentative_events"`
-	EmailForCancelledEvents  bool      `json:"email_for_cancelled_events"`
-	QuietHoursStart          *string   `json:"quiet_hours_start,omitempty"` // HH:MM format
-	QuietHoursEnd            *string   `json:"quiet_hours_end,omitempty"`
-	Timezone                 string    `json:"timezone"`
-	UpdatedAt                time.Time `json:"updated_at"`
+	UserID                  uuid.UUID `json:"user_id"`
+	EmailReminders          bool      `json:"email_reminders"`
+	InAppReminders          bool      `json:"in_app_reminders"`
+	SMSReminders            bool      `json:"sms_reminders"`
+	PushReminders           bool      `json:"push_reminders"`
+	DefaultReminderMinutes  int       `json:"default_reminder_minutes"`
+	EmailForAllDayEvents    bool      `json:"email_for_all_day_events"`
+	EmailForTentativeEvents bool      `json:"email_for_tentative_events"`
+	EmailForCancelledEvents bool      `json:"email_for_cancelled_events"`
+	QuietHoursStart         *string   `json:"quiet_hours_start,omitempty"` // HH:MM format
+	QuietHoursEnd           *string   `json:"quiet_hours_end,omitempty"`
+	Timezone                string    `json:"timezone"`
+	UpdatedAt               time.Time `json:"updated_at"`
 }
 
 // NewCalendarNotificationService creates a new calendar notification service
@@ -183,13 +183,13 @@ func (cns *CalendarNotificationService) ProcessPendingReminders() error {
 
 		// Send the reminder
 		err = cns.sendReminder(reminderID, userID, reminderType, ReminderContext{
-			EventID:    eventID,
-			EventTitle: eventTitle.String,
-			StartTime:  startTime,
-			EndTime:    endTime,
-			Location:   location.String,
-			UserEmail:  userEmail.String,
-			Username:   username.String,
+			EventID:       eventID,
+			EventTitle:    eventTitle.String,
+			StartTime:     startTime,
+			EndTime:       endTime,
+			Location:      location.String,
+			UserEmail:     userEmail.String,
+			Username:      username.String,
 			MinutesBefore: minutesBefore,
 			CustomMessage: customMessage.String,
 		})
@@ -230,11 +230,11 @@ func (cns *CalendarNotificationService) sendReminder(reminderID, userID uuid.UUI
 		return cns.sendEmailReminder(ctx.UserEmail, ctx.EventTitle, message, ctx)
 	case NotificationTypeInApp:
 		return cns.sendInAppReminder(userID, ctx.EventTitle, message, ctx)
-		case NotificationTypeSMS:
-			if ctx.UserPhone == "" {
-				return fmt.Errorf("SMS reminder requested but no phone number is configured for the user")
-			}
-			return cns.sendSMSReminder(ctx.UserPhone, message)
+	case NotificationTypeSMS:
+		if ctx.UserPhone == "" {
+			return fmt.Errorf("SMS reminder requested but no phone number is configured for the user")
+		}
+		return cns.sendSMSReminder(ctx.UserPhone, message)
 	case NotificationTypePush:
 		return cns.sendPushReminder(userID, ctx.EventTitle, message, ctx)
 	default:

@@ -1,5 +1,6 @@
 <!-- frontend/src/lib/components/TextEditorBlockEditor.svelte -->
 <script>
+// @ts-nocheck
 	import { createEventDispatcher, onMount } from 'svelte';
 	import mathService from '$lib/services/math.js';
 

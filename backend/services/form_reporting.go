@@ -16,9 +16,9 @@ import (
 
 // FormReportingService provides comprehensive reporting capabilities for forms
 type FormReportingService struct {
-	db               *sql.DB
-	queryBuilder     *QueryBuilderService
-	relationshipSvc  *FormRelationshipService
+	db              *sql.DB
+	queryBuilder    *QueryBuilderService
+	relationshipSvc *FormRelationshipService
 }
 
 // ReportDefinition represents a saved report configuration
@@ -43,7 +43,7 @@ type ReportDefinition struct {
 type ReportColumn struct {
 	Field     string `json:"field"`
 	Label     string `json:"label"`
-	Type      string `json:"type"`      // "text", "number", "date", "calculated"
+	Type      string `json:"type"` // "text", "number", "date", "calculated"
 	Format    string `json:"format,omitempty"`
 	Aggregate string `json:"aggregate,omitempty"` // "sum", "avg", "count", "min", "max"
 	Formula   string `json:"formula,omitempty"`   // For calculated columns
@@ -51,30 +51,30 @@ type ReportColumn struct {
 
 // ChartConfig represents chart configuration for reports
 type ChartConfig struct {
-	Type       string   `json:"type"`        // "bar", "line", "pie", "scatter"
-	XAxisField string   `json:"x_axis_field"`
-	YAxisField string   `json:"y_axis_field"`
-	GroupField string   `json:"group_field,omitempty"`
-	Title      string   `json:"title"`
-	XAxisLabel string   `json:"x_axis_label,omitempty"`
-	YAxisLabel string   `json:"y_axis_label,omitempty"`
+	Type       string `json:"type"` // "bar", "line", "pie", "scatter"
+	XAxisField string `json:"x_axis_field"`
+	YAxisField string `json:"y_axis_field"`
+	GroupField string `json:"group_field,omitempty"`
+	Title      string `json:"title"`
+	XAxisLabel string `json:"x_axis_label,omitempty"`
+	YAxisLabel string `json:"y_axis_label,omitempty"`
 }
 
 // ReportResult represents the result of executing a report
 type ReportResult struct {
-	ReportID   uuid.UUID              `json:"report_id"`
-	Columns    []ReportColumn         `json:"columns"`
+	ReportID   uuid.UUID                `json:"report_id"`
+	Columns    []ReportColumn           `json:"columns"`
 	Data       []map[string]interface{} `json:"data"`
-	Summary    map[string]interface{} `json:"summary"`
-	ChartData  *ChartData             `json:"chart_data,omitempty"`
-	ExecutedAt time.Time              `json:"executed_at"`
+	Summary    map[string]interface{}   `json:"summary"`
+	ChartData  *ChartData               `json:"chart_data,omitempty"`
+	ExecutedAt time.Time                `json:"executed_at"`
 }
 
 // ChartData represents processed data for charts
 type ChartData struct {
-	Type   string                   `json:"type"`
-	Labels []string                 `json:"labels"`
-	Datasets []ChartDataset         `json:"datasets"`
+	Type     string         `json:"type"`
+	Labels   []string       `json:"labels"`
+	Datasets []ChartDataset `json:"datasets"`
 }
 
 // ChartDataset represents a dataset in a chart
@@ -313,20 +313,20 @@ func (frs *FormReportingService) buildQueryElementsFromReport(report *ReportDefi
 
 	// Add table
 	elements = append(elements, QueryElement{
-		ID:   "table_1",
-		Type: "table",
-		Table: fmt.Sprintf("form_responses_%s", report.FormID.String()[:8]),
+		ID:       "table_1",
+		Type:     "table",
+		Table:    fmt.Sprintf("form_responses_%s", report.FormID.String()[:8]),
 		Position: Position{X: 100, Y: 100},
 	})
 
 	// Add fields
 	for i, col := range report.Columns {
 		element := QueryElement{
-			ID:     fmt.Sprintf("field_%d", i+1),
-			Type:   "field",
-			Table:  fmt.Sprintf("form_responses_%s", report.FormID.String()[:8]),
-			Field:  col.Field,
-			Alias:  col.Label,
+			ID:       fmt.Sprintf("field_%d", i+1),
+			Type:     "field",
+			Table:    fmt.Sprintf("form_responses_%s", report.FormID.String()[:8]),
+			Field:    col.Field,
+			Alias:    col.Label,
 			Position: Position{X: 200 + i*150, Y: 100},
 		}
 		elements = append(elements, element)
@@ -349,9 +349,9 @@ func (frs *FormReportingService) buildQueryElementsFromReport(report *ReportDefi
 	// Add group by
 	for i, group := range report.GroupBy {
 		element := QueryElement{
-			ID:   fmt.Sprintf("group_%d", i+1),
-			Type: "group",
-			Field: group,
+			ID:       fmt.Sprintf("group_%d", i+1),
+			Type:     "group",
+			Field:    group,
 			Position: Position{X: 100, Y: 300 + i*50},
 		}
 		elements = append(elements, element)
@@ -360,11 +360,11 @@ func (frs *FormReportingService) buildQueryElementsFromReport(report *ReportDefi
 	// Add sort
 	for i, sort := range report.SortBy {
 		element := QueryElement{
-			ID:   fmt.Sprintf("sort_%d", i+1),
-			Type: "sort",
-			Field: sort.Field,
+			ID:       fmt.Sprintf("sort_%d", i+1),
+			Type:     "sort",
+			Field:    sort.Field,
 			Position: Position{X: 100, Y: 400 + i*50},
-			Data: map[string]interface{}{"direction": sort.Direction},
+			Data:     map[string]interface{}{"direction": sort.Direction},
 		}
 		elements = append(elements, element)
 	}

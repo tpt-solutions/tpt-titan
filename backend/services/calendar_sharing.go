@@ -26,32 +26,32 @@ const (
 
 // CalendarShare represents a calendar sharing relationship
 type CalendarShare struct {
-	ID               uuid.UUID       `json:"id"`
-	CalendarID       uuid.UUID       `json:"calendar_id"`
-	OwnerID          uuid.UUID       `json:"owner_id"`
-	SharedWithID     uuid.UUID       `json:"shared_with_id"`
-	Permission       SharePermission `json:"permission"`
-	CanInviteOthers  bool            `json:"can_invite_others"`
-	Message          string          `json:"message,omitempty"`
-	AcceptedAt       *time.Time      `json:"accepted_at,omitempty"`
-	Status           string          `json:"status"` // "pending", "accepted", "declined", "revoked"
-	CreatedAt        time.Time       `json:"created_at"`
-	UpdatedAt        time.Time       `json:"updated_at"`
+	ID              uuid.UUID       `json:"id"`
+	CalendarID      uuid.UUID       `json:"calendar_id"`
+	OwnerID         uuid.UUID       `json:"owner_id"`
+	SharedWithID    uuid.UUID       `json:"shared_with_id"`
+	Permission      SharePermission `json:"permission"`
+	CanInviteOthers bool            `json:"can_invite_others"`
+	Message         string          `json:"message,omitempty"`
+	AcceptedAt      *time.Time      `json:"accepted_at,omitempty"`
+	Status          string          `json:"status"` // "pending", "accepted", "declined", "revoked"
+	CreatedAt       time.Time       `json:"created_at"`
+	UpdatedAt       time.Time       `json:"updated_at"`
 }
 
 // SharingInvite represents a sharing invitation
 type SharingInvite struct {
-	ID          uuid.UUID `json:"id"`
-	CalendarID  uuid.UUID `json:"calendar_id"`
-	Email       string    `json:"email"`
-	Permission  SharePermission `json:"permission"`
-	Message     string    `json:"message"`
-	InvitedBy   uuid.UUID `json:"invited_by"`
-	Token       string    `json:"token"` // Unique token for invitation link
-	ExpiresAt   time.Time `json:"expires_at"`
-	AcceptedAt  *time.Time `json:"accepted_at,omitempty"`
-	Status      string     `json:"status"` // "pending", "accepted", "expired", "cancelled"
-	CreatedAt   time.Time  `json:"created_at"`
+	ID         uuid.UUID       `json:"id"`
+	CalendarID uuid.UUID       `json:"calendar_id"`
+	Email      string          `json:"email"`
+	Permission SharePermission `json:"permission"`
+	Message    string          `json:"message"`
+	InvitedBy  uuid.UUID       `json:"invited_by"`
+	Token      string          `json:"token"` // Unique token for invitation link
+	ExpiresAt  time.Time       `json:"expires_at"`
+	AcceptedAt *time.Time      `json:"accepted_at,omitempty"`
+	Status     string          `json:"status"` // "pending", "accepted", "expired", "cancelled"
+	CreatedAt  time.Time       `json:"created_at"`
 }
 
 // CalendarACL represents Access Control List for calendar permissions
@@ -65,22 +65,22 @@ type CalendarACL struct {
 
 // CalendarGroup represents a group of users for calendar sharing
 type CalendarGroup struct {
-	ID          uuid.UUID   `json:"id"`
-	Name        string      `json:"name"`
-	Description string      `json:"description"`
-	OwnerID     uuid.UUID   `json:"owner_id"`
-	Members     []uuid.UUID `json:"members"`
+	ID          uuid.UUID       `json:"id"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	OwnerID     uuid.UUID       `json:"owner_id"`
+	Members     []uuid.UUID     `json:"members"`
 	Permission  SharePermission `json:"permission"` // Default permission for group members
-	IsPublic    bool        `json:"is_public"`
-	CreatedAt   time.Time   `json:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at"`
+	IsPublic    bool            `json:"is_public"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
 }
 
 // CalendarDomainSharing represents domain-wide sharing
 type CalendarDomainSharing struct {
 	ID         uuid.UUID       `json:"id"`
 	CalendarID uuid.UUID       `json:"calendar_id"`
-	Domain     string          `json:"domain"`     // e.g., "company.com"
+	Domain     string          `json:"domain"` // e.g., "company.com"
 	Permission SharePermission `json:"permission"`
 	AutoAccept bool            `json:"auto_accept"` // Automatically accept users from this domain
 	CreatedBy  uuid.UUID       `json:"created_by"`
@@ -286,13 +286,13 @@ func (css *CalendarSharingService) GetUserSharedCalendars(userID uuid.UUID) ([]m
 		}
 
 		calendars = append(calendars, map[string]interface{}{
-			"id":           calendarID,
-			"name":         name,
-			"description":  description,
-			"permission":   permission,
-			"owner_id":     ownerID,
-			"owner_name":   ownerName,
-			"shared_at":    createdAt,
+			"id":          calendarID,
+			"name":        name,
+			"description": description,
+			"permission":  permission,
+			"owner_id":    ownerID,
+			"owner_name":  ownerName,
+			"shared_at":   createdAt,
 		})
 	}
 

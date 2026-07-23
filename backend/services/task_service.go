@@ -359,4 +359,3 @@ func decodeTags(s sql.NullString) []string {
 	}
 	return tags
 }
-

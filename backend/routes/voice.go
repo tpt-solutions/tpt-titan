@@ -31,22 +31,22 @@ type VoiceNoteRequest struct {
 
 // VoiceNoteUploadRequest represents the request payload for uploading voice note audio
 type VoiceNoteUploadRequest struct {
-	AudioData   string `json:"audio_data" binding:"required"` // Base64 encoded audio
-	AudioFormat string `json:"audio_format" binding:"required"`
-	Duration    int    `json:"duration" binding:"required"` // Duration in seconds
-	Title       string `json:"title,omitempty"`
+	AudioData   string   `json:"audio_data" binding:"required"` // Base64 encoded audio
+	AudioFormat string   `json:"audio_format" binding:"required"`
+	Duration    int      `json:"duration" binding:"required"` // Duration in seconds
+	Title       string   `json:"title,omitempty"`
 	Tags        []string `json:"tags,omitempty"`
-	IsFavorite  bool   `json:"is_favorite"`
-	IsPublic    bool   `json:"is_public"`
+	IsFavorite  bool     `json:"is_favorite"`
+	IsPublic    bool     `json:"is_public"`
 }
 
 // VoiceAnnotationRequest represents the request payload for creating voice annotations
 type VoiceAnnotationRequest struct {
-	ContentType string    `json:"content_type" binding:"required"` // document, task, email, calendar, contact
-	ContentID   string    `json:"content_id" binding:"required"`   // ID of the content being annotated
-	Title       string    `json:"title" binding:"required"`
-	Position    *string   `json:"position,omitempty"` // JSON position data for highlighting
-	IsPublic    bool      `json:"is_public"`
+	ContentType string  `json:"content_type" binding:"required"` // document, task, email, calendar, contact
+	ContentID   string  `json:"content_id" binding:"required"`   // ID of the content being annotated
+	Title       string  `json:"title" binding:"required"`
+	Position    *string `json:"position,omitempty"` // JSON position data for highlighting
+	IsPublic    bool    `json:"is_public"`
 }
 
 // VoiceAnnotationUploadRequest represents the request payload for uploading annotation audio

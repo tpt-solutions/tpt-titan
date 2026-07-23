@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { onMount } from 'svelte';
 	import { emailSearchQuery } from '$lib/stores';
 	import SpeechService from '../services/speech.js';

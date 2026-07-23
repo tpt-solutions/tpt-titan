@@ -16,10 +16,10 @@ import (
 
 // Server represents the TPT Titan server
 type Server struct {
-	config      *config.Config
-	router      *gin.Engine
-	database    *gorm.DB
-	p2pService  *services.P2PService
+	config     *config.Config
+	router     *gin.Engine
+	database   *gorm.DB
+	p2pService *services.P2PService
 }
 
 // NewServer creates a new server instance
@@ -157,7 +157,7 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 
 	s.router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"status": "healthy",
+			"status":   "healthy",
 			"database": "connected",
 		})
 	})
@@ -259,7 +259,6 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 			spreadsheetGroup.GET("/:id/collab/peers/discovered", routes.GetDiscoveredPeers)
 			spreadsheetGroup.POST("/:id/collab/sync", routes.SyncSpreadsheetWithPeers)
 			spreadsheetGroup.GET("/:id/collab/status", routes.GetCollaborationStatus)
-
 
 			// Basic Form routes
 			formGroup := protected.Group("/forms")
@@ -559,7 +558,6 @@ func (s *Server) setupRoutes(authService *services.AuthService, monitoringServic
 				mathGroup.POST("/export/batch", routes.BatchExportEquations)
 			}
 
-
 			// Document export routes
 			exportGroup := protected.Group("/documents/:id/export")
 			{
@@ -695,13 +693,13 @@ func (s *Server) validateConfig() error {
 	if s.config.JWT.Secret == "" {
 		return fmt.Errorf("JWT_SECRET is required. Please set a secure secret key")
 	}
-	
+
 	if len(s.config.JWT.Secret) < 32 {
 		if s.config.Server.Mode == "release" {
 			return fmt.Errorf("JWT_SECRET must be at least 32 characters in release mode (current length: %d)", len(s.config.JWT.Secret))
 		}
 		log.Println("WARNING: JWT_SECRET should be at least 32 characters for security")
 	}
-	
+
 	return nil
 }

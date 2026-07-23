@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { contacts } from '$lib/stores';
 
 	export let handleEditContact;

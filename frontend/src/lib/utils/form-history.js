@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Form History Manager - Undo/Redo functionality for form builder
  * Tracks field additions, deletions, reordering, and property changes

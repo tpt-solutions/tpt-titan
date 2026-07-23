@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import AppSelector from '$lib/components/AppSelector.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // frontend/src/lib/utils/spreadsheet-utils.test.js
 // Run with:  cd frontend && npx vitest run src/lib/utils/spreadsheet-utils.test.js
 

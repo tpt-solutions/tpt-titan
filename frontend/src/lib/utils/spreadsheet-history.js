@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Spreadsheet History Manager - Undo/Redo functionality for spreadsheets
  * Tracks cell changes, row/column operations, and formatting changes

@@ -13,27 +13,27 @@ import (
 
 // AICache provides intelligent caching for AI service results
 type AICache struct {
-	mu          sync.RWMutex
-	cache       map[string]*CacheEntry
-	maxSize     int
-	defaultTTL  time.Duration
+	mu              sync.RWMutex
+	cache           map[string]*CacheEntry
+	maxSize         int
+	defaultTTL      time.Duration
 	cleanupInterval time.Duration
-	stopCleanup chan bool
+	stopCleanup     chan bool
 }
 
 // CacheEntry represents a cached AI result
 type CacheEntry struct {
-	Key        string
-	UserID     uuid.UUID
-	Service    string
-	Operation  string
-	InputHash  string
-	Result     interface{}
-	Timestamp  time.Time
-	TTL        time.Duration
+	Key         string
+	UserID      uuid.UUID
+	Service     string
+	Operation   string
+	InputHash   string
+	Result      interface{}
+	Timestamp   time.Time
+	TTL         time.Duration
 	AccessCount int
-	LastAccess time.Time
-	Size       int // Approximate size in bytes
+	LastAccess  time.Time
+	Size        int // Approximate size in bytes
 }
 
 // CacheConfig configures the AI cache behavior
@@ -113,17 +113,17 @@ func (c *AICache) Set(userID uuid.UUID, service, operation, input string, result
 	size := c.estimateSize(result)
 
 	entry := &CacheEntry{
-		Key:        key,
-		UserID:     userID,
-		Service:    service,
-		Operation:  operation,
-		InputHash:  c.hashInput(input),
-		Result:     result,
-		Timestamp:  time.Now(),
-		TTL:        ttl,
+		Key:         key,
+		UserID:      userID,
+		Service:     service,
+		Operation:   operation,
+		InputHash:   c.hashInput(input),
+		Result:      result,
+		Timestamp:   time.Now(),
+		TTL:         ttl,
 		AccessCount: 0,
-		LastAccess: time.Now(),
-		Size:       size,
+		LastAccess:  time.Now(),
+		Size:        size,
 	}
 
 	// Check if we need to evict entries
@@ -212,13 +212,13 @@ func (c *AICache) GetStats() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"total_entries":    totalEntries,
-		"max_entries":      c.maxSize,
-		"total_size_kb":    totalSize / 1024,
-		"total_accesses":   totalAccesses,
-		"oldest_entry":     oldestEntry,
-		"newest_entry":     newestEntry,
-		"service_breakdown": serviceStats,
+		"total_entries":       totalEntries,
+		"max_entries":         c.maxSize,
+		"total_size_kb":       totalSize / 1024,
+		"total_accesses":      totalAccesses,
+		"oldest_entry":        oldestEntry,
+		"newest_entry":        newestEntry,
+		"service_breakdown":   serviceStats,
 		"utilization_percent": (float64(totalEntries) / float64(c.maxSize)) * 100,
 	}
 }

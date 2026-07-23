@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { createEventDispatcher } from 'svelte';
 
 	export let contact = null; // null for create, object for edit

@@ -17,13 +17,13 @@ func CreateEmailDistribution(c *gin.Context) {
 	}
 
 	var req struct {
-		Name         string   `json:"name" binding:"required"`
-		Recipients   []string `json:"recipients" binding:"required"`
-		Subject      string   `json:"subject" binding:"required"`
-		Message      string   `json:"message"`
-		Trigger      string   `json:"trigger"` // "immediate", "daily", "weekly"
-		IsActive     bool     `json:"is_active"`
-		IncludeData  bool     `json:"include_data"`
+		Name        string   `json:"name" binding:"required"`
+		Recipients  []string `json:"recipients" binding:"required"`
+		Subject     string   `json:"subject" binding:"required"`
+		Message     string   `json:"message"`
+		Trigger     string   `json:"trigger"` // "immediate", "daily", "weekly"
+		IsActive    bool     `json:"is_active"`
+		IncludeData bool     `json:"include_data"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -35,14 +35,14 @@ func CreateEmailDistribution(c *gin.Context) {
 	distributionID := uuid.New()
 
 	c.JSON(http.StatusCreated, gin.H{
-		"id":            distributionID,
-		"form_id":       formIDStr,
-		"name":          req.Name,
-		"recipients":    req.Recipients,
-		"subject":       req.Subject,
-		"trigger":       req.Trigger,
-		"is_active":     req.IsActive,
-		"include_data":  req.IncludeData,
+		"id":           distributionID,
+		"form_id":      formIDStr,
+		"name":         req.Name,
+		"recipients":   req.Recipients,
+		"subject":      req.Subject,
+		"trigger":      req.Trigger,
+		"is_active":    req.IsActive,
+		"include_data": req.IncludeData,
 	})
 }
 
@@ -79,10 +79,10 @@ func SendFormResponseEmail(c *gin.Context) {
 	}
 
 	var req struct {
-		Recipients []string `json:"recipients" binding:"required"`
-		Subject    string   `json:"subject" binding:"required"`
-		Message    string   `json:"message"`
-		IncludeData bool    `json:"include_data"`
+		Recipients  []string `json:"recipients" binding:"required"`
+		Subject     string   `json:"subject" binding:"required"`
+		Message     string   `json:"message"`
+		IncludeData bool     `json:"include_data"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {

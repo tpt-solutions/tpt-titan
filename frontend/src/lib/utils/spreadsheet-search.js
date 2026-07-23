@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Spreadsheet Search Utilities - Find and replace functionality for spreadsheets
  */

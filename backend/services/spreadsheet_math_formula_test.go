@@ -28,11 +28,11 @@ func TestSpreadsheetMathService_EvaluateFormula(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		formula        string
-		expectedValue  interface{}
-		expectedType   string
-		expectedError  bool
+		name          string
+		formula       string
+		expectedValue interface{}
+		expectedType  string
+		expectedError bool
 	}{
 		{
 			name:          "Simple number",
@@ -121,11 +121,11 @@ func TestSpreadsheetMathService_ParseFunctionCall(t *testing.T) {
 	sms := NewSpreadsheetMathService()
 
 	tests := []struct {
-		name           string
-		expression     string
-		expectedFunc   string
-		expectedArgs   []string
-		expectedError  bool
+		name          string
+		expression    string
+		expectedFunc  string
+		expectedArgs  []string
+		expectedError bool
 	}{
 		{
 			name:         "Simple function",
@@ -293,11 +293,11 @@ func TestSpreadsheetMathService_FormatCellReference(t *testing.T) {
 	sms := NewSpreadsheetMathService()
 
 	tests := []struct {
-		name       string
-		sheet      string
-		col        int
-		row        int
-		expected   string
+		name     string
+		sheet    string
+		col      int
+		row      int
+		expected string
 	}{
 		{"A1", "", 0, 0, "A1"},
 		{"B2", "", 1, 1, "B2"},
@@ -331,7 +331,7 @@ func TestSpreadsheetMathService_ValidateFormula(t *testing.T) {
 		{"Valid nested functions", "=SUM(A1,SUM(B1,B2))", true},
 		{"Invalid - unbalanced parentheses", "=SUM(1,2,3", false},
 		{"Invalid - missing function", "=UNKNOWN(1,2,3)", true}, // Unknown functions are considered valid syntax
-		{"Valid - no equals", "SUM(1,2,3)", true},             // Not a formula, so valid
+		{"Valid - no equals", "SUM(1,2,3)", true},               // Not a formula, so valid
 		{"Valid - empty", "", true},
 	}
 

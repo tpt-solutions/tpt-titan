@@ -488,9 +488,9 @@ func (s *CalendarService) updateEventAttendees(eventID uuid.UUID, contactIDs []u
 // CreateDefaultCalendar creates a default calendar for a new user
 func (s *CalendarService) CreateDefaultCalendar(userID uuid.UUID) error {
 	req := models.CalendarRequest{
-		Name:       "My Calendar",
-		Color:      "#3B82F6",
-		IsDefault:  true,
+		Name:      "My Calendar",
+		Color:     "#3B82F6",
+		IsDefault: true,
 	}
 
 	_, err := s.CreateCalendar(userID, req)

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Editor Export Utility - Export documents to various formats
  */

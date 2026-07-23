@@ -13,38 +13,38 @@ import (
 
 // HandwritingRecognitionService provides handwriting recognition for mathematical expressions
 type HandwritingRecognitionService struct {
-	apiKey     string
-	apiURL     string
-	modelName  string
-	timeout    time.Duration
+	apiKey    string
+	apiURL    string
+	modelName string
+	timeout   time.Duration
 }
 
 // HandwritingStroke represents a single stroke in handwriting
 type HandwritingStroke struct {
-	X []float64 `json:"x"` // X coordinates
-	Y []float64 `json:"y"` // Y coordinates
+	X []float64 `json:"x"`           // X coordinates
+	Y []float64 `json:"y"`           // Y coordinates
 	T []int64   `json:"t,omitempty"` // Timestamps (optional)
 }
 
 // RecognitionRequest represents a handwriting recognition request
 type RecognitionRequest struct {
-	Strokes      []HandwritingStroke `json:"strokes"`
-	Width        int                 `json:"width,omitempty"`
-	Height       int                 `json:"height,omitempty"`
-	Language     string              `json:"language,omitempty"` // "en", "es", "fr", etc.
-	MathMode     bool                `json:"math_mode"`          // True for mathematical expressions
-	PreContext   string              `json:"pre_context,omitempty"`   // Previous text context
-	PostContext  string              `json:"post_context,omitempty"`  // Following text context
+	Strokes     []HandwritingStroke `json:"strokes"`
+	Width       int                 `json:"width,omitempty"`
+	Height      int                 `json:"height,omitempty"`
+	Language    string              `json:"language,omitempty"`     // "en", "es", "fr", etc.
+	MathMode    bool                `json:"math_mode"`              // True for mathematical expressions
+	PreContext  string              `json:"pre_context,omitempty"`  // Previous text context
+	PostContext string              `json:"post_context,omitempty"` // Following text context
 }
 
 // RecognitionResult represents the result of handwriting recognition
 type RecognitionResult struct {
-	Text         string              `json:"text"`                   // Recognized text
-	Confidence   float64             `json:"confidence"`            // Recognition confidence (0-1)
-	Alternatives []RecognitionAlternative `json:"alternatives,omitempty"` // Alternative interpretations
-	MathExpr     *MathExpression     `json:"math_expr,omitempty"`   // Parsed mathematical expression
-	Error        string              `json:"error,omitempty"`
-	ProcessingTime int64             `json:"processing_time_ms"`    // Processing time in milliseconds
+	Text           string                   `json:"text"`                   // Recognized text
+	Confidence     float64                  `json:"confidence"`             // Recognition confidence (0-1)
+	Alternatives   []RecognitionAlternative `json:"alternatives,omitempty"` // Alternative interpretations
+	MathExpr       *MathExpression          `json:"math_expr,omitempty"`    // Parsed mathematical expression
+	Error          string                   `json:"error,omitempty"`
+	ProcessingTime int64                    `json:"processing_time_ms"` // Processing time in milliseconds
 }
 
 // RecognitionAlternative represents an alternative recognition result
@@ -55,32 +55,32 @@ type RecognitionAlternative struct {
 
 // MathExpression represents a parsed mathematical expression
 type MathExpression struct {
-	LaTeX       string                 `json:"latex"`                 // LaTeX representation
-	MathML      string                 `json:"mathml"`                // MathML representation
-	SVG         string                 `json:"svg,omitempty"`         // SVG representation
-	Text        string                 `json:"text"`                  // Plain text representation
-	Variables   []string               `json:"variables"`             // Variables used
-	Functions   []string               `json:"functions"`             // Functions used
-	Complexity  int                    `json:"complexity"`            // Expression complexity score
-	Validated   bool                   `json:"validated"`             // Whether expression is mathematically valid
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	LaTeX      string                 `json:"latex"`         // LaTeX representation
+	MathML     string                 `json:"mathml"`        // MathML representation
+	SVG        string                 `json:"svg,omitempty"` // SVG representation
+	Text       string                 `json:"text"`          // Plain text representation
+	Variables  []string               `json:"variables"`     // Variables used
+	Functions  []string               `json:"functions"`     // Functions used
+	Complexity int                    `json:"complexity"`    // Expression complexity score
+	Validated  bool                   `json:"validated"`     // Whether expression is mathematically valid
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // EquationTemplate represents a saved equation template
 type EquationTemplate struct {
-	ID          uuid.UUID           `json:"id"`
-	Name        string              `json:"name"`
-	Description string              `json:"description"`
-	Category    string              `json:"category"`    // "algebra", "calculus", "geometry", "physics", etc.
-	LaTeX       string              `json:"latex"`
-	MathML      string              `json:"mathml"`
-	SVG         string              `json:"svg"`
-	Variables   []string            `json:"variables"`
-	Tags        []string            `json:"tags"`
-	IsPublic    bool                `json:"is_public"`
-	CreatedBy   uuid.UUID           `json:"created_by"`
-	UsageCount  int                 `json:"usage_count"`
-	CreatedAt   time.Time           `json:"created_at"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Category    string    `json:"category"` // "algebra", "calculus", "geometry", "physics", etc.
+	LaTeX       string    `json:"latex"`
+	MathML      string    `json:"mathml"`
+	SVG         string    `json:"svg"`
+	Variables   []string  `json:"variables"`
+	Tags        []string  `json:"tags"`
+	IsPublic    bool      `json:"is_public"`
+	CreatedBy   uuid.UUID `json:"created_by"`
+	UsageCount  int       `json:"usage_count"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // NewHandwritingRecognitionService creates a new handwriting recognition service
@@ -132,8 +132,8 @@ func (hrs *HandwritingRecognitionService) RecognizeEquationFromImage(imageData [
 
 	// Create API request for image recognition
 	request := map[string]interface{}{
-		"image": base64Image,
-		"format": format,
+		"image":     base64Image,
+		"format":    format,
 		"math_mode": true,
 	}
 
@@ -142,8 +142,8 @@ func (hrs *HandwritingRecognitionService) RecognizeEquationFromImage(imageData [
 
 	// Simulate API call
 	result := &RecognitionResult{
-		Text:       "E = mc^{2}",
-		Confidence: 0.95,
+		Text:           "E = mc^{2}",
+		Confidence:     0.95,
 		ProcessingTime: 150,
 	}
 
@@ -562,32 +562,32 @@ func (hrs *HandwritingRecognitionService) convertToLaTeX(text string) string {
 
 	// Basic conversions
 	conversions := map[string]string{
-		"^":        "^{",
-		"sqrt(":    "\\sqrt{",
-		"sin(":     "\\sin{",
-		"cos(":     "\\cos{",
-		"tan(":     "\\tan{",
-		"log(":     "\\log{",
-		"ln(":      "\\ln{",
-		"exp(":     "\\exp{",
-		"pi":       "\\pi",
-		"alpha":    "\\alpha",
-		"beta":     "\\beta",
-		"gamma":    "\\gamma",
-		"delta":    "\\delta",
-		"epsilon":  "\\epsilon",
-		"theta":    "\\theta",
-		"lambda":   "\\lambda",
-		"mu":       "\\mu",
-		"sigma":    "\\sigma",
-		"omega":    "\\omega",
-		"infty":    "\\infty",
-		"sum":      "\\sum",
-		"prod":     "\\prod",
-		"int":      "\\int",
-		"lim":      "\\lim",
-		"frac":     "\\frac",
-		"sqrt":     "\\sqrt",
+		"^":       "^{",
+		"sqrt(":   "\\sqrt{",
+		"sin(":    "\\sin{",
+		"cos(":    "\\cos{",
+		"tan(":    "\\tan{",
+		"log(":    "\\log{",
+		"ln(":     "\\ln{",
+		"exp(":    "\\exp{",
+		"pi":      "\\pi",
+		"alpha":   "\\alpha",
+		"beta":    "\\beta",
+		"gamma":   "\\gamma",
+		"delta":   "\\delta",
+		"epsilon": "\\epsilon",
+		"theta":   "\\theta",
+		"lambda":  "\\lambda",
+		"mu":      "\\mu",
+		"sigma":   "\\sigma",
+		"omega":   "\\omega",
+		"infty":   "\\infty",
+		"sum":     "\\sum",
+		"prod":    "\\prod",
+		"int":     "\\int",
+		"lim":     "\\lim",
+		"frac":    "\\frac",
+		"sqrt":    "\\sqrt",
 	}
 
 	for old, new := range conversions {
@@ -753,8 +753,8 @@ func (hrs *HandwritingRecognitionService) SearchEquations(query string) ([]Equat
 
 	for _, template := range templates {
 		if strings.Contains(strings.ToLower(template.Name), strings.ToLower(query)) ||
-		   strings.Contains(strings.ToLower(template.Description), strings.ToLower(query)) ||
-		   strings.Contains(template.LaTeX, query) {
+			strings.Contains(strings.ToLower(template.Description), strings.ToLower(query)) ||
+			strings.Contains(template.LaTeX, query) {
 			filtered = append(filtered, template)
 		}
 	}

@@ -3,13 +3,16 @@
 	import { createEventDispatcher } from 'svelte';
 	import { validateField, validateForm, getDefaultValue, generateSampleValue } from '../utils/form-validation.js';
 
+	/** @type {{fields: any[], settings: any, name?: string, description?: string, [key: string]: any}} */
 	export let formData = { fields: [], settings: {} };
 	export let testMode = false;
 	export let showValidation = true;
 
 	const dispatch = createEventDispatcher();
 
+	/** @type {any} */
 	let formValues = {};
+	/** @type {any} */
 	let validationResults = {};
 	let showErrors = false;
 	let isSubmitting = false;
@@ -24,6 +27,10 @@
 		});
 	}
 
+	/**
+	 * @param {any} fieldId
+	 * @param {any} value
+	 */
 	function handleInput(fieldId, value) {
 		formValues[fieldId] = value;
 		
@@ -40,9 +47,9 @@
 
 	function handleSubmit() {
 		showErrors = true;
-		const validation = validateForm(formValues, formData.fields);
+		const validation = /** @type {any} */ (validateForm(formValues, formData.fields));
 		validationResults = validation.results;
-		
+
 		if (validation.valid) {
 			isSubmitting = true;
 			dispatch('submit', { values: formValues });
@@ -68,7 +75,7 @@
 	}
 
 	function validateAllFields() {
-		const validation = validateForm(formValues, formData.fields);
+		const validation = /** @type {any} */ (validateForm(formValues, formData.fields));
 		validationResults = validation.results;
 	}
 
@@ -81,14 +88,17 @@
 		validationResults = {};
 	}
 
+	/** @param {any} fieldId */
 	function getFieldError(fieldId) {
 		return showErrors && validationResults[fieldId]?.error;
 	}
 
+	/** @param {any} fieldId */
 	function isFieldValid(fieldId) {
 		return showErrors && validationResults[fieldId]?.valid;
 	}
 
+	/** @param {any} field */
 	function renderField(field) {
 		const value = formValues[field.id];
 		const error = getFieldError(field.id);
@@ -167,10 +177,10 @@
 						class={fieldClass}
 						placeholder={props.placeholder}
 						value={value || ''}
-						on:input={(e) => handleInput(field.id, e.target.value)}
+						on:input={(e) => handleInput(field.id, /** @type {HTMLInputElement} */ (e.target).value)}
 					/>
 				{/if}
-				
+
 				<!-- Textarea -->
 				{#if field.type === 'textarea'}
 					<textarea
@@ -178,7 +188,7 @@
 						placeholder={props.placeholder}
 						rows={props.rows || 3}
 						value={value || ''}
-						on:input={(e) => handleInput(field.id, e.target.value)}
+						on:input={(e) => handleInput(field.id, /** @type {HTMLTextAreaElement} */ (e.target).value)}
 					></textarea>
 				{/if}
 				
@@ -198,7 +208,7 @@
 							max={props.max}
 							step={field.type === 'currency' || field.type === 'percentage' ? '0.01' : '1'}
 							value={value || ''}
-							on:input={(e) => handleInput(field.id, parseFloat(e.target.value))}
+							on:input={(e) => handleInput(field.id, parseFloat(/** @type {HTMLInputElement} */ (e.target).value))}
 						/>
 						{#if field.type === 'percentage'}
 							<span class="absolute right-3 top-2 text-gray-500">%</span>
@@ -211,7 +221,7 @@
 					<select
 						class={fieldClass}
 						value={value || ''}
-						on:change={(e) => handleInput(field.id, e.target.value)}
+						on:change={(e) => handleInput(field.id, /** @type {HTMLSelectElement} */ (e.target).value)}
 					>
 						<option value="">Select an option...</option>
 						{#each props.options || [] as option}
@@ -250,7 +260,7 @@
 									checked={Array.isArray(value) && value.includes(option)}
 									on:change={(e) => {
 										const currentValues = Array.isArray(value) ? [...value] : [];
-										if (e.target.checked) {
+										if (/** @type {HTMLInputElement} */ (e.target).checked) {
 											handleInput(field.id, [...currentValues, option]);
 										} else {
 											handleInput(field.id, currentValues.filter(v => v !== option));
@@ -318,7 +328,7 @@
 							max={props.max}
 							value={value || props.min}
 							class="w-full"
-							on:input={(e) => handleInput(field.id, parseInt(e.target.value))}
+							on:input={(e) => handleInput(field.id, parseInt(/** @type {HTMLInputElement} */ (e.target).value))}
 						/>
 						<div class="flex justify-between text-sm text-gray-500">
 							<span>{props.minLabel || props.min}</span>
@@ -334,10 +344,10 @@
 						type={field.type}
 						class={fieldClass}
 						value={value || ''}
-						on:input={(e) => handleInput(field.id, e.target.value)}
+						on:input={(e) => handleInput(field.id, /** @type {HTMLInputElement} */ (e.target).value)}
 					/>
 				{/if}
-				
+
 				<!-- Color -->
 				{#if field.type === 'color'}
 					<div class="flex items-center space-x-2">
@@ -345,7 +355,7 @@
 							type="color"
 							class="h-10 w-20 rounded border border-gray-300"
 							value={value || '#000000'}
-							on:input={(e) => handleInput(field.id, e.target.value)}
+							on:input={(e) => handleInput(field.id, /** @type {HTMLInputElement} */ (e.target).value)}
 						/>
 						<span class="text-gray-600 text-sm">{value || '#000000'}</span>
 					</div>
@@ -361,7 +371,7 @@
 							step={props.step || 1}
 							value={value || props.min}
 							class="w-full"
-							on:input={(e) => handleInput(field.id, parseFloat(e.target.value))}
+							on:input={(e) => handleInput(field.id, parseFloat(/** @type {HTMLInputElement} */ (e.target).value))}
 						/>
 						<div class="text-center text-sm text-gray-600">
 							Value: {value || props.min}
@@ -377,7 +387,7 @@
 							accept={props.accept}
 							class="hidden"
 							id="file-{field.id}"
-							on:change={(e) => handleInput(field.id, e.target.files[0])}
+							on:change={(e) => handleInput(field.id, /** @type {HTMLInputElement} */ (e.target).files?.[0])}
 						/>
 						<label for="file-{field.id}" class="cursor-pointer">
 							<div class="text-gray-500">

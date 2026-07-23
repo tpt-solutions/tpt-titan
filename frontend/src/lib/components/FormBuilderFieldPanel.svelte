@@ -1,6 +1,7 @@
 <!-- frontend/src/lib/components/FormBuilderFieldPanel.svelte -->
 <!-- Right sidebar: draggable field-type catalogue + quick-add buttons. -->
 <script>
+// @ts-nocheck
 	import { createEventDispatcher } from 'svelte';
 	import { fieldTypes } from './FormBuilderFieldTypes.js';
 

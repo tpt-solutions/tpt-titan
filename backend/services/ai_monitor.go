@@ -13,24 +13,24 @@ import (
 
 // AIMonitor provides comprehensive monitoring and logging for AI services
 type AIMonitor struct {
-	mu              sync.RWMutex
-	metrics         map[string]*AIMetric
-	alerts          []*AIAlert
-	alertCallbacks  []AlertCallback
-	logFile         *os.File
-	logChan         chan *LogEntry
-	stopChan        chan bool
+	mu             sync.RWMutex
+	metrics        map[string]*AIMetric
+	alerts         []*AIAlert
+	alertCallbacks []AlertCallback
+	logFile        *os.File
+	logChan        chan *LogEntry
+	stopChan       chan bool
 }
 
 // AIMetric represents a monitoring metric
 type AIMetric struct {
-	Name        string                 `json:"name"`
-	Type        MetricType             `json:"type"`
-	Value       interface{}            `json:"value"`
-	Labels      map[string]string      `json:"labels"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Samples     []MetricSample         `json:"samples,omitempty"`
-	WindowSize  time.Duration          `json:"window_size"`
+	Name       string            `json:"name"`
+	Type       MetricType        `json:"type"`
+	Value      interface{}       `json:"value"`
+	Labels     map[string]string `json:"labels"`
+	Timestamp  time.Time         `json:"timestamp"`
+	Samples    []MetricSample    `json:"samples,omitempty"`
+	WindowSize time.Duration     `json:"window_size"`
 }
 
 // MetricType defines the type of metric
@@ -51,16 +51,16 @@ type MetricSample struct {
 
 // AIAlert represents an alert condition
 type AIAlert struct {
-	ID          uuid.UUID    `json:"id"`
-	Name        string       `json:"name"`
-	Description string       `json:"description"`
-	Severity    AlertLevel   `json:"severity"`
+	ID          uuid.UUID      `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Severity    AlertLevel     `json:"severity"`
 	Condition   AlertCondition `json:"condition"`
-	Status      AlertStatus  `json:"status"`
-	CreatedAt   time.Time    `json:"created_at"`
-	ResolvedAt  *time.Time   `json:"resolved_at,omitempty"`
-	Value       interface{}  `json:"value"`
-	Threshold   interface{}  `json:"threshold"`
+	Status      AlertStatus    `json:"status"`
+	CreatedAt   time.Time      `json:"created_at"`
+	ResolvedAt  *time.Time     `json:"resolved_at,omitempty"`
+	Value       interface{}    `json:"value"`
+	Threshold   interface{}    `json:"threshold"`
 }
 
 // AlertLevel defines alert severity
@@ -84,9 +84,9 @@ const (
 
 // AlertCondition defines when an alert should trigger
 type AlertCondition struct {
-	MetricName string      `json:"metric_name"`
-	Operator   string      `json:"operator"` // ">", "<", "==", "!="
-	Threshold  interface{} `json:"threshold"`
+	MetricName string        `json:"metric_name"`
+	Operator   string        `json:"operator"` // ">", "<", "==", "!="
+	Threshold  interface{}   `json:"threshold"`
 	Duration   time.Duration `json:"duration"` // How long condition must persist
 }
 
@@ -95,16 +95,16 @@ type AlertCallback func(alert *AIAlert)
 
 // LogEntry represents a log entry
 type LogEntry struct {
-	Timestamp   time.Time              `json:"timestamp"`
-	Level       LogLevel               `json:"level"`
-	Service     string                 `json:"service"`
-	Operation   string                 `json:"operation"`
-	UserID      uuid.UUID              `json:"user_id,omitempty"`
-	RequestID   uuid.UUID              `json:"request_id,omitempty"`
-	Message     string                 `json:"message"`
-	Error       string                 `json:"error,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
-	Duration    time.Duration          `json:"duration,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+	Level     LogLevel               `json:"level"`
+	Service   string                 `json:"service"`
+	Operation string                 `json:"operation"`
+	UserID    uuid.UUID              `json:"user_id,omitempty"`
+	RequestID uuid.UUID              `json:"request_id,omitempty"`
+	Message   string                 `json:"message"`
+	Error     string                 `json:"error,omitempty"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Duration  time.Duration          `json:"duration,omitempty"`
 }
 
 // LogLevel defines logging levels
@@ -120,25 +120,25 @@ const (
 
 // AIMonitorConfig configures the AI monitor
 type AIMonitorConfig struct {
-	LogFile         string
-	EnableMetrics   bool
-	EnableAlerts    bool
-	EnableLogging   bool
-	MetricsInterval time.Duration
+	LogFile            string
+	EnableMetrics      bool
+	EnableAlerts       bool
+	EnableLogging      bool
+	MetricsInterval    time.Duration
 	AlertCheckInterval time.Duration
-	LogBufferSize   int
+	LogBufferSize      int
 }
 
 // DefaultAIMonitorConfig returns sensible defaults
 func DefaultAIMonitorConfig() *AIMonitorConfig {
 	return &AIMonitorConfig{
-		LogFile:             "logs/ai_monitor.log",
-		EnableMetrics:       true,
-		EnableAlerts:        true,
-		EnableLogging:       true,
-		MetricsInterval:     time.Minute * 5,
-		AlertCheckInterval:  time.Minute * 1,
-		LogBufferSize:       1000,
+		LogFile:            "logs/ai_monitor.log",
+		EnableMetrics:      true,
+		EnableAlerts:       true,
+		EnableLogging:      true,
+		MetricsInterval:    time.Minute * 5,
+		AlertCheckInterval: time.Minute * 1,
+		LogBufferSize:      1000,
 	}
 }
 
@@ -569,9 +569,9 @@ func (m *AIMonitor) checkAlerts() {
 				m.Log(LogWarn, "monitor", "alert_triggered", uuid.Nil, uuid.Nil,
 					fmt.Sprintf("Alert triggered: %s", alert.Name), nil,
 					map[string]interface{}{
-						"alert_id": alert.ID,
-						"severity": alert.Severity,
-						"value":    alert.Value,
+						"alert_id":  alert.ID,
+						"severity":  alert.Severity,
+						"value":     alert.Value,
 						"threshold": alert.Threshold,
 					}, 0)
 			}

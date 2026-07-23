@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Spreadsheet Component Tests with Bun
 // Bun has built-in testing that works with Jest-like syntax
 

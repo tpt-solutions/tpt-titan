@@ -172,10 +172,10 @@ func GetEmails(c *gin.Context) {
 
 	// Parse query parameters
 	searchReq := models.EmailSearchRequest{
-		Query:     c.Query("q"),
-		Folder:    c.Query("folder"),
-		Limit:     50,  // Default limit
-		Offset:    0,   // Default offset
+		Query:  c.Query("q"),
+		Folder: c.Query("folder"),
+		Limit:  50, // Default limit
+		Offset: 0,  // Default offset
 	}
 
 	// Parse optional parameters

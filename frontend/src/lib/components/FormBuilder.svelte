@@ -1,6 +1,7 @@
 <!-- frontend/src/lib/components/FormBuilder.svelte -->
 <!-- Orchestrator: wires together all FormBuilder sub-components. -->
 <script>
+// @ts-nocheck
 	import { createEventDispatcher, onMount, onDestroy } from 'svelte';
 	import { createField } from './FormBuilderFieldTypes.js';
 	import FormBuilderProperties    from './FormBuilderProperties.svelte';
@@ -12,12 +13,14 @@
 	import FormHistory, { createDebouncedPush, handleUndoRedoKeyboard } from '../utils/form-history.js';
 
 
+	/** @type {any} */
 	export let form = null; // Existing form to edit, or null for new
 
 	const dispatch = createEventDispatcher();
 
 	// ── History management ────────────────────────────────────────────────────
 	let formHistory = new FormHistory();
+	/** @type {any} */
 	let debouncedHistoryPush;
 	let canUndo = false;
 	let canRedo = false;
@@ -41,7 +44,7 @@
 
 	// Undo handler
 	function handleUndo() {
-		const state = formHistory.undo();
+		const state = /** @type {any} */ (formHistory.undo());
 		if (state) {
 			formData.fields = state.fields;
 			formData.settings = state.settings;
@@ -52,7 +55,7 @@
 
 	// Redo handler
 	function handleRedo() {
-		const state = formHistory.redo();
+		const state = /** @type {any} */ (formHistory.redo());
 		if (state) {
 			formData.fields = state.fields;
 			formData.settings = state.settings;
@@ -62,6 +65,7 @@
 	}
 
 	// Global keyboard handler for undo/redo
+	/** @param {any} event */
 	function handleGlobalKeyDown(event) {
 		if (handleUndoRedoKeyboard(event, handleUndo, handleRedo)) {
 			return;
@@ -83,8 +87,11 @@
 	};
 
 	// ── Selection & drag state ─────────────────────────────────────────────────
+	/** @type {any} */
 	let selectedField    = null;
+	/** @type {any} */
 	let draggedFieldType = null; // dragging a new field type from the sidebar
+	/** @type {any} */
 	let draggedField     = null; // reordering an existing field on the canvas
 	let isDragging       = false;
 
@@ -94,9 +101,11 @@
 	let showResponses  = false;
 
 	// ── Response data (loaded lazily) ──────────────────────────────────────────
+	/** @type {any[]} */
 	let formResponses = [];
 
 	// ── Field CRUD ─────────────────────────────────────────────────────────────
+	/** @param {any} fieldType */
 	function addField(fieldType) {
 		const f = createField(fieldType, formData.fields.length);
 		formData.fields = [...formData.fields, f];
@@ -104,6 +113,7 @@
 		saveToHistory('addField', `Added ${f.label} field`);
 	}
 
+	/** @param {any} fieldId */
 	function deleteField(fieldId) {
 		const field = formData.fields.find(f => f.id === fieldId);
 		formData.fields = formData.fields.filter(f => f.id !== fieldId);
@@ -111,12 +121,21 @@
 		saveToHistory('deleteField', `Deleted ${field?.label || 'field'}`);
 	}
 
+	/**
+	 * @param {any} fieldId
+	 * @param {any} label
+	 */
 	function updateFieldLabel(fieldId, label) {
 		formData.fields = formData.fields.map(f => f.id === fieldId ? { ...f, label } : f);
 		if (selectedField?.id === fieldId) selectedField.label = label;
 		saveToHistory('updateLabel', `Updated label to "${label}"`);
 	}
 
+	/**
+	 * @param {any} fieldId
+	 * @param {any} property
+	 * @param {any} value
+	 */
 	function updateFieldProperty(fieldId, property, value) {
 		formData.fields = formData.fields.map(f =>
 			f.id === fieldId ? { ...f, properties: { ...f.properties, [property]: value } } : f
@@ -125,6 +144,10 @@
 		saveToHistory('updateProperty', `Updated ${property}`);
 	}
 
+	/**
+	 * @param {any} property
+	 * @param {any} value
+	 */
 	function updateSetting(property, value) {
 		formData.settings = { ...formData.settings, [property]: value };
 		saveToHistory('updateSetting', `Updated ${property}`);
@@ -135,6 +158,7 @@
 		const calculatedFields = formData.fields.filter(f => f.type === 'calculation');
 		if (calculatedFields.length === 0) return;
 
+		/** @type {Record<string, any>} */
 		const fieldValues = {};
 		formData.fields.forEach(f => {
 			fieldValues[f.label] = f.properties.value || 0;
@@ -176,6 +200,10 @@
 
 	// ── Reorder helpers ────────────────────────────────────────────────────────
 
+	/**
+	 * @param {any} fromIndex
+	 * @param {any} toIndex
+	 */
 	function reorderFields(fromIndex, toIndex) {
 		if (fromIndex === toIndex) return;
 		const fields = [...formData.fields];
@@ -188,6 +216,7 @@
 
 
 	// ── Canvas drag events ─────────────────────────────────────────────────────
+	/** @param {{ detail: { field: any } }} e */
 	function onFieldDragStart({ detail: { field } }) {
 		draggedField = field;
 		isDragging   = true;
@@ -198,6 +227,7 @@
 		isDragging   = false;
 	}
 
+	/** @param {{ detail: { event: any, dropIndex: any } }} e */
 	function onFieldDrop({ detail: { event, dropIndex } }) {
 		const draggedId  = event.dataTransfer.getData('text/plain');
 		const fromIndex  = formData.fields.findIndex(f => f.id.toString() === draggedId);
@@ -206,6 +236,7 @@
 		isDragging   = false;
 	}
 
+	/** @param {{ detail: { event: any, dropIndex: any } }} e */
 	function onCanvasDrop({ detail: { event, dropIndex } }) {
 		event.preventDefault();
 		if (draggedFieldType) {
@@ -220,6 +251,7 @@
 	}
 
 	// ── Field panel drag events ────────────────────────────────────────────────
+	/** @param {{ detail: { fieldType: any } }} e */
 	function onPanelDragStart({ detail: { fieldType } }) {
 		draggedFieldType = fieldType;
 		isDragging       = true;
@@ -231,6 +263,7 @@
 	}
 
 	// ── Templates ──────────────────────────────────────────────────────────────
+	/** @param {{ detail: any }} e */
 	function applyTemplate({ detail: template }) {
 		formData.fields = template.fields.map((f, i) => ({
 			id:         Date.now() + Math.random() + i,

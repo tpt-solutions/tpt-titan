@@ -212,16 +212,16 @@ func (s *ModelService) checkAvailableUpgrades(currentModels []models.AIModel, ha
 						if s.isUpgradeCandidate(current.ModelID, available.Name, hardware) {
 							sizeGB := parseSizeToGB(available.Size)
 							upgrade := models.UpgradeOption{
-								ID:             fmt.Sprintf("ollama-%s-%s", current.ModelID, available.Name),
-								CurrentModel:   current.ModelID,
-								NewModel:       available.Name,
-								Provider:       "ollama",
-								SizeGB:         sizeGB,
-								Capabilities:   available.Capabilities,
+								ID:              fmt.Sprintf("ollama-%s-%s", current.ModelID, available.Name),
+								CurrentModel:    current.ModelID,
+								NewModel:        available.Name,
+								Provider:        "ollama",
+								SizeGB:          sizeGB,
+								Capabilities:    available.Capabilities,
 								PerformanceGain: s.assessPerformanceGain(current.ModelID, available.Name),
-								Compatibility:  s.hardwareService.CheckCompatibility(sizeGB, hardware),
-								Reasoning:      s.generateUpgradeReasoning(current.ModelID, available.Name),
-								RiskLevel:      "low", // Ollama upgrades are generally safe
+								Compatibility:   s.hardwareService.CheckCompatibility(sizeGB, hardware),
+								Reasoning:       s.generateUpgradeReasoning(current.ModelID, available.Name),
+								RiskLevel:       "low", // Ollama upgrades are generally safe
 							}
 
 							// Serialize requirements

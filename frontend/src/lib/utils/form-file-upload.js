@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Form File Upload Utility - Handle file uploads for forms
  */

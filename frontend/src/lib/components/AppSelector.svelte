@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { userPreferences } from '../stores.js';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';

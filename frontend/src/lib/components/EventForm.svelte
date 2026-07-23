@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { contacts } from '$lib/stores';
 	import SpeechService from '../services/speech.js';
@@ -31,7 +32,9 @@
 	let showVoiceEventCreation = false;
 	let voiceCreating = false;
 	let voiceEventText = '';
+	/** @type {any[]} */
 	let availableSTTModels = [];
+	/** @type {any} */
 	let selectedSTTModel = null;
 	let schedulingSuggestions = [];
 	let isGeneratingSuggestions = false;

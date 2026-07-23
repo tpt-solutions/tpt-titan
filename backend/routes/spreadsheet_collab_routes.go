@@ -21,8 +21,8 @@ func GetCollaborationMode(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"mode":       mode,
-		"p2p_enabled": cfg.P2P.Enabled,
+		"mode":             mode,
+		"p2p_enabled":      cfg.P2P.Enabled,
 		"server_available": true, // Server is always available as backup
 	})
 }
@@ -179,7 +179,7 @@ func SyncSpreadsheetWithPeers(c *gin.Context) {
 	p2pService.SyncSpreadsheet(spreadsheetID, data)
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Spreadsheet synced with peers",
+		"message":        "Spreadsheet synced with peers",
 		"peers_notified": len(p2pService.GetConnectedPeers()),
 	})
 }
@@ -196,47 +196,47 @@ func GetCollaborationStatus(c *gin.Context) {
 	connectedPeers := len(peers)
 
 	status := gin.H{
-		"mode": currentMode, // "automatic", "p2p", "server"
-		"connected_peers": connectedPeers,
+		"mode":                  currentMode, // "automatic", "p2p", "server"
+		"connected_peers":       connectedPeers,
 		"remote_access_enabled": cfg.P2P.AllowRemoteAccess,
 		"features": gin.H{
 			"local_network": gin.H{
-				"available": true,
+				"available":   true,
 				"description": "Direct peer-to-peer collaboration on local networks",
-				"speed": "Fast",
-				"security": "Local network only",
+				"speed":       "Fast",
+				"security":    "Local network only",
 			},
 			"remote_access": gin.H{
-				"available": cfg.P2P.AllowRemoteAccess,
+				"available":   cfg.P2P.AllowRemoteAccess,
 				"description": "Cloud relay for remote users (work from home, etc.)",
-				"speed": "Good",
-				"security": "End-to-end encrypted",
+				"speed":       "Good",
+				"security":    "End-to-end encrypted",
 			},
 			"server_backup": gin.H{
-				"available": true,
+				"available":   true,
 				"description": "Full server-based collaboration as backup",
-				"speed": "Variable",
-				"security": "User authentication + permissions",
+				"speed":       "Variable",
+				"security":    "User authentication + permissions",
 			},
 		},
 		"p2p": gin.H{
-			"enabled": cfg.P2P.Enabled,
-			"running": p2pService.IsRunning(),
-			"topology": cfg.P2P.PreferredTopology,
+			"enabled":     cfg.P2P.Enabled,
+			"running":     p2pService.IsRunning(),
+			"topology":    cfg.P2P.PreferredTopology,
 			"auto_detect": cfg.P2P.AutoDetectTopology,
 			"config": gin.H{
-				"port": cfg.P2P.Port,
-				"max_peers": cfg.P2P.MaxPeers,
+				"port":              cfg.P2P.Port,
+				"max_peers":         cfg.P2P.MaxPeers,
 				"discovery_timeout": cfg.P2P.DiscoveryTimeout,
-				"sync_interval": cfg.P2P.SyncInterval,
-				"encryption": cfg.P2P.EnableEncryption,
-				"compression": cfg.P2P.EnableCompression,
-				"remote_access": cfg.P2P.AllowRemoteAccess,
-				"cloud_relay": cfg.P2P.CloudRelayEnabled,
+				"sync_interval":     cfg.P2P.SyncInterval,
+				"encryption":        cfg.P2P.EnableEncryption,
+				"compression":       cfg.P2P.EnableCompression,
+				"remote_access":     cfg.P2P.AllowRemoteAccess,
+				"cloud_relay":       cfg.P2P.CloudRelayEnabled,
 			},
 		},
 		"server": gin.H{
-			"available": true,
+			"available":   true,
 			"description": "Traditional server-based collaboration",
 			"features": []string{
 				"User authentication",
@@ -248,8 +248,8 @@ func GetCollaborationStatus(c *gin.Context) {
 		"recommendation": gin.H{
 			"for_local_office": "automatic (P2P with cloud relay fallback)",
 			"for_remote_teams": "server mode",
-			"for_home_users": "automatic (works everywhere)",
-			"easiest_setup": "automatic mode - just works",
+			"for_home_users":   "automatic (works everywhere)",
+			"easiest_setup":    "automatic mode - just works",
 		},
 		"peers": peers,
 	}
@@ -271,9 +271,9 @@ func GetCollaborationStatus(c *gin.Context) {
 	// Add user-friendly status messages
 	status["user_message"] = gin.H{
 		"current_status": "Ready for collaboration",
-		"ease_of_use": "Just works - no configuration needed",
-		"security_note": "All connections are encrypted and secure",
-		"performance": "Automatic optimization for your network",
+		"ease_of_use":    "Just works - no configuration needed",
+		"security_note":  "All connections are encrypted and secure",
+		"performance":    "Automatic optimization for your network",
 	}
 
 	c.JSON(http.StatusOK, status)

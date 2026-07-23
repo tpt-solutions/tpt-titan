@@ -24,62 +24,62 @@ type FormWorkflowService struct {
 
 // WorkflowDefinition represents a workflow definition
 type WorkflowDefinition struct {
-	ID          uuid.UUID              `json:"id"`
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	FormID      uuid.UUID              `json:"form_id"`
-	Trigger     string                 `json:"trigger"`     // "on_submit", "on_update", "on_approve", "scheduled"
-	Steps       []WorkflowStep         `json:"steps"`
-	IsActive    bool                   `json:"is_active"`
-	CreatedBy   uuid.UUID              `json:"created_by"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
+	ID          uuid.UUID      `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	FormID      uuid.UUID      `json:"form_id"`
+	Trigger     string         `json:"trigger"` // "on_submit", "on_update", "on_approve", "scheduled"
+	Steps       []WorkflowStep `json:"steps"`
+	IsActive    bool           `json:"is_active"`
+	CreatedBy   uuid.UUID      `json:"created_by"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 // WorkflowStep represents a step in a workflow
 type WorkflowStep struct {
-	ID          uuid.UUID              `json:"id"`
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`        // "approval", "notification", "assignment", "condition", "action"
-	Config      map[string]interface{} `json:"config"`
-	Order       int                    `json:"order"`
-	NextStepID  *uuid.UUID             `json:"next_step_id,omitempty"`
-	AltStepID   *uuid.UUID             `json:"alt_step_id,omitempty"` // Alternative path (e.g., rejection)
+	ID         uuid.UUID              `json:"id"`
+	Name       string                 `json:"name"`
+	Type       string                 `json:"type"` // "approval", "notification", "assignment", "condition", "action"
+	Config     map[string]interface{} `json:"config"`
+	Order      int                    `json:"order"`
+	NextStepID *uuid.UUID             `json:"next_step_id,omitempty"`
+	AltStepID  *uuid.UUID             `json:"alt_step_id,omitempty"` // Alternative path (e.g., rejection)
 }
 
 // WorkflowInstance represents a running workflow instance
 type WorkflowInstance struct {
-	ID          uuid.UUID            `json:"id"`
-	WorkflowID  uuid.UUID            `json:"workflow_id"`
-	RecordID    uuid.UUID            `json:"record_id"`    // Form response ID
-	CurrentStep *uuid.UUID           `json:"current_step"`
-	Status      string               `json:"status"`       // "running", "completed", "failed", "waiting"
-	Context     map[string]interface{} `json:"context"`      // Workflow execution context
-	StartedAt   time.Time            `json:"started_at"`
-	CompletedAt *time.Time           `json:"completed_at,omitempty"`
+	ID          uuid.UUID              `json:"id"`
+	WorkflowID  uuid.UUID              `json:"workflow_id"`
+	RecordID    uuid.UUID              `json:"record_id"` // Form response ID
+	CurrentStep *uuid.UUID             `json:"current_step"`
+	Status      string                 `json:"status"`  // "running", "completed", "failed", "waiting"
+	Context     map[string]interface{} `json:"context"` // Workflow execution context
+	StartedAt   time.Time              `json:"started_at"`
+	CompletedAt *time.Time             `json:"completed_at,omitempty"`
 }
 
 // ApprovalRequest represents an approval request in a workflow
 type ApprovalRequest struct {
-	ID         uuid.UUID `json:"id"`
-	InstanceID uuid.UUID `json:"instance_id"`
-	StepID     uuid.UUID `json:"step_id"`
-	RequestedBy uuid.UUID `json:"requested_by"`
-	AssignedTo uuid.UUID `json:"assigned_to"`
-	Status     string    `json:"status"` // "pending", "approved", "rejected"
-	Message    string    `json:"message,omitempty"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID          uuid.UUID  `json:"id"`
+	InstanceID  uuid.UUID  `json:"instance_id"`
+	StepID      uuid.UUID  `json:"step_id"`
+	RequestedBy uuid.UUID  `json:"requested_by"`
+	AssignedTo  uuid.UUID  `json:"assigned_to"`
+	Status      string     `json:"status"` // "pending", "approved", "rejected"
+	Message     string     `json:"message,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
 	RespondedAt *time.Time `json:"responded_at,omitempty"`
 }
 
 // NotificationTemplate represents a template for workflow notifications
 type NotificationTemplate struct {
-	ID      uuid.UUID `json:"id"`
-	Name    string    `json:"name"`
-	Type    string    `json:"type"`    // "email", "sms", "in_app"
-	Subject string    `json:"subject"`
-	Body    string    `json:"body"`
-	Variables []string `json:"variables"` // Available template variables
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Type      string    `json:"type"` // "email", "sms", "in_app"
+	Subject   string    `json:"subject"`
+	Body      string    `json:"body"`
+	Variables []string  `json:"variables"` // Available template variables
 }
 
 // NewFormWorkflowService creates a new workflow service
@@ -189,13 +189,13 @@ func (fws *FormWorkflowService) executeApprovalStep(instance *WorkflowInstance, 
 	}
 
 	approval := &ApprovalRequest{
-		ID:         uuid.New(),
-		InstanceID: instance.ID,
-		StepID:     step.ID,
+		ID:          uuid.New(),
+		InstanceID:  instance.ID,
+		StepID:      step.ID,
 		RequestedBy: userID,
-		AssignedTo: assignedToUUID,
-		Status:     "pending",
-		CreatedAt:  time.Now(),
+		AssignedTo:  assignedToUUID,
+		Status:      "pending",
+		CreatedAt:   time.Now(),
 	}
 
 	// Save approval request
@@ -432,13 +432,13 @@ func (fws *FormWorkflowService) GetPendingApprovals(userID uuid.UUID) ([]map[str
 	var approvals []map[string]interface{}
 	for rows.Next() {
 		var approval struct {
-			ID          uuid.UUID `json:"id"`
-			InstanceID  uuid.UUID `json:"instance_id"`
-			StepID      uuid.UUID `json:"step_id"`
-			RequestedBy uuid.UUID `json:"requested_by"`
-			CreatedAt   time.Time `json:"created_at"`
-			WorkflowName string   `json:"workflow_name"`
-			FormID      uuid.UUID `json:"form_id"`
+			ID           uuid.UUID `json:"id"`
+			InstanceID   uuid.UUID `json:"instance_id"`
+			StepID       uuid.UUID `json:"step_id"`
+			RequestedBy  uuid.UUID `json:"requested_by"`
+			CreatedAt    time.Time `json:"created_at"`
+			WorkflowName string    `json:"workflow_name"`
+			FormID       uuid.UUID `json:"form_id"`
 		}
 
 		err := rows.Scan(
@@ -450,13 +450,13 @@ func (fws *FormWorkflowService) GetPendingApprovals(userID uuid.UUID) ([]map[str
 		}
 
 		approvals = append(approvals, map[string]interface{}{
-			"id":             approval.ID,
-			"instance_id":    approval.InstanceID,
-			"step_id":        approval.StepID,
-			"requested_by":   approval.RequestedBy,
-			"created_at":     approval.CreatedAt,
-			"workflow_name":  approval.WorkflowName,
-			"form_id":        approval.FormID,
+			"id":            approval.ID,
+			"instance_id":   approval.InstanceID,
+			"step_id":       approval.StepID,
+			"requested_by":  approval.RequestedBy,
+			"created_at":    approval.CreatedAt,
+			"workflow_name": approval.WorkflowName,
+			"form_id":       approval.FormID,
 		})
 	}
 
@@ -594,12 +594,12 @@ func (fws *FormWorkflowService) sendEmailNotification(recipientID uuid.UUID, sub
 func (fws *FormWorkflowService) sendInAppNotification(recipientID uuid.UUID, title, message string) error {
 	// Create in-app notification
 	notification := map[string]interface{}{
-		"id":      uuid.New(),
-		"user_id": recipientID,
-		"title":   title,
-		"message": message,
-		"type":    "workflow",
-		"read":    false,
+		"id":         uuid.New(),
+		"user_id":    recipientID,
+		"title":      title,
+		"message":    message,
+		"type":       "workflow",
+		"read":       false,
 		"created_at": time.Now(),
 	}
 

@@ -45,17 +45,17 @@ type CORSConfig struct {
 
 // SecurityEvent represents a security audit event
 type SecurityEvent struct {
-	ID          uuid.UUID `json:"id"`
-	Timestamp   time.Time `json:"timestamp"`
-	EventType   string    `json:"event_type"`
-	UserID      *uuid.UUID `json:"user_id,omitempty"`
-	IPAddress   string    `json:"ip_address"`
-	UserAgent   string    `json:"user_agent"`
-	Resource    string    `json:"resource"`
-	Action      string    `json:"action"`
-	StatusCode  int       `json:"status_code"`
-	Details     string    `json:"details,omitempty"`
-	RequestID   string    `json:"request_id"`
+	ID         uuid.UUID  `json:"id"`
+	Timestamp  time.Time  `json:"timestamp"`
+	EventType  string     `json:"event_type"`
+	UserID     *uuid.UUID `json:"user_id,omitempty"`
+	IPAddress  string     `json:"ip_address"`
+	UserAgent  string     `json:"user_agent"`
+	Resource   string     `json:"resource"`
+	Action     string     `json:"action"`
+	StatusCode int        `json:"status_code"`
+	Details    string     `json:"details,omitempty"`
+	RequestID  string     `json:"request_id"`
 }
 
 // NewSecurityMiddleware creates a new security middleware instance
@@ -84,7 +84,7 @@ func NewCORSConfig() *CORSConfig {
 	// Get allowed origins from environment, default to localhost for development
 	originsStr := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173")
 	origins := splitOrigins(originsStr)
-	
+
 	return &CORSConfig{
 		AllowedOrigins:   origins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -99,7 +99,7 @@ func splitOrigins(origins string) []string {
 	if origins == "" {
 		return []string{"http://localhost:3000"}
 	}
-	
+
 	parts := strings.Split(origins, ",")
 	result := make([]string, 0, len(parts))
 	for _, part := range parts {
@@ -160,17 +160,17 @@ func (sm *SecurityMiddleware) RateLimitMiddleware() gin.HandlerFunc {
 		// Check rate limit
 		if !sm.rateLimiter.Allow(clientIP) {
 			sm.auditLogger.LogSecurityEvent(&SecurityEvent{
-				EventType: "RATE_LIMIT_EXCEEDED",
-				IPAddress: clientIP,
-				UserAgent: c.Request.UserAgent(),
-				Resource:  c.Request.URL.Path,
-				Action:    c.Request.Method,
+				EventType:  "RATE_LIMIT_EXCEEDED",
+				IPAddress:  clientIP,
+				UserAgent:  c.Request.UserAgent(),
+				Resource:   c.Request.URL.Path,
+				Action:     c.Request.Method,
 				StatusCode: http.StatusTooManyRequests,
-				RequestID: c.GetString("request_id"),
+				RequestID:  c.GetString("request_id"),
 			})
 
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error": "Rate limit exceeded",
+				"error":   "Rate limit exceeded",
 				"message": "Too many requests. Please try again later.",
 			})
 			c.Abort()
@@ -246,15 +246,15 @@ func (sm *SecurityMiddleware) AuditMiddleware() gin.HandlerFunc {
 
 		// Log the request
 		sm.auditLogger.LogSecurityEvent(&SecurityEvent{
-			EventType: "API_ACCESS",
-			UserID:    userID,
-			IPAddress: c.ClientIP(),
-			UserAgent: c.Request.UserAgent(),
-			Resource:  c.Request.URL.Path,
-			Action:    c.Request.Method,
+			EventType:  "API_ACCESS",
+			UserID:     userID,
+			IPAddress:  c.ClientIP(),
+			UserAgent:  c.Request.UserAgent(),
+			Resource:   c.Request.URL.Path,
+			Action:     c.Request.Method,
 			StatusCode: c.Writer.Status(),
-			Details:   fmt.Sprintf("Duration: %v", time.Since(start)),
-			RequestID: c.GetString("request_id"),
+			Details:    fmt.Sprintf("Duration: %v", time.Since(start)),
+			RequestID:  c.GetString("request_id"),
 		})
 	}
 }
@@ -295,17 +295,17 @@ func (sm *SecurityMiddleware) CSRFProtectionMiddleware() gin.HandlerFunc {
 		// In production, validate token against session/server-side storage
 		if token == "" {
 			sm.auditLogger.LogSecurityEvent(&SecurityEvent{
-				EventType: "CSRF_TOKEN_MISSING",
-				IPAddress: c.ClientIP(),
-				UserAgent: c.Request.UserAgent(),
-				Resource:  c.Request.URL.Path,
-				Action:    c.Request.Method,
+				EventType:  "CSRF_TOKEN_MISSING",
+				IPAddress:  c.ClientIP(),
+				UserAgent:  c.Request.UserAgent(),
+				Resource:   c.Request.URL.Path,
+				Action:     c.Request.Method,
 				StatusCode: http.StatusForbidden,
-				RequestID: c.GetString("request_id"),
+				RequestID:  c.GetString("request_id"),
 			})
 
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "CSRF token missing",
+				"error":   "CSRF token missing",
 				"message": "Cross-Site Request Forgery token is required",
 			})
 			c.Abort()
@@ -322,17 +322,17 @@ func (sm *SecurityMiddleware) InputValidationMiddleware() gin.HandlerFunc {
 		// Check for suspicious patterns in request
 		if sm.containsSuspiciousPatterns(c) {
 			sm.auditLogger.LogSecurityEvent(&SecurityEvent{
-				EventType: "SUSPICIOUS_INPUT",
-				IPAddress: c.ClientIP(),
-				UserAgent: c.Request.UserAgent(),
-				Resource:  c.Request.URL.Path,
-				Action:    c.Request.Method,
+				EventType:  "SUSPICIOUS_INPUT",
+				IPAddress:  c.ClientIP(),
+				UserAgent:  c.Request.UserAgent(),
+				Resource:   c.Request.URL.Path,
+				Action:     c.Request.Method,
 				StatusCode: http.StatusBadRequest,
-				RequestID: c.GetString("request_id"),
+				RequestID:  c.GetString("request_id"),
 			})
 
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "Invalid input",
+				"error":   "Invalid input",
 				"message": "Request contains suspicious content",
 			})
 			c.Abort()
@@ -394,17 +394,17 @@ func (sm *SecurityMiddleware) IPWhitelistMiddleware(allowedIPs []string) gin.Han
 
 		if !allowed {
 			sm.auditLogger.LogSecurityEvent(&SecurityEvent{
-				EventType: "IP_BLOCKED",
-				IPAddress: clientIP,
-				UserAgent: c.Request.UserAgent(),
-				Resource:  c.Request.URL.Path,
-				Action:    c.Request.Method,
+				EventType:  "IP_BLOCKED",
+				IPAddress:  clientIP,
+				UserAgent:  c.Request.UserAgent(),
+				Resource:   c.Request.URL.Path,
+				Action:     c.Request.Method,
 				StatusCode: http.StatusForbidden,
-				RequestID: c.GetString("request_id"),
+				RequestID:  c.GetString("request_id"),
 			})
 
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Access denied",
+				"error":   "Access denied",
 				"message": "IP address not allowed",
 			})
 			c.Abort()
@@ -439,18 +439,18 @@ func (sm *SecurityMiddleware) SQLInjectionProtectionMiddleware() gin.HandlerFunc
 				for _, pattern := range suspiciousSQLPatterns {
 					if strings.Contains(strings.ToLower(value), pattern) {
 						sm.auditLogger.LogSecurityEvent(&SecurityEvent{
-							EventType: "SQL_INJECTION_ATTEMPT",
-							IPAddress: c.ClientIP(),
-							UserAgent: c.Request.UserAgent(),
-							Resource:  c.Request.URL.Path,
-							Action:    c.Request.Method,
+							EventType:  "SQL_INJECTION_ATTEMPT",
+							IPAddress:  c.ClientIP(),
+							UserAgent:  c.Request.UserAgent(),
+							Resource:   c.Request.URL.Path,
+							Action:     c.Request.Method,
 							StatusCode: http.StatusBadRequest,
-							Details:   fmt.Sprintf("Parameter: %s", key),
-							RequestID: c.GetString("request_id"),
+							Details:    fmt.Sprintf("Parameter: %s", key),
+							RequestID:  c.GetString("request_id"),
 						})
 
 						c.JSON(http.StatusBadRequest, gin.H{
-							"error": "Invalid input",
+							"error":   "Invalid input",
 							"message": "Request blocked due to security policy",
 						})
 						c.Abort()

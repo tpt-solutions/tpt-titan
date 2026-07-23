@@ -22,7 +22,7 @@ type MCPServer struct {
 	URL       string    `gorm:"size:1024;not null" json:"url"`
 	Transport string    `gorm:"size:32;default:'http'" json:"transport"` // "http" | "streamable-http"
 	AuthType  string    `gorm:"size:32;default:'none'" json:"auth_type"` // "none" | "bearer"
-	Token     string    `gorm:"type:text" json:"-"`                       // encrypted; never serialized out
+	Token     string    `gorm:"type:text" json:"-"`                      // encrypted; never serialized out
 	IsActive  bool      `gorm:"default:true" json:"is_active"`
 
 	CreatedAt time.Time `json:"created_at"`

@@ -103,9 +103,9 @@ func TestSpreadsheetMathService_Asin(t *testing.T) {
 		hasError bool
 	}{
 		{"asin(0)", []float64{0}, 0, false},
-		{"asin(0.5)", []float64{0.5}, math.Pi/6, false},
-		{"asin(1)", []float64{1}, math.Pi/2, false},
-		{"asin(-1)", []float64{-1}, -math.Pi/2, false},
+		{"asin(0.5)", []float64{0.5}, math.Pi / 6, false},
+		{"asin(1)", []float64{1}, math.Pi / 2, false},
+		{"asin(-1)", []float64{-1}, -math.Pi / 2, false},
 		{"too many args", []float64{1, 2}, math.Asin(1), false}, // Should ignore extra args
 	}
 
@@ -132,8 +132,8 @@ func TestSpreadsheetMathService_Acos(t *testing.T) {
 		hasError bool
 	}{
 		{"acos(1)", []float64{1}, 0, false},
-		{"acos(0.5)", []float64{0.5}, math.Pi/3, false},
-		{"acos(0)", []float64{0}, math.Pi/2, false},
+		{"acos(0.5)", []float64{0.5}, math.Pi / 3, false},
+		{"acos(0)", []float64{0}, math.Pi / 2, false},
 		{"acos(-1)", []float64{-1}, math.Pi, false},
 		{"too many args", []float64{1, 2}, math.Acos(1), false}, // Should ignore extra args
 	}
@@ -161,9 +161,9 @@ func TestSpreadsheetMathService_Atan(t *testing.T) {
 		hasError bool
 	}{
 		{"atan(0)", []float64{0}, 0, false},
-		{"atan(1)", []float64{1}, math.Pi/4, false},
-		{"atan(-1)", []float64{-1}, -math.Pi/4, false},
-		{"atan(∞)", []float64{math.Inf(1)}, math.Pi/2, false},
+		{"atan(1)", []float64{1}, math.Pi / 4, false},
+		{"atan(-1)", []float64{-1}, -math.Pi / 4, false},
+		{"atan(∞)", []float64{math.Inf(1)}, math.Pi / 2, false},
 		{"too many args", []float64{1, 2}, math.Atan(1), false}, // Should ignore extra args
 	}
 

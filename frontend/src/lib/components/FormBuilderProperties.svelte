@@ -3,15 +3,26 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
 
+	/** @type {any} */
 	export let formData;
+	/** @type {any} */
 	export let selectedField = null;
 
 	const dispatch = createEventDispatcher();
 
+	/**
+	 * @param {any} fieldId
+	 * @param {any} property
+	 * @param {any} value
+	 */
 	function updateFieldProperty(fieldId, property, value) {
 		dispatch('updateProperty', { fieldId, property, value });
 	}
 
+	/**
+	 * @param {any} fieldId
+	 * @param {any} label
+	 */
 	function updateFieldLabel(fieldId, label) {
 		dispatch('updateLabel', { fieldId, label });
 	}
@@ -59,7 +70,7 @@
 						type="checkbox"
 						id="multi-page"
 						bind:checked={formData.settings.isMultiPage}
-						on:change={(e) => dispatch('updateSetting', { property: 'isMultiPage', value: e.target.checked })}
+						on:change={(e) => dispatch('updateSetting', { property: 'isMultiPage', value: /** @type {HTMLInputElement} */ (e.target).checked })}
 						class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 					/>
 					<label for="multi-page" class="ml-2 text-sm text-gray-700">Multi-page form</label>
@@ -71,7 +82,7 @@
 						type="checkbox"
 						id="captcha"
 						bind:checked={formData.settings.captcha}
-						on:change={(e) => dispatch('updateSetting', { property: 'captcha', value: e.target.checked })}
+						on:change={(e) => dispatch('updateSetting', { property: 'captcha', value: /** @type {HTMLInputElement} */ (e.target).checked })}
 						class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 					/>
 					<label for="captcha" class="ml-2 text-sm text-gray-700">Enable CAPTCHA protection</label>
@@ -83,7 +94,7 @@
 						type="checkbox"
 						id="multiple-submissions"
 						bind:checked={formData.settings.allowMultipleSubmissions}
-						on:change={(e) => dispatch('updateSetting', { property: 'allowMultipleSubmissions', value: e.target.checked })}
+						on:change={(e) => dispatch('updateSetting', { property: 'allowMultipleSubmissions', value: /** @type {HTMLInputElement} */ (e.target).checked })}
 						class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 					/>
 					<label for="multiple-submissions" class="ml-2 text-sm text-gray-700">Allow multiple submissions</label>
@@ -97,7 +108,7 @@
 							id="max-submissions"
 							type="number"
 							bind:value={formData.settings.maxSubmissions}
-							on:input={(e) => dispatch('updateSetting', { property: 'maxSubmissions', value: parseInt(e.target.value) || null })}
+							on:input={(e) => dispatch('updateSetting', { property: 'maxSubmissions', value: parseInt(/** @type {HTMLInputElement} */ (e.target).value) || null })}
 							placeholder="Unlimited"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
 						/>
@@ -117,7 +128,7 @@
 								type="color"
 								id="theme-color"
 								bind:value={formData.settings.themeColor}
-								on:input={(e) => dispatch('updateSetting', { property: 'themeColor', value: e.target.value })}
+								on:input={(e) => dispatch('updateSetting', { property: 'themeColor', value: /** @type {HTMLInputElement} */ (e.target).value })}
 								class="h-8 w-16 border border-gray-300 rounded cursor-pointer"
 							/>
 							<span class="text-sm text-gray-600">{formData.settings.themeColor || '#4F46E5'}</span>
@@ -129,7 +140,7 @@
 						<select
 							id="theme-style"
 							bind:value={formData.settings.themeStyle}
-							on:change={(e) => dispatch('updateSetting', { property: 'themeStyle', value: e.target.value })}
+							on:change={(e) => dispatch('updateSetting', { property: 'themeStyle', value: /** @type {HTMLInputElement} */ (e.target).value })}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
 						>
 							<option value="default">Default</option>
@@ -145,7 +156,7 @@
 							type="checkbox"
 							id="show-progress"
 							bind:checked={formData.settings.showProgressBar}
-							on:change={(e) => dispatch('updateSetting', { property: 'showProgressBar', value: e.target.checked })}
+							on:change={(e) => dispatch('updateSetting', { property: 'showProgressBar', value: /** @type {HTMLInputElement} */ (e.target).checked })}
 							class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 						/>
 						<label for="show-progress" class="ml-2 text-sm text-gray-700">Show progress bar</label>
@@ -166,7 +177,7 @@
 					<input
 						id="field-label-{selectedField.id}"
 						bind:value={selectedField.label}
-						on:input={(e) => updateFieldLabel(selectedField.id, e.target.value)}
+						on:input={(e) => updateFieldLabel(selectedField.id, /** @type {HTMLInputElement} */ (e.target).value)}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
 					/>
 				</div>
@@ -178,7 +189,7 @@
 						<input
 							id="field-placeholder-{selectedField.id}"
 							bind:value={selectedField.properties.placeholder}
-							on:input={(e) => updateFieldProperty(selectedField.id, 'placeholder', e.target.value)}
+							on:input={(e) => updateFieldProperty(selectedField.id, 'placeholder', /** @type {HTMLInputElement} */ (e.target).value)}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
@@ -193,7 +204,7 @@
 								id="field-min-{selectedField.id}"
 								type="number"
 								bind:value={selectedField.properties.min}
-								on:input={(e) => updateFieldProperty(selectedField.id, 'min', e.target.value ? parseFloat(e.target.value) : null)}
+								on:input={(e) => updateFieldProperty(selectedField.id, 'min', /** @type {HTMLInputElement} */ (e.target).value ? parseFloat(/** @type {HTMLInputElement} */ (e.target).value) : null)}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
 							/>
 						</div>
@@ -203,7 +214,7 @@
 								id="field-max-{selectedField.id}"
 								type="number"
 								bind:value={selectedField.properties.max}
-								on:input={(e) => updateFieldProperty(selectedField.id, 'max', e.target.value ? parseFloat(e.target.value) : null)}
+								on:input={(e) => updateFieldProperty(selectedField.id, 'max', /** @type {HTMLInputElement} */ (e.target).value ? parseFloat(/** @type {HTMLInputElement} */ (e.target).value) : null)}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
 							/>
 						</div>
@@ -217,7 +228,7 @@
 						<textarea
 							id="field-options-{selectedField.id}"
 							bind:value={selectedField.properties.options}
-							on:input={(e) => updateFieldProperty(selectedField.id, 'options', e.target.value.split('\n').filter(opt => opt.trim()))}
+							on:input={(e) => updateFieldProperty(selectedField.id, 'options', /** @type {HTMLInputElement} */ (e.target).value.split('\n').filter(opt => opt.trim()))}
 							placeholder="One option per line"
 							rows="4"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -234,7 +245,7 @@
 								id="field-maxsize-{selectedField.id}"
 								type="number"
 								bind:value={selectedField.properties.maxSize}
-								on:input={(e) => updateFieldProperty(selectedField.id, 'maxSize', parseInt(e.target.value))}
+								on:input={(e) => updateFieldProperty(selectedField.id, 'maxSize', parseInt(/** @type {HTMLInputElement} */ (e.target).value))}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
 							/>
 						</div>
@@ -243,7 +254,7 @@
 							<input
 								id="field-accept-{selectedField.id}"
 								bind:value={selectedField.properties.accept}
-								on:input={(e) => updateFieldProperty(selectedField.id, 'accept', e.target.value)}
+								on:input={(e) => updateFieldProperty(selectedField.id, 'accept', /** @type {HTMLInputElement} */ (e.target).value)}
 								placeholder="e.g., .pdf,.doc"
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
 							/>
@@ -257,7 +268,7 @@
 						type="checkbox"
 						id="required-{selectedField.id}"
 						bind:checked={selectedField.properties.required}
-						on:change={(e) => updateFieldProperty(selectedField.id, 'required', e.target.checked)}
+						on:change={(e) => updateFieldProperty(selectedField.id, 'required', /** @type {HTMLInputElement} */ (e.target).checked)}
 						class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 					/>
 					<label for="required-{selectedField.id}" class="ml-2 text-sm text-gray-700">Required field</label>
@@ -273,7 +284,7 @@
 						<textarea
 							id="field-formula-{selectedField.id}"
 							bind:value={selectedField.properties.formula}
-							on:input={(e) => updateFieldProperty(selectedField.id, 'formula', e.target.value)}
+							on:input={(e) => updateFieldProperty(selectedField.id, 'formula', /** @type {HTMLInputElement} */ (e.target).value)}
 							placeholder="e.g., {`{Field1}`} + {`{Field2}`}"
 							rows="3"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
@@ -287,7 +298,7 @@
 								min="0"
 								max="10"
 								bind:value={selectedField.properties.decimalPlaces}
-								on:input={(e) => updateFieldProperty(selectedField.id, 'decimalPlaces', parseInt(e.target.value) || 2)}
+								on:input={(e) => updateFieldProperty(selectedField.id, 'decimalPlaces', parseInt(/** @type {HTMLInputElement} */ (e.target).value) || 2)}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
 							/>
 						</div>
@@ -307,7 +318,7 @@
 							type="number"
 							min="1"
 							bind:value={selectedField.properties.page}
-							on:input={(e) => updateFieldProperty(selectedField.id, 'page', parseInt(e.target.value) || 1)}
+							on:input={(e) => updateFieldProperty(selectedField.id, 'page', parseInt(/** @type {HTMLInputElement} */ (e.target).value) || 1)}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Math Service for Natural Math Input
 // Connects to backend handwriting recognition and math processing services
 

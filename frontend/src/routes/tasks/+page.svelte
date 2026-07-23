@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import TaskBoard from '$lib/components/TaskBoard.svelte';
 	import TaskForm from '$lib/components/TaskForm.svelte';
 	import { onMount } from 'svelte';

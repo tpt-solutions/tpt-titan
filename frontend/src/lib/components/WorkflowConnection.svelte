@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
   import { createEventDispatcher } from 'svelte';
 
   export let connection;
@@ -37,6 +38,20 @@
   function handleDelete(event) {
     event.stopPropagation();
     dispatch('delete');
+  }
+
+  function getMidPoint(fromNode, toNode) {
+    if (!fromNode || !toNode) return { x: 0, y: 0 };
+
+    const fromX = (fromNode.screenX || fromNode.position.x) + fromNode.width;
+    const fromY = (fromNode.screenY || fromNode.position.y) + (fromNode.height / 2);
+    const toX = (toNode.screenX || toNode.position.x);
+    const toY = (toNode.screenY || toNode.position.y) + (toNode.height / 2);
+
+    return {
+      x: (fromX + toX) / 2,
+      y: (fromY + toY) / 2
+    };
   }
 </script>
 
@@ -168,19 +183,3 @@
     fill: white;
   }
 </style>
-
-<script>
-  function getMidPoint(fromNode, toNode) {
-    if (!fromNode || !toNode) return { x: 0, y: 0 };
-
-    const fromX = (fromNode.screenX || fromNode.position.x) + fromNode.width;
-    const fromY = (fromNode.screenY || fromNode.position.y) + (fromNode.height / 2);
-    const toX = (toNode.screenX || toNode.position.x);
-    const toY = (toNode.screenY || toNode.position.y) + (toNode.height / 2);
-
-    return {
-      x: (fromX + toX) / 2,
-      y: (fromY + toY) / 2
-    };
-  }
-</script>

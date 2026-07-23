@@ -27,33 +27,33 @@ type ExcelImportResult struct {
 
 // ExcelSheet represents a worksheet in an Excel file
 type ExcelSheet struct {
-	Name    string                 `json:"name"`
-	Data    map[string]interface{} `json:"data"`
-	Formulas map[string]string     `json:"formulas,omitempty"`
-	Merged  []string               `json:"merged,omitempty"`  // Merged cell ranges
-	Styles  map[string]ExcelStyle  `json:"styles,omitempty"`
+	Name     string                 `json:"name"`
+	Data     map[string]interface{} `json:"data"`
+	Formulas map[string]string      `json:"formulas,omitempty"`
+	Merged   []string               `json:"merged,omitempty"` // Merged cell ranges
+	Styles   map[string]ExcelStyle  `json:"styles,omitempty"`
 }
 
 // ExcelStyle represents cell styling information
 type ExcelStyle struct {
-	Bold         bool    `json:"bold,omitempty"`
-	Italic       bool    `json:"italic,omitempty"`
-	FontSize     float64 `json:"font_size,omitempty"`
-	FontColor    string  `json:"font_color,omitempty"`
-	Background   string  `json:"background,omitempty"`
-	Border       string  `json:"border,omitempty"`
-	TextAlign    string  `json:"text_align,omitempty"`
+	Bold          bool    `json:"bold,omitempty"`
+	Italic        bool    `json:"italic,omitempty"`
+	FontSize      float64 `json:"font_size,omitempty"`
+	FontColor     string  `json:"font_color,omitempty"`
+	Background    string  `json:"background,omitempty"`
+	Border        string  `json:"border,omitempty"`
+	TextAlign     string  `json:"text_align,omitempty"`
 	VerticalAlign string  `json:"vertical_align,omitempty"`
-	Format       string  `json:"format,omitempty"` // Number format
+	Format        string  `json:"format,omitempty"` // Number format
 }
 
 // ExcelExportOptions represents options for exporting to Excel
 type ExcelExportOptions struct {
-	IncludeFormulas bool                   `json:"include_formulas,omitempty"`
-	IncludeStyles   bool                   `json:"include_styles,omitempty"`
-	SheetName       string                 `json:"sheet_name,omitempty"`
-	DataRange       string                 `json:"data_range,omitempty"`
-	CustomStyles    map[string]ExcelStyle  `json:"custom_styles,omitempty"`
+	IncludeFormulas bool                  `json:"include_formulas,omitempty"`
+	IncludeStyles   bool                  `json:"include_styles,omitempty"`
+	SheetName       string                `json:"sheet_name,omitempty"`
+	DataRange       string                `json:"data_range,omitempty"`
+	CustomStyles    map[string]ExcelStyle `json:"custom_styles,omitempty"`
 }
 
 // NewExcelService creates a new Excel service

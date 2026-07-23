@@ -10,42 +10,42 @@ import (
 
 // SyncDevice represents a device participating in file synchronization
 type SyncDevice struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
-	DeviceID    string     `json:"device_id" db:"device_id"`    // Unique device identifier
-	DeviceName  string     `json:"device_name" db:"device_name"`
-	DeviceType  string     `json:"device_type" db:"device_type"` // desktop, mobile, web
-	PublicKey   []byte     `json:"-" db:"public_key"`           // For encryption
-	LastSeen    time.Time  `json:"last_seen" db:"last_seen"`
-	IsOnline    bool       `json:"is_online" db:"is_online"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	ID         uuid.UUID `json:"id" db:"id"`
+	UserID     uuid.UUID `json:"user_id" db:"user_id"`
+	DeviceID   string    `json:"device_id" db:"device_id"` // Unique device identifier
+	DeviceName string    `json:"device_name" db:"device_name"`
+	DeviceType string    `json:"device_type" db:"device_type"` // desktop, mobile, web
+	PublicKey  []byte    `json:"-" db:"public_key"`            // For encryption
+	LastSeen   time.Time `json:"last_seen" db:"last_seen"`
+	IsOnline   bool      `json:"is_online" db:"is_online"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
 }
 
 // SyncFolder represents a synchronized folder
 type SyncFolder struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
-	Name        string     `json:"name" db:"name"`
-	LocalPath   string     `json:"local_path" db:"local_path"`   // Local filesystem path
-	RemotePath  string     `json:"remote_path" db:"remote_path"` // Remote/cloud path
-	IsActive    bool       `json:"is_active" db:"is_active"`
-	SyncMode    string     `json:"sync_mode" db:"sync_mode"`     // bidirectional, upload-only, download-only
-	LastSync    *time.Time `json:"last_sync,omitempty" db:"last_sync"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+	ID         uuid.UUID  `json:"id" db:"id"`
+	UserID     uuid.UUID  `json:"user_id" db:"user_id"`
+	Name       string     `json:"name" db:"name"`
+	LocalPath  string     `json:"local_path" db:"local_path"`   // Local filesystem path
+	RemotePath string     `json:"remote_path" db:"remote_path"` // Remote/cloud path
+	IsActive   bool       `json:"is_active" db:"is_active"`
+	SyncMode   string     `json:"sync_mode" db:"sync_mode"` // bidirectional, upload-only, download-only
+	LastSync   *time.Time `json:"last_sync,omitempty" db:"last_sync"`
+	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // FileVersion represents a version of a file
 type FileVersion struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	FileID      uuid.UUID  `json:"file_id" db:"file_id"`
-	Version     int        `json:"version" db:"version"`
-	Size        int64      `json:"size" db:"size"`
-	Hash        string     `json:"hash" db:"hash"`        // SHA-256 hash of file content
-	ChunkHashes []string   `json:"chunk_hashes,omitempty" db:"chunk_hashes"` // For chunked transfer
-	DeviceID    string     `json:"device_id" db:"device_id"`   // Device that created this version
-	ModifiedBy  uuid.UUID  `json:"modified_by" db:"modified_by"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	ID          uuid.UUID `json:"id" db:"id"`
+	FileID      uuid.UUID `json:"file_id" db:"file_id"`
+	Version     int       `json:"version" db:"version"`
+	Size        int64     `json:"size" db:"size"`
+	Hash        string    `json:"hash" db:"hash"`                           // SHA-256 hash of file content
+	ChunkHashes []string  `json:"chunk_hashes,omitempty" db:"chunk_hashes"` // For chunked transfer
+	DeviceID    string    `json:"device_id" db:"device_id"`                 // Device that created this version
+	ModifiedBy  uuid.UUID `json:"modified_by" db:"modified_by"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }
 
 // FileChunk represents a chunk of a file for efficient transfer
@@ -54,8 +54,8 @@ type FileChunk struct {
 	VersionID  uuid.UUID `json:"version_id" db:"version_id"`
 	ChunkIndex int       `json:"chunk_index" db:"chunk_index"`
 	Size       int       `json:"size" db:"size"`
-	Hash       string    `json:"hash" db:"hash"`        // SHA-256 of chunk
-	Data       []byte    `json:"-" db:"data"`           // Encrypted chunk data
+	Hash       string    `json:"hash" db:"hash"` // SHA-256 of chunk
+	Data       []byte    `json:"-" db:"data"`    // Encrypted chunk data
 	CreatedAt  time.Time `json:"created_at" db:"created_at"`
 }
 
@@ -66,7 +66,7 @@ type SyncConflict struct {
 	DeviceID      string     `json:"device_id" db:"device_id"`
 	LocalVersion  int        `json:"local_version" db:"local_version"`
 	RemoteVersion int        `json:"remote_version" db:"remote_version"`
-	ConflictType  string     `json:"conflict_type" db:"conflict_type"`   // concurrent_edit, delete_conflict, etc.
+	ConflictType  string     `json:"conflict_type" db:"conflict_type"`     // concurrent_edit, delete_conflict, etc.
 	Resolution    *string    `json:"resolution,omitempty" db:"resolution"` // keep_local, keep_remote, merge
 	ResolvedAt    *time.Time `json:"resolved_at,omitempty" db:"resolved_at"`
 	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
@@ -74,15 +74,15 @@ type SyncConflict struct {
 
 // SyncQueue represents pending synchronization operations
 type SyncQueue struct {
-	ID         uuid.UUID  `json:"id" db:"id"`
-	FileID     uuid.UUID  `json:"file_id" db:"file_id"`
-	DeviceID   string     `json:"device_id" db:"device_id"`
-	Operation  string     `json:"operation" db:"operation"`   // create, update, delete, rename
-	Priority   int        `json:"priority" db:"priority"`     // 1=low, 5=high
-	Status     string     `json:"status" db:"status"`         // pending, processing, completed, failed
-	RetryCount int        `json:"retry_count" db:"retry_count"`
-	ErrorMsg   *string    `json:"error_msg,omitempty" db:"error_msg"`
-	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
+	ID          uuid.UUID  `json:"id" db:"id"`
+	FileID      uuid.UUID  `json:"file_id" db:"file_id"`
+	DeviceID    string     `json:"device_id" db:"device_id"`
+	Operation   string     `json:"operation" db:"operation"` // create, update, delete, rename
+	Priority    int        `json:"priority" db:"priority"`   // 1=low, 5=high
+	Status      string     `json:"status" db:"status"`       // pending, processing, completed, failed
+	RetryCount  int        `json:"retry_count" db:"retry_count"`
+	ErrorMsg    *string    `json:"error_msg,omitempty" db:"error_msg"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 	ProcessedAt *time.Time `json:"processed_at,omitempty" db:"processed_at"`
 }
 
@@ -99,32 +99,32 @@ const (
 )
 
 type P2PMessage struct {
-	ID          uuid.UUID       `json:"id"`
-	Type        P2PMessageType  `json:"type"`
-	FromDevice  string          `json:"from_device"`
-	ToDevice    string          `json:"to_device"`
-	Payload     interface{}     `json:"payload"`
-	Timestamp   time.Time       `json:"timestamp"`
-	Signature   string          `json:"signature"` // For message authenticity
+	ID         uuid.UUID      `json:"id"`
+	Type       P2PMessageType `json:"type"`
+	FromDevice string         `json:"from_device"`
+	ToDevice   string         `json:"to_device"`
+	Payload    interface{}    `json:"payload"`
+	Timestamp  time.Time      `json:"timestamp"`
+	Signature  string         `json:"signature"` // For message authenticity
 }
 
 // BandwidthLimit represents bandwidth throttling settings
 type BandwidthLimit struct {
-	ID         uuid.UUID `json:"id" db:"id"`
-	UserID     uuid.UUID `json:"user_id" db:"user_id"`
-	DeviceID   string    `json:"device_id" db:"device_id"`
-	MaxUpload  int64     `json:"max_upload" db:"max_upload"`   // bytes per second
-	MaxDownload int64    `json:"max_download" db:"max_download"` // bytes per second
-	IsActive   bool      `json:"is_active" db:"is_active"`
-	CreatedAt  time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
+	ID          uuid.UUID `json:"id" db:"id"`
+	UserID      uuid.UUID `json:"user_id" db:"user_id"`
+	DeviceID    string    `json:"device_id" db:"device_id"`
+	MaxUpload   int64     `json:"max_upload" db:"max_upload"`     // bytes per second
+	MaxDownload int64     `json:"max_download" db:"max_download"` // bytes per second
+	IsActive    bool      `json:"is_active" db:"is_active"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // FileWatchEvent represents filesystem change events
 type FileWatchEvent struct {
 	ID         uuid.UUID `json:"id"`
 	FileID     uuid.UUID `json:"file_id"`
-	EventType  string    `json:"event_type"`  // create, modify, delete, rename
+	EventType  string    `json:"event_type"` // create, modify, delete, rename
 	Path       string    `json:"path"`
 	OldPath    *string   `json:"old_path,omitempty"` // For renames
 	Size       int64     `json:"size"`
@@ -135,49 +135,49 @@ type FileWatchEvent struct {
 
 // SyncRequest represents synchronization requests
 type SyncRequest struct {
-	DeviceID    string        `json:"device_id"`
-	FolderID    uuid.UUID     `json:"folder_id"`
-	FileHashes  map[string]string `json:"file_hashes"` // path -> hash mapping
-	LastSync    *time.Time    `json:"last_sync,omitempty"`
-	IncludeDeletes bool       `json:"include_deletes"`
+	DeviceID       string            `json:"device_id"`
+	FolderID       uuid.UUID         `json:"folder_id"`
+	FileHashes     map[string]string `json:"file_hashes"` // path -> hash mapping
+	LastSync       *time.Time        `json:"last_sync,omitempty"`
+	IncludeDeletes bool              `json:"include_deletes"`
 }
 
 type SyncResponse struct {
-	DeviceID      string                   `json:"device_id"`
-	Changes       []FileChange             `json:"changes"`
-	Conflicts     []SyncConflictResponse   `json:"conflicts"`
-	NextSyncToken string                   `json:"next_sync_token"`
+	DeviceID      string                 `json:"device_id"`
+	Changes       []FileChange           `json:"changes"`
+	Conflicts     []SyncConflictResponse `json:"conflicts"`
+	NextSyncToken string                 `json:"next_sync_token"`
 }
 
 type FileChange struct {
-	Path         string     `json:"path"`
-	ChangeType   string     `json:"change_type"` // add, modify, delete, rename
-	NewPath      *string    `json:"new_path,omitempty"`
-	Size         int64      `json:"size"`
-	Hash         string     `json:"hash"`
-	ModifiedAt   time.Time  `json:"modified_at"`
-	Version      int        `json:"version"`
+	Path       string    `json:"path"`
+	ChangeType string    `json:"change_type"` // add, modify, delete, rename
+	NewPath    *string   `json:"new_path,omitempty"`
+	Size       int64     `json:"size"`
+	Hash       string    `json:"hash"`
+	ModifiedAt time.Time `json:"modified_at"`
+	Version    int       `json:"version"`
 }
 
 type SyncConflictResponse struct {
-	FileID       uuid.UUID `json:"file_id"`
-	Path         string    `json:"path"`
-	LocalVersion int       `json:"local_version"`
-	RemoteVersion int      `json:"remote_version"`
-	ConflictType string    `json:"conflict_type"`
-	Suggestions  []string  `json:"suggestions"` // keep_local, keep_remote, merge, rename
+	FileID        uuid.UUID `json:"file_id"`
+	Path          string    `json:"path"`
+	LocalVersion  int       `json:"local_version"`
+	RemoteVersion int       `json:"remote_version"`
+	ConflictType  string    `json:"conflict_type"`
+	Suggestions   []string  `json:"suggestions"` // keep_local, keep_remote, merge, rename
 }
 
 // ToResponse converts SyncDevice to response format
 func (sd *SyncDevice) ToResponse() map[string]interface{} {
 	return map[string]interface{}{
-		"id":           sd.ID,
-		"device_id":    sd.DeviceID,
-		"device_name":  sd.DeviceName,
-		"device_type":  sd.DeviceType,
-		"last_seen":    sd.LastSeen,
-		"is_online":    sd.IsOnline,
-		"created_at":   sd.CreatedAt,
+		"id":          sd.ID,
+		"device_id":   sd.DeviceID,
+		"device_name": sd.DeviceName,
+		"device_type": sd.DeviceType,
+		"last_seen":   sd.LastSeen,
+		"is_online":   sd.IsOnline,
+		"created_at":  sd.CreatedAt,
 	}
 }
 

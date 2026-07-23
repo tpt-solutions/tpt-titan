@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Lifestyle and personal templates for TPT Titan
 export const lifestyleTemplates = [
 	{

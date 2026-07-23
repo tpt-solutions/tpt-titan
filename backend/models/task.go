@@ -8,19 +8,19 @@ import (
 
 // Task represents a task in the task management system
 type Task struct {
-	ID          uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	UserID      uuid.UUID  `gorm:"type:uuid;not null;index" json:"user_id"`
-	ProjectID   *uuid.UUID `gorm:"type:uuid;index" json:"project_id,omitempty"`
-	Title       string     `gorm:"size:255;not null" json:"title"`
-	Description string     `gorm:"type:text" json:"description"`
-	Status      string     `gorm:"size:20;not null;default:'todo'" json:"status"` // todo, in-progress, review, done
-	Priority    string     `gorm:"size:10;not null;default:'medium'" json:"priority"`
-	AssignedTo  string     `gorm:"size:255" json:"assigned_to"`
-	DueDate     *time.Time `json:"due_date,omitempty"`
-	Tags        string     `gorm:"type:text" json:"-"` // JSON-encoded array
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
-	TagsList    []string   `gorm:"-" json:"tags,omitempty"`
+	ID          uuid.UUID     `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	UserID      uuid.UUID     `gorm:"type:uuid;not null;index" json:"user_id"`
+	ProjectID   *uuid.UUID    `gorm:"type:uuid;index" json:"project_id,omitempty"`
+	Title       string        `gorm:"size:255;not null" json:"title"`
+	Description string        `gorm:"type:text" json:"description"`
+	Status      string        `gorm:"size:20;not null;default:'todo'" json:"status"` // todo, in-progress, review, done
+	Priority    string        `gorm:"size:10;not null;default:'medium'" json:"priority"`
+	AssignedTo  string        `gorm:"size:255" json:"assigned_to"`
+	DueDate     *time.Time    `json:"due_date,omitempty"`
+	Tags        string        `gorm:"type:text" json:"-"` // JSON-encoded array
+	CreatedAt   time.Time     `json:"created_at"`
+	UpdatedAt   time.Time     `json:"updated_at"`
+	TagsList    []string      `gorm:"-" json:"tags,omitempty"`
 	Subtasks    []TaskSubtask ` gorm:"foreignKey:TaskID" json:"subtasks,omitempty"`
 }
 
@@ -46,27 +46,27 @@ type Project struct {
 
 // TaskTag represents a tag associated with a task (join table)
 type TaskTag struct {
-	TaskID    uuid.UUID `gorm:"type:uuid;primary_key" json:"-"`
-	Tag       string    `gorm:"size:64;primary_key" json:"tag"`
+	TaskID uuid.UUID `gorm:"type:uuid;primary_key" json:"-"`
+	Tag    string    `gorm:"size:64;primary_key" json:"tag"`
 }
 
 // TableName overrides for GORM
-func (Task) TableName() string    { return "tasks" }
+func (Task) TableName() string        { return "tasks" }
 func (TaskSubtask) TableName() string { return "task_subtasks" }
-func (Project) TableName() string { return "projects" }
-func (TaskTag) TableName() string { return "task_tags" }
+func (Project) TableName() string     { return "projects" }
+func (TaskTag) TableName() string     { return "task_tags" }
 
 // TaskRequest is the payload for creating/updating a task
 type TaskRequest struct {
-	ProjectID  *uuid.UUID `json:"project_id"`
-	Title      string     `json:"title"`
-	Description string    `json:"description"`
-	Status     string     `json:"status"`
-	Priority   string     `json:"priority"`
-	AssignedTo string     `json:"assigned_to"`
-	DueDate    *time.Time `json:"due_date"`
-	Tags       []string   `json:"tags"`
-	Subtasks   []SubtaskRequest `json:"subtasks"`
+	ProjectID   *uuid.UUID       `json:"project_id"`
+	Title       string           `json:"title"`
+	Description string           `json:"description"`
+	Status      string           `json:"status"`
+	Priority    string           `json:"priority"`
+	AssignedTo  string           `json:"assigned_to"`
+	DueDate     *time.Time       `json:"due_date"`
+	Tags        []string         `json:"tags"`
+	Subtasks    []SubtaskRequest `json:"subtasks"`
 }
 
 // SubtaskRequest is the payload for a subtask

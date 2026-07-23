@@ -13,9 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-
-
-
 // SpeechRequestPayload represents the payload for TTS requests
 type SpeechRequestPayload struct {
 	Text     string  `json:"text" binding:"required"`
@@ -201,7 +198,6 @@ func SpeechToText(c *gin.Context) {
 		return
 	}
 
-
 	// Get form parameters
 	modelIDStr := c.PostForm("model_id")
 	language := c.PostForm("language")
@@ -272,9 +268,9 @@ func GetSpeechRequestStatus(c *gin.Context) {
 	}
 
 	response := gin.H{
-		"request":        request,
-		"status":         request.Status,
-		"error":          request.Error,
+		"request":         request,
+		"status":          request.Status,
+		"error":           request.Error,
 		"processing_time": request.ProcessingTime,
 	}
 

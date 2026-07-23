@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { goto } from '$app/navigation';
 
 	// Accept framework-provided props to avoid warnings

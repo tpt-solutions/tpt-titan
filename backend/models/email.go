@@ -9,27 +9,27 @@ import (
 
 // EmailAccount represents an external email account (IMAP/SMTP)
 type EmailAccount struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
-	Email       string     `json:"email" db:"email"`
-	Provider    string     `json:"provider" db:"provider"` // 'imap', 'smtp', etc.
-	Server      string     `json:"server" db:"server"`
-	Port        int        `json:"port" db:"port"`
-	Username    string     `json:"username" db:"username"`
-	PasswordEncrypted []byte `json:"-" db:"password_encrypted"` // Not exposed in JSON
-	UseSSL      bool       `json:"use_ssl" db:"use_ssl"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	ID                uuid.UUID `json:"id" db:"id"`
+	UserID            uuid.UUID `json:"user_id" db:"user_id"`
+	Email             string    `json:"email" db:"email"`
+	Provider          string    `json:"provider" db:"provider"` // 'imap', 'smtp', etc.
+	Server            string    `json:"server" db:"server"`
+	Port              int       `json:"port" db:"port"`
+	Username          string    `json:"username" db:"username"`
+	PasswordEncrypted []byte    `json:"-" db:"password_encrypted"` // Not exposed in JSON
+	UseSSL            bool      `json:"use_ssl" db:"use_ssl"`
+	CreatedAt         time.Time `json:"created_at" db:"created_at"`
 }
 
 // EmailAccountRequest represents the request payload for creating/updating email accounts
 type EmailAccountRequest struct {
-	Email       string `json:"email" binding:"required,email"`
-	Provider    string `json:"provider" binding:"required"`
-	Server      string `json:"server" binding:"required"`
-	Port        int    `json:"port" binding:"required,min=1,max=65535"`
-	Username    string `json:"username" binding:"required"`
-	Password    string `json:"password" binding:"required"`
-	UseSSL      bool   `json:"use_ssl"`
+	Email    string `json:"email" binding:"required,email"`
+	Provider string `json:"provider" binding:"required"`
+	Server   string `json:"server" binding:"required"`
+	Port     int    `json:"port" binding:"required,min=1,max=65535"`
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+	UseSSL   bool   `json:"use_ssl"`
 }
 
 // EmailAccountResponse represents the response payload for email accounts
@@ -102,16 +102,16 @@ type EmailResponse struct {
 
 // EmailSummary represents a condensed version of an email for list views
 type EmailSummary struct {
-	ID          uuid.UUID  `json:"id"`
-	Subject     *string    `json:"subject,omitempty"`
-	SenderName  *string    `json:"sender_name,omitempty"`
-	SenderEmail string     `json:"sender_email"`
-	ReceivedAt  *time.Time `json:"received_at,omitempty"`
-	SentAt      *time.Time `json:"sent_at,omitempty"`
-	IsRead      bool       `json:"is_read"`
-	IsStarred   bool       `json:"is_starred"`
-	Folder      string     `json:"folder"`
-	HasAttachments bool     `json:"has_attachments"`
+	ID             uuid.UUID  `json:"id"`
+	Subject        *string    `json:"subject,omitempty"`
+	SenderName     *string    `json:"sender_name,omitempty"`
+	SenderEmail    string     `json:"sender_email"`
+	ReceivedAt     *time.Time `json:"received_at,omitempty"`
+	SentAt         *time.Time `json:"sent_at,omitempty"`
+	IsRead         bool       `json:"is_read"`
+	IsStarred      bool       `json:"is_starred"`
+	Folder         string     `json:"folder"`
+	HasAttachments bool       `json:"has_attachments"`
 }
 
 // EmailSearchRequest represents search parameters for emails
@@ -167,15 +167,15 @@ func (e *Email) ToResponse() EmailResponse {
 // ToSummary converts an Email to EmailSummary
 func (e *Email) ToSummary() EmailSummary {
 	return EmailSummary{
-		ID:          e.ID,
-		Subject:     e.Subject,
-		SenderName:  e.SenderName,
-		SenderEmail: e.SenderEmail,
-		ReceivedAt:  e.ReceivedAt,
-		SentAt:      e.SentAt,
-		IsRead:      e.IsRead,
-		IsStarred:   e.IsStarred,
-		Folder:      e.Folder,
+		ID:             e.ID,
+		Subject:        e.Subject,
+		SenderName:     e.SenderName,
+		SenderEmail:    e.SenderEmail,
+		ReceivedAt:     e.ReceivedAt,
+		SentAt:         e.SentAt,
+		IsRead:         e.IsRead,
+		IsStarred:      e.IsStarred,
+		Folder:         e.Folder,
 		HasAttachments: e.HasAttachments,
 	}
 }

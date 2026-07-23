@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"tpt-titan/backend/models"
 	"github.com/ollama/ollama/api"
+	"tpt-titan/backend/models"
 )
 
 // AIModelInfo represents information about an AI model

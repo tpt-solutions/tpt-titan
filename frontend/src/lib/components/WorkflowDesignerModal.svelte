@@ -2,13 +2,17 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { getForms } from '$lib/api.js';
 
+	/** @type {any[]} */
 	export let forms = [];
 	export let showModal = false;
 
 	const dispatch = createEventDispatcher();
 
+	/** @type {HTMLCanvasElement|null} */
 	let canvas = null;
+	/** @type {CanvasRenderingContext2D|null} */
 	let ctx = null;
+	/** @type {any} */
 	let workflow = {
 		id: null,
 		name: '',
@@ -19,10 +23,14 @@
 		steps: []
 	};
 
+	/** @type {any} */
 	let selectedStep = null;
 	let isDrawingConnection = false;
+	/** @type {any} */
 	let connectionStart = null;
+	/** @type {any} */
 	let connectionEnd = null;
+	/** @type {any} */
 	let draggedStep = null;
 	let dragOffset = { x: 0, y: 0 };
 
@@ -55,7 +63,7 @@
 
 	async function initializeCanvas() {
 		await new Promise(resolve => setTimeout(resolve, 100));
-		canvas = document.getElementById('workflow-canvas');
+		canvas = /** @type {HTMLCanvasElement|null} */ (document.getElementById('workflow-canvas'));
 		if (canvas) {
 			ctx = canvas.getContext('2d');
 			resizeCanvas();
@@ -66,8 +74,10 @@
 	function resizeCanvas() {
 		if (canvas) {
 			const container = canvas.parentElement;
-			canvas.width = container.clientWidth;
-			canvas.height = container.clientHeight;
+			if (container) {
+				canvas.width = container.clientWidth;
+				canvas.height = container.clientHeight;
+			}
 		}
 	}
 
@@ -78,15 +88,15 @@
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 		// Draw connections first
-		workflow.steps.forEach(step => {
+		workflow.steps.forEach((/** @type {any} */ step) => {
 			if (step.nextStepId) {
-				const nextStep = workflow.steps.find(s => s.id === step.nextStepId);
+				const nextStep = workflow.steps.find((/** @type {any} */ s) => s.id === step.nextStepId);
 				if (nextStep) {
 					drawConnection(step, nextStep, '#10B981', 'next');
 				}
 			}
 			if (step.altStepId) {
-				const altStep = workflow.steps.find(s => s.id === step.altStepId);
+				const altStep = workflow.steps.find((/** @type {any} */ s) => s.id === step.altStepId);
 				if (altStep) {
 					drawConnection(step, altStep, '#EF4444', 'alt');
 				}
@@ -94,9 +104,10 @@
 		});
 
 		// Draw steps
-		workflow.steps.forEach(step => drawStep(step));
+		workflow.steps.forEach((/** @type {any} */ step) => drawStep(step));
 	}
 
+	/** @param {any} step */
 	function drawStep(step) {
 		if (!ctx) return;
 
@@ -142,6 +153,12 @@
 		}
 	}
 
+	/**
+	 * @param {any} fromStep
+	 * @param {any} toStep
+	 * @param {string} color
+	 * @param {string} type
+	 */
 	function drawConnection(fromStep, toStep, color, type) {
 		if (!ctx) return;
 
@@ -188,7 +205,9 @@
 		ctx.fillText(type === 'alt' ? 'NO/REJECT' : 'YES/APPROVE', labelX, labelY);
 	}
 
+	/** @param {MouseEvent} event */
 	function handleCanvasMouseDown(event) {
+		if (!canvas) return;
 		const rect = canvas.getBoundingClientRect();
 		const x = event.clientX - rect.left;
 		const y = event.clientY - rect.top;
@@ -233,8 +252,10 @@
 		drawCanvas();
 	}
 
+	/** @param {MouseEvent} event */
 	function handleCanvasMouseMove(event) {
 		if (draggedStep) {
+			if (!canvas) return;
 			const rect = canvas.getBoundingClientRect();
 			const x = event.clientX - rect.left;
 			const y = event.clientY - rect.top;
@@ -251,12 +272,14 @@
 		}
 	}
 
+	/** @param {MouseEvent} event */
 	function handleCanvasMouseUp(event) {
 		if (draggedStep) {
 			draggedStep = null;
 		}
 
 		if (isDrawingConnection && connectionStart) {
+			if (!canvas) return;
 			const rect = canvas.getBoundingClientRect();
 			const x = event.clientX - rect.left;
 			const y = event.clientY - rect.top;
@@ -268,7 +291,7 @@
 					y >= step.y && y <= step.y + 80) {
 
 					// Create connection
-					const sourceStep = workflow.steps.find(s => s.id === connectionStart.stepId);
+					const sourceStep = workflow.steps.find((/** @type {any} */ s) => s.id === connectionStart.stepId);
 					if (connectionStart.type === 'next') {
 						sourceStep.nextStepId = step.id;
 					} else {
@@ -284,6 +307,7 @@
 		}
 	}
 
+	/** @param {any} stepType */
 	function addStep(stepType) {
 		const step = {
 			id: Date.now() + Math.random(),
@@ -300,11 +324,12 @@
 		drawCanvas();
 	}
 
+	/** @param {any} stepId */
 	function deleteStep(stepId) {
-		workflow.steps = workflow.steps.filter(s => s.id !== stepId);
+		workflow.steps = workflow.steps.filter((/** @type {any} */ s) => s.id !== stepId);
 
 		// Remove connections to this step
-		workflow.steps.forEach(step => {
+		workflow.steps.forEach((/** @type {any} */ step) => {
 			if (step.nextStepId === stepId) step.nextStepId = null;
 			if (step.altStepId === stepId) step.altStepId = null;
 		});
@@ -316,6 +341,10 @@
 		drawCanvas();
 	}
 
+	/**
+	 * @param {any} property
+	 * @param {any} value
+	 */
 	function updateStepConfig(property, value) {
 		if (selectedStep) {
 			selectedStep.config = { ...selectedStep.config, [property]: value };
@@ -331,7 +360,7 @@
 				form_id: workflow.formId,
 				trigger: workflow.trigger,
 				is_active: workflow.isActive,
-				steps: workflow.steps.map(step => ({
+				steps: workflow.steps.map((/** @type {any} */ step) => ({
 					id: step.id,
 					name: step.name,
 					type: step.type,
@@ -358,14 +387,14 @@
 				const error = await response.json();
 				alert('Failed to save workflow: ' + (error.error || 'Unknown error'));
 			}
-		} catch (error) {
+		} catch (/** @type {any} */ error) {
 			console.error('Failed to save workflow:', error);
 			alert('Failed to save workflow: ' + error.message);
 		}
 	}
 
 	function resetWorkflow() {
-		workflow = {
+		workflow = /** @type {any} */ ({
 			id: null,
 			name: '',
 			description: '',
@@ -373,7 +402,7 @@
 			trigger: 'on_submit',
 			isActive: false,
 			steps: []
-		};
+		});
 		selectedStep = null;
 		drawCanvas();
 	}
@@ -524,7 +553,7 @@
 										<select
 											id="assigned-to"
 											bind:value={selectedStep.config.assigned_to}
-											on:change={(e) => updateStepConfig('assigned_to', e.target.value)}
+											on:change={(e) => updateStepConfig('assigned_to', /** @type {HTMLInputElement} */ (e.target).value)}
 											class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
 										>
 											<option value="">Select user...</option>
@@ -540,7 +569,7 @@
 											<select
 												id="notif-type"
 												bind:value={selectedStep.config.type}
-												on:change={(e) => updateStepConfig('type', e.target.value)}
+												on:change={(e) => updateStepConfig('type', /** @type {HTMLInputElement} */ (e.target).value)}
 												class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
 											>
 												<option value="email">Email</option>
@@ -554,7 +583,7 @@
 												id="recipients"
 												type="text"
 												bind:value={selectedStep.config.recipients}
-												on:input={(e) => updateStepConfig('recipients', e.target.value)}
+												on:input={(e) => updateStepConfig('recipients', /** @type {HTMLInputElement} */ (e.target).value)}
 												placeholder="user@example.com, manager"
 												class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
 											/>
@@ -565,7 +594,7 @@
 											<select
 												id="template"
 												bind:value={selectedStep.config.template_id}
-												on:change={(e) => updateStepConfig('template_id', e.target.value)}
+												on:change={(e) => updateStepConfig('template_id', /** @type {HTMLInputElement} */ (e.target).value)}
 												class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
 											>
 												<option value="">Select template...</option>
@@ -581,7 +610,7 @@
 											id="condition"
 											type="text"
 											bind:value={selectedStep.config.condition}
-											on:input={(e) => updateStepConfig('condition', e.target.value)}
+											on:input={(e) => updateStepConfig('condition', /** @type {HTMLInputElement} */ (e.target).value)}
 											placeholder="e.g., status == 'approved'"
 											class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
 										/>
@@ -593,7 +622,7 @@
 											<select
 												id="action-type"
 												bind:value={selectedStep.config.action_type}
-												on:change={(e) => updateStepConfig('action_type', e.target.value)}
+												on:change={(e) => updateStepConfig('action_type', /** @type {HTMLInputElement} */ (e.target).value)}
 												class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
 											>
 												<option value="update_field">Update Field</option>
@@ -609,7 +638,7 @@
 													id="webhook-url"
 													type="url"
 													bind:value={selectedStep.config.url}
-													on:input={(e) => updateStepConfig('url', e.target.value)}
+													on:input={(e) => updateStepConfig('url', /** @type {HTMLInputElement} */ (e.target).value)}
 													placeholder="https://api.example.com/webhook"
 													class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
 												/>

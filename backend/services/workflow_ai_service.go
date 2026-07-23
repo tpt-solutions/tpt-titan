@@ -29,9 +29,9 @@ func NewWorkflowAIService(aiService *AIService) *WorkflowAIService {
 // AnalyzeUsagePatterns analyzes user workflow usage patterns
 func (s *WorkflowAIService) AnalyzeUsagePatterns(userID uuid.UUID) (*WorkflowUsageAnalysis, error) {
 	analysis := &WorkflowUsageAnalysis{
-		UserID:         userID,
-		TimeRange:      "30d",
-		Patterns:       []UsagePattern{},
+		UserID:          userID,
+		TimeRange:       "30d",
+		Patterns:        []UsagePattern{},
 		Recommendations: []WorkflowRecommendation{},
 	}
 
@@ -90,11 +90,11 @@ func (s *WorkflowAIService) GetSmartTemplateRecommendations(userID uuid.UUID, co
 		score := s.scoreTemplateForUser(template, patterns, context)
 		if score > 0.3 { // Only recommend templates with reasonable relevance
 			recommendations = append(recommendations, TemplateRecommendation{
-				TemplateID:   template.ID,
-				TemplateName: template.Name,
-				Category:     template.Category,
+				TemplateID:     template.ID,
+				TemplateName:   template.Name,
+				Category:       template.Category,
 				RelevanceScore: score,
-				Reason:       s.generateRecommendationReason(template, patterns, context),
+				Reason:         s.generateRecommendationReason(template, patterns, context),
 			})
 		}
 	}
@@ -121,8 +121,8 @@ func (s *WorkflowAIService) OptimizeWorkflow(workflowID uuid.UUID, userID uuid.U
 	}
 
 	optimization := &WorkflowOptimization{
-		WorkflowID:   workflowID,
-		Suggestions:  []OptimizationSuggestion{},
+		WorkflowID:           workflowID,
+		Suggestions:          []OptimizationSuggestion{},
 		EstimatedImprovement: WorkflowImprovement{},
 	}
 
@@ -207,13 +207,13 @@ func (s *WorkflowAIService) analyzeExecutionPatterns(executions []models.Workflo
 		config.DB.Where("id = ?", workflowID).First(&workflow)
 
 		patterns = append(patterns, UsagePattern{
-			WorkflowID:      workflowID,
-			WorkflowName:    workflow.Name,
-			ExecutionCount:  count,
-			SuccessRate:     workflowSuccessRates[workflowID],
-			AvgDuration:     workflowAvgDuration[workflowID],
-			LastExecuted:    workflow.LastRunAt,
-			Frequency:       s.calculateExecutionFrequency(executions, workflowID),
+			WorkflowID:     workflowID,
+			WorkflowName:   workflow.Name,
+			ExecutionCount: count,
+			SuccessRate:    workflowSuccessRates[workflowID],
+			AvgDuration:    workflowAvgDuration[workflowID],
+			LastExecuted:   workflow.LastRunAt,
+			Frequency:      s.calculateExecutionFrequency(executions, workflowID),
 		})
 	}
 
@@ -223,12 +223,12 @@ func (s *WorkflowAIService) analyzeExecutionPatterns(executions []models.Workflo
 // analyzeWorkflowPerformance analyzes overall workflow performance
 func (s *WorkflowAIService) analyzeWorkflowPerformance(executions []models.WorkflowExecution) WorkflowPerformance {
 	performance := WorkflowPerformance{
-		TotalExecutions:    len(executions),
+		TotalExecutions:      len(executions),
 		SuccessfulExecutions: 0,
-		FailedExecutions:   0,
-		AverageDuration:    0,
-		PeakUsageHour:      0,
-		MostUsedWorkflow:   uuid.Nil,
+		FailedExecutions:     0,
+		AverageDuration:      0,
+		PeakUsageHour:        0,
+		MostUsedWorkflow:     uuid.Nil,
 	}
 
 	totalDuration := int64(0)
@@ -361,9 +361,9 @@ func (s *WorkflowAIService) analyzePeakUsageTimes(executions []models.WorkflowEx
 
 	if maxHourlyUsage > 0 {
 		peakTimes = append(peakTimes, PeakUsageTime{
-			TimeSlot: fmt.Sprintf("%02d:00-%02d:59", peakHour, peakHour),
+			TimeSlot:   fmt.Sprintf("%02d:00-%02d:59", peakHour, peakHour),
 			UsageCount: maxHourlyUsage,
-			Type: "hourly",
+			Type:       "hourly",
 		})
 	}
 
@@ -379,9 +379,9 @@ func (s *WorkflowAIService) analyzePeakUsageTimes(executions []models.WorkflowEx
 
 	if maxWeekdayUsage > 0 {
 		peakTimes = append(peakTimes, PeakUsageTime{
-			TimeSlot: peakWeekday,
+			TimeSlot:   peakWeekday,
 			UsageCount: maxWeekdayUsage,
-			Type: "weekday",
+			Type:       "weekday",
 		})
 	}
 
@@ -472,11 +472,11 @@ func (s *WorkflowAIService) analyzeWorkflowStructure(nodes []interface{}, connec
 	for _, chain := range longChains {
 		if len(chain) > 5 {
 			suggestions = append(suggestions, OptimizationSuggestion{
-				Type: "parallelization",
-				Title: "Consider Parallel Processing",
+				Type:        "parallelization",
+				Title:       "Consider Parallel Processing",
 				Description: fmt.Sprintf("Workflow has a long sequential chain of %d steps. Consider running independent steps in parallel.", len(chain)),
-				Impact: "high",
-				Effort: "medium",
+				Impact:      "high",
+				Effort:      "medium",
 			})
 		}
 	}
@@ -485,11 +485,11 @@ func (s *WorkflowAIService) analyzeWorkflowStructure(nodes []interface{}, connec
 	redundantOps := s.findRedundantOperations(nodes)
 	for _, op := range redundantOps {
 		suggestions = append(suggestions, OptimizationSuggestion{
-			Type: "consolidation",
-			Title: "Remove Redundant Operations",
+			Type:        "consolidation",
+			Title:       "Remove Redundant Operations",
 			Description: fmt.Sprintf("Found %d similar %s operations that could be consolidated.", op.Count, op.OperationType),
-			Impact: "medium",
-			Effort: "low",
+			Impact:      "medium",
+			Effort:      "low",
 		})
 	}
 
@@ -497,11 +497,11 @@ func (s *WorkflowAIService) analyzeWorkflowStructure(nodes []interface{}, connec
 	errorHandling := s.analyzeErrorHandling(nodes, connections)
 	if !errorHandling.HasErrorHandlers {
 		suggestions = append(suggestions, OptimizationSuggestion{
-			Type: "reliability",
-			Title: "Add Error Handling",
+			Type:        "reliability",
+			Title:       "Add Error Handling",
 			Description: "Workflow lacks error handling for failed operations. Consider adding error paths and retry logic.",
-			Impact: "high",
-			Effort: "medium",
+			Impact:      "high",
+			Effort:      "medium",
 		})
 	}
 
@@ -509,11 +509,11 @@ func (s *WorkflowAIService) analyzeWorkflowStructure(nodes []interface{}, connec
 	unusedData := s.findUnusedDataFlow(nodes, connections)
 	if len(unusedData) > 0 {
 		suggestions = append(suggestions, OptimizationSuggestion{
-			Type: "cleanup",
-			Title: "Remove Unused Data Flows",
+			Type:        "cleanup",
+			Title:       "Remove Unused Data Flows",
 			Description: fmt.Sprintf("Found %d unused data connections that can be removed to simplify the workflow.", len(unusedData)),
-			Impact: "low",
-			Effort: "low",
+			Impact:      "low",
+			Effort:      "low",
 		})
 	}
 
@@ -580,22 +580,22 @@ func (s *WorkflowAIService) inferWorkflowCategory(workflowName string) string {
 
 // Data structures for AI analysis results
 type WorkflowUsageAnalysis struct {
-	UserID            uuid.UUID               `json:"user_id"`
-	TimeRange         string                  `json:"time_range"`
-	Patterns          []UsagePattern          `json:"patterns"`
-	PerformanceMetrics WorkflowPerformance    `json:"performance_metrics"`
-	Recommendations   []WorkflowRecommendation `json:"recommendations"`
-	PeakUsageTimes    []PeakUsageTime         `json:"peak_usage_times"`
+	UserID             uuid.UUID                `json:"user_id"`
+	TimeRange          string                   `json:"time_range"`
+	Patterns           []UsagePattern           `json:"patterns"`
+	PerformanceMetrics WorkflowPerformance      `json:"performance_metrics"`
+	Recommendations    []WorkflowRecommendation `json:"recommendations"`
+	PeakUsageTimes     []PeakUsageTime          `json:"peak_usage_times"`
 }
 
 type UsagePattern struct {
-	WorkflowID     uuid.UUID `json:"workflow_id"`
-	WorkflowName   string    `json:"workflow_name"`
-	ExecutionCount int       `json:"execution_count"`
-	SuccessRate    float64   `json:"success_rate"`
-	AvgDuration    float64   `json:"avg_duration_ms"`
+	WorkflowID     uuid.UUID  `json:"workflow_id"`
+	WorkflowName   string     `json:"workflow_name"`
+	ExecutionCount int        `json:"execution_count"`
+	SuccessRate    float64    `json:"success_rate"`
+	AvgDuration    float64    `json:"avg_duration_ms"`
 	LastExecuted   *time.Time `json:"last_executed"`
-	Frequency      string    `json:"frequency"`
+	Frequency      string     `json:"frequency"`
 }
 
 type WorkflowPerformance struct {
@@ -608,12 +608,12 @@ type WorkflowPerformance struct {
 }
 
 type WorkflowRecommendation struct {
-	Type       string    `json:"type"`
-	WorkflowID uuid.UUID `json:"workflow_id,omitempty"`
-	Title      string    `json:"title"`
-	Description string   `json:"description"`
-	Priority   string    `json:"priority"`
-	Confidence float64   `json:"confidence"`
+	Type        string    `json:"type"`
+	WorkflowID  uuid.UUID `json:"workflow_id,omitempty"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Priority    string    `json:"priority"`
+	Confidence  float64   `json:"confidence"`
 }
 
 type PeakUsageTime struct {
@@ -645,19 +645,19 @@ type OptimizationSuggestion struct {
 }
 
 type WorkflowImprovement struct {
-	TimeReduction     float64 `json:"time_reduction_percent"`
+	TimeReduction       float64 `json:"time_reduction_percent"`
 	ReliabilityIncrease float64 `json:"reliability_increase_percent"`
 	ComplexityReduction int     `json:"complexity_reduction_steps"`
 }
 
 type PredictedWorkflow struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Category    string    `json:"category"`
-	Confidence  float64   `json:"confidence"`
-	Reason      string    `json:"reason"`
-	TemplateData string   `json:"template_data,omitempty"`
+	ID           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	Description  string    `json:"description"`
+	Category     string    `json:"category"`
+	Confidence   float64   `json:"confidence"`
+	Reason       string    `json:"reason"`
+	TemplateData string    `json:"template_data,omitempty"`
 }
 
 // Placeholder implementations for analysis methods
@@ -722,7 +722,10 @@ func (s *WorkflowAIService) findLongSequentialChains(nodes []interface{}, connec
 	return chains
 }
 
-func (s *WorkflowAIService) findRedundantOperations(nodes []interface{}) []struct{OperationType string; Count int} {
+func (s *WorkflowAIService) findRedundantOperations(nodes []interface{}) []struct {
+	OperationType string
+	Count         int
+} {
 	counts := make(map[string]int)
 	for _, n := range nodes {
 		node, ok := n.(map[string]interface{})
@@ -739,16 +742,22 @@ func (s *WorkflowAIService) findRedundantOperations(nodes []interface{}) []struc
 		counts[op]++
 	}
 
-	result := []struct{OperationType string; Count int}{}
+	result := []struct {
+		OperationType string
+		Count         int
+	}{}
 	for op, count := range counts {
 		if count > 1 {
-			result = append(result, struct{OperationType string; Count int}{OperationType: op, Count: count})
+			result = append(result, struct {
+				OperationType string
+				Count         int
+			}{OperationType: op, Count: count})
 		}
 	}
 	return result
 }
 
-func (s *WorkflowAIService) analyzeErrorHandling(nodes []interface{}, connections []interface{}) struct{HasErrorHandlers bool} {
+func (s *WorkflowAIService) analyzeErrorHandling(nodes []interface{}, connections []interface{}) struct{ HasErrorHandlers bool } {
 	// Heuristic: a workflow has error handling if any node declares an
 	// on_error/error_handler property or any connection leads to an
 	// error-handling node.
@@ -759,14 +768,14 @@ func (s *WorkflowAIService) analyzeErrorHandling(nodes []interface{}, connection
 			continue
 		}
 		if onErr, _ := node["on_error"].(string); onErr != "" {
-			return struct{HasErrorHandlers bool}{HasErrorHandlers: true}
+			return struct{ HasErrorHandlers bool }{HasErrorHandlers: true}
 		}
 		if eh, _ := node["error_handler"].(string); eh != "" {
-			return struct{HasErrorHandlers bool}{HasErrorHandlers: true}
+			return struct{ HasErrorHandlers bool }{HasErrorHandlers: true}
 		}
 		op, _ := node["type"].(string)
 		if errorNodeTypes[op] {
-			return struct{HasErrorHandlers bool}{HasErrorHandlers: true}
+			return struct{ HasErrorHandlers bool }{HasErrorHandlers: true}
 		}
 	}
 	for _, c := range connections {
@@ -775,10 +784,10 @@ func (s *WorkflowAIService) analyzeErrorHandling(nodes []interface{}, connection
 			continue
 		}
 		if label, _ := conn["label"].(string); strings.EqualFold(label, "error") {
-			return struct{HasErrorHandlers bool}{HasErrorHandlers: true}
+			return struct{ HasErrorHandlers bool }{HasErrorHandlers: true}
 		}
 	}
-	return struct{HasErrorHandlers bool}{HasErrorHandlers: false}
+	return struct{ HasErrorHandlers bool }{HasErrorHandlers: false}
 }
 
 func (s *WorkflowAIService) findUnusedDataFlow(nodes []interface{}, connections []interface{}) []interface{} {
@@ -837,20 +846,29 @@ func (s *WorkflowAIService) analyzeUserActivity(userID uuid.UUID) map[string]int
 	// Simplified user activity analysis
 	return map[string]interface{}{
 		"form_submissions": 0,
-		"email_volume": 0,
-		"task_creation": 0,
-		"calendar_events": 0,
+		"email_volume":     0,
+		"task_creation":    0,
+		"calendar_events":  0,
 	}
 }
 
-func (s *WorkflowAIService) identifyWorkflowOpportunities(activity map[string]interface{}) []struct{Type string; Confidence float64} {
+func (s *WorkflowAIService) identifyWorkflowOpportunities(activity map[string]interface{}) []struct {
+	Type       string
+	Confidence float64
+} {
 	// Simplified opportunity identification
-	return []struct{Type string; Confidence float64}{
+	return []struct {
+		Type       string
+		Confidence float64
+	}{
 		{Type: "form_processing", Confidence: 0.8},
 	}
 }
 
-func (s *WorkflowAIService) generatePredictedWorkflow(opportunity struct{Type string; Confidence float64}) *PredictedWorkflow {
+func (s *WorkflowAIService) generatePredictedWorkflow(opportunity struct {
+	Type       string
+	Confidence float64
+}) *PredictedWorkflow {
 	// Generate predicted workflow based on opportunity type
 	switch opportunity.Type {
 	case "form_processing":

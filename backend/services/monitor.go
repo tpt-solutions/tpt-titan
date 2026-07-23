@@ -31,10 +31,10 @@ type MonitoringService struct {
 
 // RequestMetrics tracks metrics for specific endpoints
 type RequestMetrics struct {
-	Path         string        `json:"path"`
-	Method       string        `json:"method"`
-	RequestCount int64         `json:"request_count"`
-	ErrorCount   int64         `json:"error_count"`
+	Path            string        `json:"path"`
+	Method          string        `json:"method"`
+	RequestCount    int64         `json:"request_count"`
+	ErrorCount      int64         `json:"error_count"`
 	AvgResponseTime time.Duration `json:"avg_response_time"`
 	MinResponseTime time.Duration `json:"min_response_time"`
 	MaxResponseTime time.Duration `json:"max_response_time"`
@@ -43,33 +43,33 @@ type RequestMetrics struct {
 
 // SystemMetrics represents system resource usage
 type SystemMetrics struct {
-	CPUUsage        float64 `json:"cpu_usage_percent"`
-	MemoryUsage     float64 `json:"memory_usage_percent"`
-	MemoryUsed      uint64  `json:"memory_used_bytes"`
-	MemoryTotal     uint64  `json:"memory_total_bytes"`
-	DiskUsage       float64 `json:"disk_usage_percent"`
-	DiskUsed        uint64  `json:"disk_used_bytes"`
-	DiskTotal       uint64  `json:"disk_total_bytes"`
-	NetworkRxBytes  uint64  `json:"network_rx_bytes"`
-	NetworkTxBytes  uint64  `json:"network_tx_bytes"`
-	Goroutines      int     `json:"goroutines"`
-	CGOCalls        int64   `json:"cgo_calls"`
-	HeapAlloc       uint64  `json:"heap_alloc_bytes"`
-	HeapSys         uint64  `json:"heap_sys_bytes"`
-	HeapObjects     uint64  `json:"heap_objects"`
-	GCCycles        uint32  `json:"gc_cycles"`
+	CPUUsage       float64 `json:"cpu_usage_percent"`
+	MemoryUsage    float64 `json:"memory_usage_percent"`
+	MemoryUsed     uint64  `json:"memory_used_bytes"`
+	MemoryTotal    uint64  `json:"memory_total_bytes"`
+	DiskUsage      float64 `json:"disk_usage_percent"`
+	DiskUsed       uint64  `json:"disk_used_bytes"`
+	DiskTotal      uint64  `json:"disk_total_bytes"`
+	NetworkRxBytes uint64  `json:"network_rx_bytes"`
+	NetworkTxBytes uint64  `json:"network_tx_bytes"`
+	Goroutines     int     `json:"goroutines"`
+	CGOCalls       int64   `json:"cgo_calls"`
+	HeapAlloc      uint64  `json:"heap_alloc_bytes"`
+	HeapSys        uint64  `json:"heap_sys_bytes"`
+	HeapObjects    uint64  `json:"heap_objects"`
+	GCCycles       uint32  `json:"gc_cycles"`
 }
 
 // ApplicationMetrics represents application-level metrics
 type ApplicationMetrics struct {
-	Uptime         time.Duration    `json:"uptime"`
-	TotalRequests  int64            `json:"total_requests"`
-	ErrorRate      float64          `json:"error_rate"`
-	ActiveUsers    int64            `json:"active_users"`
-	DatabaseConnections int         `json:"database_connections"`
-	CacheHitRate   float64          `json:"cache_hit_rate"`
-	CacheKeys      int64            `json:"cache_keys"`
-	MemoryUsage    uint64           `json:"memory_usage_bytes"`
+	Uptime              time.Duration `json:"uptime"`
+	TotalRequests       int64         `json:"total_requests"`
+	ErrorRate           float64       `json:"error_rate"`
+	ActiveUsers         int64         `json:"active_users"`
+	DatabaseConnections int           `json:"database_connections"`
+	CacheHitRate        float64       `json:"cache_hit_rate"`
+	CacheKeys           int64         `json:"cache_keys"`
+	MemoryUsage         uint64        `json:"memory_usage_bytes"`
 }
 
 // HealthStatus represents the overall health of the system
@@ -82,14 +82,14 @@ type HealthStatus struct {
 
 // Alert represents a system alert
 type Alert struct {
-	ID          string    `json:"id"`
-	Level       string    `json:"level"` // "info", "warning", "error", "critical"
-	Title       string    `json:"title"`
-	Message     string    `json:"message"`
-	Service     string    `json:"service"`
-	Timestamp   time.Time `json:"timestamp"`
-	Resolved    bool      `json:"resolved"`
-	ResolvedAt  *time.Time `json:"resolved_at,omitempty"`
+	ID         string     `json:"id"`
+	Level      string     `json:"level"` // "info", "warning", "error", "critical"
+	Title      string     `json:"title"`
+	Message    string     `json:"message"`
+	Service    string     `json:"service"`
+	Timestamp  time.Time  `json:"timestamp"`
+	Resolved   bool       `json:"resolved"`
+	ResolvedAt *time.Time `json:"resolved_at,omitempty"`
 }
 
 // NewMonitoringService creates a new monitoring service

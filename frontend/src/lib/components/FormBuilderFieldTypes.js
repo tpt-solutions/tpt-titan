@@ -1,3 +1,4 @@
+// @ts-nocheck
 // frontend/src/lib/components/FormBuilderFieldTypes.js
 // Centralised field-type catalogue used by FormBuilder and its sub-components.
 

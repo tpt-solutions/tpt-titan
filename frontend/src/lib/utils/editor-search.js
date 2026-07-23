@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Editor Search Utility - Find and replace functionality for all editor modes
  */

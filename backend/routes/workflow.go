@@ -197,7 +197,7 @@ func ExecuteWorkflow(c *gin.Context) {
 
 	var payload struct {
 		TriggerData map[string]interface{} `json:"trigger_data,omitempty"`
-		DryRun      bool                    `json:"dry_run,omitempty"`
+		DryRun      bool                   `json:"dry_run,omitempty"`
 	}
 
 	if err := c.ShouldBindJSON(&payload); err != nil {

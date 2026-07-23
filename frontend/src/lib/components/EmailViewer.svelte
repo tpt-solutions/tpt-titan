@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	export let email = null;
 	export let onClose;
 

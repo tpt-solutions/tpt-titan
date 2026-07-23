@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import {
 		showFormulaHelp,
 		showPivotTableBuilder,

@@ -45,18 +45,18 @@ func GetAISettings(c *gin.Context) {
 
 	// Return settings without encrypted API keys
 	response := map[string]interface{}{
-		"user_id":                   settings.UserID,
-		"enable_ai_features":        settings.EnableAIFeatures,
-		"enable_ocr":                settings.EnableOCR,
-		"enable_speech":             settings.EnableSpeech,
-		"enable_workflows":          settings.EnableWorkflows,
-		"enable_local_ai":           settings.EnableLocalAI,
-		"enable_cloud_ai":           settings.EnableCloudAI,
-		"default_provider":          settings.DefaultProvider,
-		"max_concurrent_requests":   settings.MaxConcurrentRequests,
-		"request_timeout":           settings.RequestTimeout,
-		"hardware_acceleration":     settings.HardwareAcceleration,
-		"low_power_mode":            settings.LowPowerMode,
+		"user_id":                 settings.UserID,
+		"enable_ai_features":      settings.EnableAIFeatures,
+		"enable_ocr":              settings.EnableOCR,
+		"enable_speech":           settings.EnableSpeech,
+		"enable_workflows":        settings.EnableWorkflows,
+		"enable_local_ai":         settings.EnableLocalAI,
+		"enable_cloud_ai":         settings.EnableCloudAI,
+		"default_provider":        settings.DefaultProvider,
+		"max_concurrent_requests": settings.MaxConcurrentRequests,
+		"request_timeout":         settings.RequestTimeout,
+		"hardware_acceleration":   settings.HardwareAcceleration,
+		"low_power_mode":          settings.LowPowerMode,
 		"api_keys": map[string]string{
 			"openai":     "[CONFIGURED]",
 			"elevenlabs": "[CONFIGURED]",
@@ -80,17 +80,17 @@ func UpdateAISettings(c *gin.Context) {
 	}
 
 	var requestData struct {
-		EnableAIFeatures      *bool   `json:"enable_ai_features"`
-		EnableOCR             *bool   `json:"enable_ocr"`
-		EnableSpeech          *bool   `json:"enable_speech"`
-		EnableWorkflows       *bool   `json:"enable_workflows"`
-		EnableLocalAI         *bool   `json:"enable_local_ai"`
-		EnableCloudAI         *bool   `json:"enable_cloud_ai"`
-		DefaultProvider       *string `json:"default_provider"`
-		MaxConcurrentRequests *int    `json:"max_concurrent_requests"`
-		RequestTimeout        *int    `json:"request_timeout"`
-		HardwareAcceleration  *bool   `json:"hardware_acceleration"`
-		LowPowerMode          *bool   `json:"low_power_mode"`
+		EnableAIFeatures      *bool             `json:"enable_ai_features"`
+		EnableOCR             *bool             `json:"enable_ocr"`
+		EnableSpeech          *bool             `json:"enable_speech"`
+		EnableWorkflows       *bool             `json:"enable_workflows"`
+		EnableLocalAI         *bool             `json:"enable_local_ai"`
+		EnableCloudAI         *bool             `json:"enable_cloud_ai"`
+		DefaultProvider       *string           `json:"default_provider"`
+		MaxConcurrentRequests *int              `json:"max_concurrent_requests"`
+		RequestTimeout        *int              `json:"request_timeout"`
+		HardwareAcceleration  *bool             `json:"hardware_acceleration"`
+		LowPowerMode          *bool             `json:"low_power_mode"`
 		APIKeys               map[string]string `json:"api_keys"`
 	}
 
@@ -227,12 +227,12 @@ func GetAIUsageStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"stats":         stats,
+		"stats": stats,
 		"summary": gin.H{
-			"total_tokens":    totalTokens,
-			"total_requests":  totalRequests,
-			"total_cost":      totalCost,
-			"period":          period,
+			"total_tokens":   totalTokens,
+			"total_requests": totalRequests,
+			"total_cost":     totalCost,
+			"period":         period,
 		},
 	})
 }

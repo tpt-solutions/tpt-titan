@@ -14,12 +14,12 @@ import (
 
 // PluginSystem manages the plugin ecosystem for TPT Titan
 type PluginSystem struct {
-	db           *sql.DB
-	pluginDir    string
+	db            *sql.DB
+	pluginDir     string
 	loadedPlugins map[string]*LoadedPlugin
-	mutex        sync.RWMutex
-	hookRegistry map[string][]PluginHook
-	eventBus     *EventBus
+	mutex         sync.RWMutex
+	hookRegistry  map[string][]PluginHook
+	eventBus      *EventBus
 }
 
 // LoadedPlugin represents a loaded plugin instance
@@ -39,25 +39,25 @@ type LoadedPlugin struct {
 
 // PluginMetadata contains plugin metadata
 type PluginMetadata struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Version      string            `json:"version"`
-	Description  string            `json:"description"`
-	Author       string            `json:"author"`
-	Homepage     string            `json:"homepage,omitempty"`
-	License      string            `json:"license,omitempty"`
-	Dependencies []string          `json:"dependencies,omitempty"`
-	Permissions  []string          `json:"permissions,omitempty"`
-	Hooks        []string          `json:"hooks,omitempty"`
-	APIs         []PluginAPI       `json:"apis,omitempty"`
+	ID           string                 `json:"id"`
+	Name         string                 `json:"name"`
+	Version      string                 `json:"version"`
+	Description  string                 `json:"description"`
+	Author       string                 `json:"author"`
+	Homepage     string                 `json:"homepage,omitempty"`
+	License      string                 `json:"license,omitempty"`
+	Dependencies []string               `json:"dependencies,omitempty"`
+	Permissions  []string               `json:"permissions,omitempty"`
+	Hooks        []string               `json:"hooks,omitempty"`
+	APIs         []PluginAPI            `json:"apis,omitempty"`
 	Settings     map[string]interface{} `json:"settings,omitempty"`
 }
 
 // PluginAPI represents an API exposed by a plugin
 type PluginAPI struct {
-	Name        string `json:"name"`
-	Version     string `json:"version"`
-	Description string `json:"description"`
+	Name        string      `json:"name"`
+	Version     string      `json:"version"`
+	Description string      `json:"description"`
 	Schema      interface{} `json:"schema,omitempty"`
 }
 
@@ -93,24 +93,24 @@ type PluginRegistry struct {
 
 // RegistryEntry represents a plugin in the registry
 type RegistryEntry struct {
-	ID              string    `json:"id"`
-	Name            string    `json:"name"`
-	Description     string    `json:"description"`
-	Author          string    `json:"author"`
-	Version         string    `json:"version"`
-	Category        string    `json:"category"`
-	Tags            []string  `json:"tags"`
-	Downloads       int       `json:"downloads"`
-	Rating          float64   `json:"rating"`
-	Reviews         int       `json:"reviews"`
-	LastUpdated     time.Time `json:"last_updated"`
-	RepositoryURL   string    `json:"repository_url,omitempty"`
-	HomepageURL     string    `json:"homepage_url,omitempty"`
-	License         string    `json:"license"`
-	Compatibility   []string  `json:"compatibility"` // Compatible TPT Titan versions
-	Dependencies    []string  `json:"dependencies"`
-	Screenshots     []string  `json:"screenshots,omitempty"`
-	Readme          string    `json:"readme,omitempty"`
+	ID            string    `json:"id"`
+	Name          string    `json:"name"`
+	Description   string    `json:"description"`
+	Author        string    `json:"author"`
+	Version       string    `json:"version"`
+	Category      string    `json:"category"`
+	Tags          []string  `json:"tags"`
+	Downloads     int       `json:"downloads"`
+	Rating        float64   `json:"rating"`
+	Reviews       int       `json:"reviews"`
+	LastUpdated   time.Time `json:"last_updated"`
+	RepositoryURL string    `json:"repository_url,omitempty"`
+	HomepageURL   string    `json:"homepage_url,omitempty"`
+	License       string    `json:"license"`
+	Compatibility []string  `json:"compatibility"` // Compatible TPT Titan versions
+	Dependencies  []string  `json:"dependencies"`
+	Screenshots   []string  `json:"screenshots,omitempty"`
+	Readme        string    `json:"readme,omitempty"`
 }
 
 // PluginSandbox provides isolated execution environment
@@ -121,11 +121,11 @@ type PluginSandbox struct {
 }
 
 type PluginLimits struct {
-	MaxMemory     int64         `json:"max_memory"`     // MB
-	MaxCPU        float64       `json:"max_cpu"`        // CPU cores
-	MaxExecution  time.Duration `json:"max_execution"`  // Max execution time
-	MaxAPICalls   int           `json:"max_api_calls"`  // Max API calls per minute
-	AllowedAPIs   []string      `json:"allowed_apis"`   // Allowed API endpoints
+	MaxMemory    int64         `json:"max_memory"`    // MB
+	MaxCPU       float64       `json:"max_cpu"`       // CPU cores
+	MaxExecution time.Duration `json:"max_execution"` // Max execution time
+	MaxAPICalls  int           `json:"max_api_calls"` // Max API calls per minute
+	AllowedAPIs  []string      `json:"allowed_apis"`  // Allowed API endpoints
 }
 
 // PluginSDK provides the SDK for plugin development
@@ -136,11 +136,11 @@ type PluginSDK struct {
 // NewPluginSystem creates a new plugin system
 func NewPluginSystem(db *sql.DB, pluginDir string) *PluginSystem {
 	return &PluginSystem{
-		db:           db,
-		pluginDir:    pluginDir,
+		db:            db,
+		pluginDir:     pluginDir,
 		loadedPlugins: make(map[string]*LoadedPlugin),
-		hookRegistry: make(map[string][]PluginHook),
-		eventBus:     NewEventBus(),
+		hookRegistry:  make(map[string][]PluginHook),
+		eventBus:      NewEventBus(),
 	}
 }
 
@@ -475,12 +475,12 @@ func (ps *PluginSystem) GetPluginStats() map[string]interface{} {
 	defer ps.mutex.RUnlock()
 
 	stats := map[string]interface{}{
-		"total_plugins":     len(ps.loadedPlugins),
-		"enabled_plugins":   0,
-		"disabled_plugins":  0,
-		"total_hooks":       0,
-		"total_apis":        0,
-		"hook_types":        len(ps.hookRegistry),
+		"total_plugins":    len(ps.loadedPlugins),
+		"enabled_plugins":  0,
+		"disabled_plugins": 0,
+		"total_hooks":      0,
+		"total_apis":       0,
+		"hook_types":       len(ps.hookRegistry),
 	}
 
 	for _, plugin := range ps.loadedPlugins {

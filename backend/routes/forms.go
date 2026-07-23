@@ -172,17 +172,17 @@ func CreateForm(c *gin.Context) {
 	}
 
 	stored := models.EncryptedForm{
-		ID:             uuid.New(),
-		UserID:         userID,
-		Name:           formData.Name,
-		Description:    formData.Description,
+		ID:              uuid.New(),
+		UserID:          userID,
+		Name:            formData.Name,
+		Description:     formData.Description,
 		EncryptedSchema: schemaData,
-		Salt:           salt,
-		Algorithm:      "AES-256-GCM",
-		ResponseCount:  0,
-		Status:         status,
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
+		Salt:            salt,
+		Algorithm:       "AES-256-GCM",
+		ResponseCount:   0,
+		Status:          status,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}
 
 	if err := config.DB.Create(&stored).Error; err != nil {
@@ -377,13 +377,13 @@ func SubmitFormResponse(c *gin.Context) {
 
 	now := time.Now()
 	response := models.EncryptedFormResponse{
-		ID:             uuid.New(),
-		FormID:         formID,
-		UserID:         userID,
-		EncryptedData:  data,
-		Salt:           salt,
-		Algorithm:      "AES-256-GCM",
-		SubmittedAt:    now,
+		ID:            uuid.New(),
+		FormID:        formID,
+		UserID:        userID,
+		EncryptedData: data,
+		Salt:          salt,
+		Algorithm:     "AES-256-GCM",
+		SubmittedAt:   now,
 	}
 
 	if err := config.DB.Create(&response).Error; err != nil {

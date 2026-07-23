@@ -18,22 +18,22 @@ type CacheService struct {
 
 // CacheItem represents a cached item with metadata
 type CacheItem struct {
-	Key        string      `json:"key"`
-	Value      interface{} `json:"value"`
+	Key        string        `json:"key"`
+	Value      interface{}   `json:"value"`
 	TTL        time.Duration `json:"ttl"`
-	CreatedAt  time.Time   `json:"created_at"`
-	AccessedAt time.Time   `json:"accessed_at"`
-	HitCount   int64       `json:"hit_count"`
+	CreatedAt  time.Time     `json:"created_at"`
+	AccessedAt time.Time     `json:"accessed_at"`
+	HitCount   int64         `json:"hit_count"`
 }
 
 // CacheStats represents cache statistics
 type CacheStats struct {
-	Hits         int64   `json:"hits"`
-	Misses       int64   `json:"misses"`
-	HitRate      float64 `json:"hit_rate"`
-	Keys         int64   `json:"keys"`
-	MemoryUsage  int64   `json:"memory_usage"`
-	Evictions    int64   `json:"evictions"`
+	Hits        int64   `json:"hits"`
+	Misses      int64   `json:"misses"`
+	HitRate     float64 `json:"hit_rate"`
+	Keys        int64   `json:"keys"`
+	MemoryUsage int64   `json:"memory_usage"`
+	Evictions   int64   `json:"evictions"`
 }
 
 // NewCacheService creates a new Redis cache service
@@ -300,13 +300,13 @@ func MeetingCacheKey(meetingID string) string {
 
 // Cache TTL constants
 const (
-	UserCacheTTL      = 30 * time.Minute
-	DocumentCacheTTL  = 15 * time.Minute
-	EmailCacheTTL     = 10 * time.Minute
-	ChatCacheTTL      = 5 * time.Minute
-	MeetingCacheTTL   = 5 * time.Minute
-	SessionCacheTTL   = 24 * time.Hour
-	StatsCacheTTL     = 5 * time.Minute
+	UserCacheTTL     = 30 * time.Minute
+	DocumentCacheTTL = 15 * time.Minute
+	EmailCacheTTL    = 10 * time.Minute
+	ChatCacheTTL     = 5 * time.Minute
+	MeetingCacheTTL  = 5 * time.Minute
+	SessionCacheTTL  = 24 * time.Hour
+	StatsCacheTTL    = 5 * time.Minute
 )
 
 // Cache warming functions

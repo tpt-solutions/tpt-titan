@@ -24,12 +24,12 @@ func CreateFormTemplate(c *gin.Context) {
 	}
 
 	var template struct {
-		Name        string                   `json:"name" binding:"required"`
-		Description string                   `json:"description"`
-		Category    string                   `json:"category"`
-		FormData    map[string]interface{}   `json:"form_data" binding:"required"`
-		IsPublic    bool                     `json:"is_public"`
-		Tags        []string                 `json:"tags"`
+		Name        string                 `json:"name" binding:"required"`
+		Description string                 `json:"description"`
+		Category    string                 `json:"category"`
+		FormData    map[string]interface{} `json:"form_data" binding:"required"`
+		IsPublic    bool                   `json:"is_public"`
+		Tags        []string               `json:"tags"`
 	}
 
 	if err := c.ShouldBindJSON(&template); err != nil {
@@ -100,7 +100,7 @@ func GetFormTemplates(c *gin.Context) {
 		filtered := []gin.H{}
 		for _, t := range templates {
 			if name, ok := t["name"].(string); ok &&
-			   strings.Contains(strings.ToLower(name), strings.ToLower(search)) {
+				strings.Contains(strings.ToLower(name), strings.ToLower(search)) {
 				filtered = append(filtered, t)
 			}
 		}

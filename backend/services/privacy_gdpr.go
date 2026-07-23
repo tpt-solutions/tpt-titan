@@ -20,110 +20,110 @@ type PrivacyGDPRService struct {
 type DataSubjectRight string
 
 const (
-	RightAccess          DataSubjectRight = "access"          // Right to access personal data
-	RightRectification   DataSubjectRight = "rectification"   // Right to rectify inaccurate data
-	RightErasure         DataSubjectRight = "erasure"         // Right to erasure ("right to be forgotten")
-	RightRestriction     DataSubjectRight = "restriction"     // Right to restrict processing
-	RightPortability     DataSubjectRight = "portability"     // Right to data portability
-	RightObjection       DataSubjectRight = "objection"       // Right to object to processing
+	RightAccess          DataSubjectRight = "access"           // Right to access personal data
+	RightRectification   DataSubjectRight = "rectification"    // Right to rectify inaccurate data
+	RightErasure         DataSubjectRight = "erasure"          // Right to erasure ("right to be forgotten")
+	RightRestriction     DataSubjectRight = "restriction"      // Right to restrict processing
+	RightPortability     DataSubjectRight = "portability"      // Right to data portability
+	RightObjection       DataSubjectRight = "objection"        // Right to object to processing
 	RightWithdrawConsent DataSubjectRight = "withdraw_consent" // Right to withdraw consent
 )
 
 // PrivacyConsent represents user consent for data processing
 type PrivacyConsent struct {
-	ID              uuid.UUID              `json:"id"`
-	UserID          uuid.UUID              `json:"user_id"`
-	ConsentType     string                 `json:"consent_type"`     // "marketing", "analytics", "third_party", etc.
-	Description     string                 `json:"description"`
-	Version         string                 `json:"version"`          // Consent version
-	GivenAt         time.Time              `json:"given_at"`
-	ValidUntil      *time.Time             `json:"valid_until,omitempty"`
-	WithdrawnAt     *time.Time             `json:"withdrawn_at,omitempty"`
-	IP              string                 `json:"ip_address"`
-	UserAgent       string                 `json:"user_agent"`
-	Source          string                 `json:"source"`           // "website", "mobile_app", etc.
-	Scope           map[string]interface{} `json:"scope,omitempty"`  // Specific scope of consent
+	ID          uuid.UUID              `json:"id"`
+	UserID      uuid.UUID              `json:"user_id"`
+	ConsentType string                 `json:"consent_type"` // "marketing", "analytics", "third_party", etc.
+	Description string                 `json:"description"`
+	Version     string                 `json:"version"` // Consent version
+	GivenAt     time.Time              `json:"given_at"`
+	ValidUntil  *time.Time             `json:"valid_until,omitempty"`
+	WithdrawnAt *time.Time             `json:"withdrawn_at,omitempty"`
+	IP          string                 `json:"ip_address"`
+	UserAgent   string                 `json:"user_agent"`
+	Source      string                 `json:"source"`          // "website", "mobile_app", etc.
+	Scope       map[string]interface{} `json:"scope,omitempty"` // Specific scope of consent
 }
 
 // DataProcessingRecord represents a record of data processing activity
 type DataProcessingRecord struct {
-	ID              uuid.UUID              `json:"id"`
-	UserID          uuid.UUID              `json:"user_id"`
-	ProcessingType  string                 `json:"processing_type"`  // "collection", "storage", "sharing", etc.
-	DataCategories  []string               `json:"data_categories"`  // "personal", "financial", "health", etc.
-	Purpose         string                 `json:"purpose"`
-	LegalBasis      string                 `json:"legal_basis"`      // "consent", "contract", "legitimate_interest", etc.
-	Recipients      []string               `json:"recipients,omitempty"`
-	Location        string                 `json:"location"`         // Where data is stored/processed
-	RetentionPeriod *int                   `json:"retention_period,omitempty"` // Days
-	ProcessedAt     time.Time              `json:"processed_at"`
-	Controller      string                 `json:"controller"`       // Data controller organization
+	ID              uuid.UUID `json:"id"`
+	UserID          uuid.UUID `json:"user_id"`
+	ProcessingType  string    `json:"processing_type"` // "collection", "storage", "sharing", etc.
+	DataCategories  []string  `json:"data_categories"` // "personal", "financial", "health", etc.
+	Purpose         string    `json:"purpose"`
+	LegalBasis      string    `json:"legal_basis"` // "consent", "contract", "legitimate_interest", etc.
+	Recipients      []string  `json:"recipients,omitempty"`
+	Location        string    `json:"location"`                   // Where data is stored/processed
+	RetentionPeriod *int      `json:"retention_period,omitempty"` // Days
+	ProcessedAt     time.Time `json:"processed_at"`
+	Controller      string    `json:"controller"` // Data controller organization
 }
 
 // DataBreachRecord represents a data breach incident
 type DataBreachRecord struct {
-	ID              uuid.UUID `json:"id"`
-	IncidentID      string    `json:"incident_id"`
-	Description     string    `json:"description"`
-	DataAffected    []string  `json:"data_affected"`    // Types of data affected
-	UsersAffected   int       `json:"users_affected"`
-	RiskLevel       string    `json:"risk_level"`       // "low", "medium", "high", "critical"
-	DetectedAt      time.Time `json:"detected_at"`
-	ReportedAt      *time.Time `json:"reported_at,omitempty"`
-	ResolvedAt      *time.Time `json:"resolved_at,omitempty"`
-	ActionsTaken    string    `json:"actions_taken"`
-	PreventiveMeasures string `json:"preventive_measures"`
-	Status          string    `json:"status"`           // "investigating", "contained", "resolved"
-	ReportedToAuthorities bool `json:"reported_to_authorities"`
+	ID                    uuid.UUID  `json:"id"`
+	IncidentID            string     `json:"incident_id"`
+	Description           string     `json:"description"`
+	DataAffected          []string   `json:"data_affected"` // Types of data affected
+	UsersAffected         int        `json:"users_affected"`
+	RiskLevel             string     `json:"risk_level"` // "low", "medium", "high", "critical"
+	DetectedAt            time.Time  `json:"detected_at"`
+	ReportedAt            *time.Time `json:"reported_at,omitempty"`
+	ResolvedAt            *time.Time `json:"resolved_at,omitempty"`
+	ActionsTaken          string     `json:"actions_taken"`
+	PreventiveMeasures    string     `json:"preventive_measures"`
+	Status                string     `json:"status"` // "investigating", "contained", "resolved"
+	ReportedToAuthorities bool       `json:"reported_to_authorities"`
 }
 
 // PrivacySettings represents user privacy preferences
 type PrivacySettings struct {
-	UserID                      uuid.UUID `json:"user_id"`
-	DataCollectionConsent       bool      `json:"data_collection_consent"`
-	AnalyticsConsent            bool      `json:"analytics_consent"`
-	MarketingConsent            bool      `json:"marketing_consent"`
-	ThirdPartySharingConsent    bool      `json:"third_party_sharing_consent"`
-	DataRetentionPreference     string    `json:"data_retention_preference"`     // "minimum", "standard", "extended"
-	ContactMethodPreference     string    `json:"contact_method_preference"`     // "email", "phone", "none"
-	DataExportRequested         bool      `json:"data_export_requested"`
-	DataDeletionRequested       bool      `json:"data_deletion_requested"`
-	DoNotTrack                  bool      `json:"do_not_track"`
-	AdvertisingOptOut           bool      `json:"advertising_opt_out"`
-	LocationTrackingDisabled    bool      `json:"location_tracking_disabled"`
-	ProfileVisibility           string    `json:"profile_visibility"`            // "public", "contacts", "private"
-	UpdatedAt                   time.Time `json:"updated_at"`
+	UserID                   uuid.UUID `json:"user_id"`
+	DataCollectionConsent    bool      `json:"data_collection_consent"`
+	AnalyticsConsent         bool      `json:"analytics_consent"`
+	MarketingConsent         bool      `json:"marketing_consent"`
+	ThirdPartySharingConsent bool      `json:"third_party_sharing_consent"`
+	DataRetentionPreference  string    `json:"data_retention_preference"` // "minimum", "standard", "extended"
+	ContactMethodPreference  string    `json:"contact_method_preference"` // "email", "phone", "none"
+	DataExportRequested      bool      `json:"data_export_requested"`
+	DataDeletionRequested    bool      `json:"data_deletion_requested"`
+	DoNotTrack               bool      `json:"do_not_track"`
+	AdvertisingOptOut        bool      `json:"advertising_opt_out"`
+	LocationTrackingDisabled bool      `json:"location_tracking_disabled"`
+	ProfileVisibility        string    `json:"profile_visibility"` // "public", "contacts", "private"
+	UpdatedAt                time.Time `json:"updated_at"`
 }
 
 // DataSubjectRequest represents a GDPR data subject access request
 type DataSubjectRequest struct {
-	ID              uuid.UUID         `json:"id"`
-	RequestID       string            `json:"request_id"`       // Unique reference number
-	UserID          uuid.UUID         `json:"user_id"`
-	RequestType     DataSubjectRight  `json:"request_type"`
-	Description     string            `json:"description"`
-	Status          string            `json:"status"`           // "pending", "processing", "completed", "rejected"
-	RequestedAt     time.Time         `json:"requested_at"`
-	CompletedAt     *time.Time        `json:"completed_at,omitempty"`
-	ResponseData    json.RawMessage   `json:"response_data,omitempty"` // JSON response for access requests
-	RejectionReason string            `json:"rejection_reason,omitempty"`
-	VerifiedAt      *time.Time        `json:"verified_at,omitempty"`   // When user identity was verified
-	ProcessingNotes string            `json:"processing_notes"`
-	DataController  string            `json:"data_controller"`
+	ID              uuid.UUID        `json:"id"`
+	RequestID       string           `json:"request_id"` // Unique reference number
+	UserID          uuid.UUID        `json:"user_id"`
+	RequestType     DataSubjectRight `json:"request_type"`
+	Description     string           `json:"description"`
+	Status          string           `json:"status"` // "pending", "processing", "completed", "rejected"
+	RequestedAt     time.Time        `json:"requested_at"`
+	CompletedAt     *time.Time       `json:"completed_at,omitempty"`
+	ResponseData    json.RawMessage  `json:"response_data,omitempty"` // JSON response for access requests
+	RejectionReason string           `json:"rejection_reason,omitempty"`
+	VerifiedAt      *time.Time       `json:"verified_at,omitempty"` // When user identity was verified
+	ProcessingNotes string           `json:"processing_notes"`
+	DataController  string           `json:"data_controller"`
 }
 
 // PrivacyAuditLog represents audit logging for privacy-related activities
 type PrivacyAuditLog struct {
-	ID              uuid.UUID `json:"id"`
-	UserID          uuid.UUID `json:"user_id,omitempty"`
-	Action          string    `json:"action"`          // "consent_given", "data_accessed", "data_deleted", etc.
-	Resource        string    `json:"resource"`        // What was affected
-	ResourceID      string    `json:"resource_id,omitempty"`
-	IPAddress       string    `json:"ip_address"`
-	UserAgent       string    `json:"user_agent"`
-	Timestamp       time.Time `json:"timestamp"`
-	Details         json.RawMessage `json:"details,omitempty"`
-	ComplianceFlag  bool      `json:"compliance_flag"` // Flags for regulatory review
+	ID             uuid.UUID       `json:"id"`
+	UserID         uuid.UUID       `json:"user_id,omitempty"`
+	Action         string          `json:"action"`   // "consent_given", "data_accessed", "data_deleted", etc.
+	Resource       string          `json:"resource"` // What was affected
+	ResourceID     string          `json:"resource_id,omitempty"`
+	IPAddress      string          `json:"ip_address"`
+	UserAgent      string          `json:"user_agent"`
+	Timestamp      time.Time       `json:"timestamp"`
+	Details        json.RawMessage `json:"details,omitempty"`
+	ComplianceFlag bool            `json:"compliance_flag"` // Flags for regulatory review
 }
 
 // NewPrivacyGDPRService creates a new GDPR privacy service
@@ -614,7 +614,7 @@ func (pgs *PrivacyGDPRService) CheckDataRetentionCompliance() ([]map[string]inte
 			"processing_type":  processingType,
 			"processed_at":     processedAt,
 			"retention_period": retentionPeriod,
-			"days_overdue":     int(time.Since(processedAt).Hours() / 24) - retentionPeriod,
+			"days_overdue":     int(time.Since(processedAt).Hours()/24) - retentionPeriod,
 		})
 	}
 

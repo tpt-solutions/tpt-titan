@@ -174,9 +174,9 @@ func GetFormReports(c *gin.Context) {
 // CreateDashboard creates a dashboard
 func CreateDashboard(c *gin.Context) {
 	var req struct {
-		Name        string    `json:"name" binding:"required"`
-		Description string    `json:"description"`
-		ReportIDs   []uuid.UUID `json:"report_ids" binding:"required"`
+		Name        string                 `json:"name" binding:"required"`
+		Description string                 `json:"description"`
+		ReportIDs   []uuid.UUID            `json:"report_ids" binding:"required"`
 		Layout      map[string]interface{} `json:"layout"`
 	}
 

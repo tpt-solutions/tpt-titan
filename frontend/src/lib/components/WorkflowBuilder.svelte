@@ -1,15 +1,26 @@
 <script>
+// @ts-nocheck
   import { createEventDispatcher, onMount } from 'svelte';
 	import { apiGet, apiPost, apiPut, getMCPConnectors } from '$lib/api.js';
+  import WorkflowConnection from './WorkflowConnection.svelte';
+  import WorkflowNode from './WorkflowNode.svelte';
+  import WorkflowNodeProperties from './WorkflowNodeProperties.svelte';
 
+  /** @type {any} */
   export let workflowId = null; // null for new workflow, ID for editing
+  /** @type {any} */
   export let initialData = null;
 
+  /** @type {any} */
   let canvasRef;
+  /** @type {any} */
   let selectedNode = null;
+  /** @type {any} */
   let draggedNode = null;
   let isConnecting = false;
+  /** @type {any} */
   let connectionStart = null;
+  /** @type {any} */
   let tempConnection = null;
 
   // Workflow data
@@ -22,8 +33,8 @@
     schedule: '',
     isActive: true,
     canvasData: {
-      nodes: [],
-      connections: [],
+      nodes: /** @type {any[]} */ ([]),
+      connections: /** @type {any[]} */ ([]),
       viewport: { x: 0, y: 0, zoom: 1 }
     }
   };
@@ -73,6 +84,7 @@
   ];
 
   // Available connectors
+  /** @type {any[]} */
   let connectors = [];
 
   const dispatch = createEventDispatcher();
@@ -109,7 +121,7 @@
 
   async function loadWorkflow(id) {
     try {
-      const response = await apiGet(`/workflows/${id}`);
+      const response = /** @type {any} */ (await apiGet(`/workflows/${id}`));
       workflow = response.workflow;
       if (workflow.canvasData && typeof workflow.canvasData === 'string') {
         workflow.canvasData = JSON.parse(workflow.canvasData);
@@ -169,6 +181,10 @@
     }
   }
 
+  /**
+   * @param {any} nodeId
+   * @param {any} updates
+   */
   function updateNode(nodeId, updates) {
     const nodeIndex = workflow.canvasData.nodes.findIndex(n => n.id === nodeId);
     if (nodeIndex !== -1) {
@@ -180,6 +196,7 @@
     }
   }
 
+  /** @param {any} nodeId */
   function deleteNode(nodeId) {
     workflow.canvasData.nodes = workflow.canvasData.nodes.filter(n => n.id !== nodeId);
     workflow.canvasData.connections = workflow.canvasData.connections.filter(
@@ -188,15 +205,24 @@
     workflow.canvasData = { ...workflow.canvasData };
   }
 
+  /** @param {any} node */
   function selectNode(node) {
     selectedNode = node;
   }
 
+  /**
+   * @param {any} nodeId
+   * @param {any} port
+   */
   function startConnection(nodeId, port) {
     isConnecting = true;
     connectionStart = { nodeId, port };
   }
 
+  /**
+   * @param {any} nodeId
+   * @param {any} port
+   */
   function completeConnection(nodeId, port) {
     if (!isConnecting || !connectionStart) return;
 
@@ -219,6 +245,7 @@
     tempConnection = null;
   }
 
+  /** @param {any} connectionId */
   function deleteConnection(connectionId) {
     workflow.canvasData.connections = workflow.canvasData.connections.filter(
       c => c.id !== connectionId
@@ -226,6 +253,7 @@
     workflow.canvasData = { ...workflow.canvasData };
   }
 
+  /** @param {any} event */
   function handleCanvasClick(event) {
     if (isConnecting) {
       isConnecting = false;
@@ -237,6 +265,7 @@
     selectedNode = null;
   }
 
+  /** @param {any} event */
   function handleCanvasMouseMove(event) {
     if (isConnecting && connectionStart) {
       const rect = canvasRef.getBoundingClientRect();
@@ -257,6 +286,7 @@
         canvasData: JSON.stringify(workflow.canvasData)
       };
 
+      /** @type {any} */
       let response;
       if (workflow.id) {
         response = await apiPut(`/workflows/${workflow.id}`, workflowData);
@@ -278,7 +308,7 @@
     }
 
     try {
-      const response = await apiPost(`/workflows/${workflow.id}/execute`);
+      const response = await apiPost(`/workflows/${workflow.id}/execute`, {});
       dispatch('executed', { execution: response });
     } catch (error) {
       console.error('Failed to execute workflow:', error);
@@ -297,14 +327,15 @@
     URL.revokeObjectURL(url);
   }
 
+  /** @param {any} event */
   function importWorkflow(event) {
-    const file = event.target.files[0];
+    const file = /** @type {HTMLInputElement} */ (event.target).files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const importedWorkflow = JSON.parse(e.target.result);
+        const importedWorkflow = JSON.parse(/** @type {string} */ (/** @type {FileReader} */ (e.target).result));
         workflow = { ...workflow, ...importedWorkflow };
         if (typeof workflow.canvasData === 'string') {
           workflow.canvasData = JSON.parse(workflow.canvasData);

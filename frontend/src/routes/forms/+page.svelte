@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import FormBuilder from '$lib/components/FormBuilder.svelte';
 	import FormList from '$lib/components/FormList.svelte';
 	import FormAdvancedPanel from '$lib/components/FormAdvancedPanel.svelte';

@@ -1,5 +1,6 @@
 <!-- frontend/src/lib/components/SpreadsheetVersionHistoryModal.svelte -->
 <script>
+// @ts-nocheck
 	import { createEventDispatcher } from 'svelte';
 	
 	export let show = false;

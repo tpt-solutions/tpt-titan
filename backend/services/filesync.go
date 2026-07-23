@@ -215,14 +215,14 @@ func (s *FileSyncService) CreateFileVersion(fileID uuid.UUID, deviceID string, u
 	}
 
 	version := models.FileVersion{
-		ID:          uuid.New(),
-		FileID:      fileID,
-		Version:     newVersion,
-		Size:        fileSize,
-		Hash:        hash,
-		DeviceID:    deviceID,
-		ModifiedBy:  userID,
-		CreatedAt:   time.Now(),
+		ID:         uuid.New(),
+		FileID:     fileID,
+		Version:    newVersion,
+		Size:       fileSize,
+		Hash:       hash,
+		DeviceID:   deviceID,
+		ModifiedBy: userID,
+		CreatedAt:  time.Now(),
 	}
 
 	// Create chunks for large files
@@ -375,9 +375,9 @@ func (s *FileSyncService) SyncFolder(userID uuid.UUID, folderID uuid.UUID, devic
 	}
 
 	response := &models.SyncResponse{
-		DeviceID:    deviceID,
-		Changes:     changes,
-		Conflicts:   conflicts,
+		DeviceID:      deviceID,
+		Changes:       changes,
+		Conflicts:     conflicts,
 		NextSyncToken: fmt.Sprintf("%d", now.Unix()),
 	}
 
@@ -444,11 +444,11 @@ func (s *FileSyncService) detectConflicts(folderID uuid.UUID, deviceID string, l
 	for path, remoteHash := range remoteChanges {
 		if localHash, exists := localHashes[path]; exists && localHash != remoteHash {
 			conflict := models.SyncConflictResponse{
-				Path:         path,
+				Path:          path,
 				LocalVersion:  1, // Simplified
 				RemoteVersion: 1, // Simplified
-				ConflictType: "concurrent_edit",
-				Suggestions:  []string{"keep_local", "keep_remote", "merge"},
+				ConflictType:  "concurrent_edit",
+				Suggestions:   []string{"keep_local", "keep_remote", "merge"},
 			}
 			conflicts = append(conflicts, conflict)
 		}

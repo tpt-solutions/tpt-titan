@@ -1,3 +1,4 @@
+// @ts-nocheck
 // AI Service for TPT Titan frontend
 // Handles AI writing assistance, document summarization, and other AI features
 

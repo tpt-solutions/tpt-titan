@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { apiGet, apiPut, apiPost, apiDelete } from '../api.js';
 

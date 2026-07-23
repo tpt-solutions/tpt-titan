@@ -22,63 +22,63 @@ type TaskIntegrationService struct {
 
 // TaskIntegration represents an integration configuration
 type TaskIntegration struct {
-	ID          uuid.UUID `json:"id"`
-	TaskID      uuid.UUID `json:"task_id"`
-	SourceType  string    `json:"source_type"`  // "form", "email", "calendar", "chat"
-	SourceID    uuid.UUID `json:"source_id"`    // ID of the source item
-	IntegrationType string `json:"integration_type"` // "auto_create", "link", "sync"
-	Config      map[string]interface{} `json:"config"` // Integration-specific configuration
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID              uuid.UUID              `json:"id"`
+	TaskID          uuid.UUID              `json:"task_id"`
+	SourceType      string                 `json:"source_type"`      // "form", "email", "calendar", "chat"
+	SourceID        uuid.UUID              `json:"source_id"`        // ID of the source item
+	IntegrationType string                 `json:"integration_type"` // "auto_create", "link", "sync"
+	Config          map[string]interface{} `json:"config"`           // Integration-specific configuration
+	CreatedAt       time.Time              `json:"created_at"`
+	UpdatedAt       time.Time              `json:"updated_at"`
 }
 
 // FormTaskIntegration represents integration between forms and tasks
 type FormTaskIntegration struct {
-	ID                uuid.UUID `json:"id"`
-	FormID           uuid.UUID `json:"form_id"`
-	TaskTemplateID   uuid.UUID `json:"task_template_id,omitempty"`
-	TriggerCondition string    `json:"trigger_condition"` // JSON condition for when to create task
-	AutoAssign       bool      `json:"auto_assign"`
-	AssigneeField    string    `json:"assignee_field,omitempty"` // Form field containing assignee
-	PriorityField    string    `json:"priority_field,omitempty"` // Form field containing priority
-	DueDateField     string    `json:"due_date_field,omitempty"` // Form field containing due date
-	TitleTemplate    string    `json:"title_template"` // Template for task title
-	DescriptionTemplate string `json:"description_template"` // Template for task description
-	IsActive         bool      `json:"is_active"`
-	CreatedAt        time.Time `json:"created_at"`
+	ID                  uuid.UUID `json:"id"`
+	FormID              uuid.UUID `json:"form_id"`
+	TaskTemplateID      uuid.UUID `json:"task_template_id,omitempty"`
+	TriggerCondition    string    `json:"trigger_condition"` // JSON condition for when to create task
+	AutoAssign          bool      `json:"auto_assign"`
+	AssigneeField       string    `json:"assignee_field,omitempty"` // Form field containing assignee
+	PriorityField       string    `json:"priority_field,omitempty"` // Form field containing priority
+	DueDateField        string    `json:"due_date_field,omitempty"` // Form field containing due date
+	TitleTemplate       string    `json:"title_template"`           // Template for task title
+	DescriptionTemplate string    `json:"description_template"`     // Template for task description
+	IsActive            bool      `json:"is_active"`
+	CreatedAt           time.Time `json:"created_at"`
 }
 
 // EmailTaskIntegration represents integration between emails and tasks
 type EmailTaskIntegration struct {
-	ID                uuid.UUID `json:"id"`
-	EmailFilter      map[string]interface{} `json:"email_filter"` // Conditions for email processing
-	TaskTemplateID   uuid.UUID `json:"task_template_id,omitempty"`
-	AutoCreate       bool      `json:"auto_create"`
-	PriorityMapping  map[string]string `json:"priority_mapping"` // Email priority to task priority
-	CategoryMapping  map[string]string `json:"category_mapping"` // Email category to task category
-	AssigneeMapping  map[string]uuid.UUID `json:"assignee_mapping"` // Email sender/domain to assignee
-	TitleTemplate    string    `json:"title_template"`
-	DescriptionTemplate string `json:"description_template"`
-	IsActive         bool      `json:"is_active"`
-	CreatedAt        time.Time `json:"created_at"`
+	ID                  uuid.UUID              `json:"id"`
+	EmailFilter         map[string]interface{} `json:"email_filter"` // Conditions for email processing
+	TaskTemplateID      uuid.UUID              `json:"task_template_id,omitempty"`
+	AutoCreate          bool                   `json:"auto_create"`
+	PriorityMapping     map[string]string      `json:"priority_mapping"` // Email priority to task priority
+	CategoryMapping     map[string]string      `json:"category_mapping"` // Email category to task category
+	AssigneeMapping     map[string]uuid.UUID   `json:"assignee_mapping"` // Email sender/domain to assignee
+	TitleTemplate       string                 `json:"title_template"`
+	DescriptionTemplate string                 `json:"description_template"`
+	IsActive            bool                   `json:"is_active"`
+	CreatedAt           time.Time              `json:"created_at"`
 }
 
 // TaskTemplate represents a reusable task template
 type TaskTemplate struct {
-	ID          uuid.UUID              `json:"id"`
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Category    string                 `json:"category"`
-	Priority    string                 `json:"priority"`
-	EstimatedDuration *int            `json:"estimated_duration,omitempty"` // in minutes
-	Tags        []string               `json:"tags"`
-	Checklist   []TaskChecklistItem    `json:"checklist"`
-	Subtasks    []SubtaskTemplate      `json:"subtasks"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
-	CreatedBy   uuid.UUID              `json:"created_by"`
-	IsPublic    bool                   `json:"is_public"`
-	UsageCount  int                    `json:"usage_count"`
-	CreatedAt   time.Time              `json:"created_at"`
+	ID                uuid.UUID              `json:"id"`
+	Name              string                 `json:"name"`
+	Description       string                 `json:"description"`
+	Category          string                 `json:"category"`
+	Priority          string                 `json:"priority"`
+	EstimatedDuration *int                   `json:"estimated_duration,omitempty"` // in minutes
+	Tags              []string               `json:"tags"`
+	Checklist         []TaskChecklistItem    `json:"checklist"`
+	Subtasks          []SubtaskTemplate      `json:"subtasks"`
+	Metadata          map[string]interface{} `json:"metadata,omitempty"`
+	CreatedBy         uuid.UUID              `json:"created_by"`
+	IsPublic          bool                   `json:"is_public"`
+	UsageCount        int                    `json:"usage_count"`
+	CreatedAt         time.Time              `json:"created_at"`
 }
 
 // TaskChecklistItem represents an item in a task checklist
@@ -252,8 +252,8 @@ func (tis *TaskIntegrationService) CreateTaskFromTemplate(templateID uuid.UUID, 
 	subtasks := make([]models.SubtaskRequest, 0, len(template.Subtasks))
 	for _, subtask := range template.Subtasks {
 		subtasks = append(subtasks, models.SubtaskRequest{
-			Title:  subtask.Title,
-			ID:     uuid.New().String(),
+			Title: subtask.Title,
+			ID:    uuid.New().String(),
 		})
 	}
 
@@ -275,11 +275,11 @@ func (tis *TaskIntegrationService) CreateTaskFromTemplate(templateID uuid.UUID, 
 // LinkTaskToItem links a task to another TPT Titan item
 func (tis *TaskIntegrationService) LinkTaskToItem(taskID uuid.UUID, itemType string, itemID uuid.UUID, linkType string) error {
 	integration := &TaskIntegration{
-		TaskID:         taskID,
-		SourceType:     itemType,
-		SourceID:       itemID,
+		TaskID:          taskID,
+		SourceType:      itemType,
+		SourceID:        itemID,
 		IntegrationType: linkType,
-		Config:         make(map[string]interface{}),
+		Config:          make(map[string]interface{}),
 	}
 
 	return tis.createTaskIntegrationRecord(taskID, itemType, itemID, linkType, integration.Config)
@@ -520,14 +520,14 @@ func (tis *TaskIntegrationService) createTaskFromEmail(integration EmailTaskInte
 
 func (tis *TaskIntegrationService) createTaskIntegrationRecord(taskID uuid.UUID, sourceType string, sourceID uuid.UUID, integrationType string, config map[string]interface{}) error {
 	integration := &TaskIntegration{
-		ID:             uuid.New(),
-		TaskID:         taskID,
-		SourceType:     sourceType,
-		SourceID:       sourceID,
+		ID:              uuid.New(),
+		TaskID:          taskID,
+		SourceType:      sourceType,
+		SourceID:        sourceID,
 		IntegrationType: integrationType,
-		Config:         config,
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
+		Config:          config,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}
 
 	query := `

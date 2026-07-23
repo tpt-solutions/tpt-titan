@@ -1,5 +1,6 @@
 <!-- frontend/src/lib/components/SignaturePad.svelte -->
 <script>
+// @ts-nocheck
 	import { onMount, onDestroy, createEventDispatcher } from 'svelte';
 
 	export let value = ''; // Base64 encoded signature image

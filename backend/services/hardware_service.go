@@ -3,6 +3,7 @@ package services
 import (
 	"runtime"
 )
+
 // HardwareInfo represents detected hardware capabilities
 type HardwareInfo struct {
 	RAMGB     int  `json:"ram_gb"`

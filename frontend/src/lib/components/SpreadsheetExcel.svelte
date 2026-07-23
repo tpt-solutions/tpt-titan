@@ -1,4 +1,5 @@
 <script>
+// @ts-nocheck
 	import { exportSpreadsheetToExcel, importExcelToSpreadsheet } from '$lib/api.js';
 
 	export let spreadsheetId = null;

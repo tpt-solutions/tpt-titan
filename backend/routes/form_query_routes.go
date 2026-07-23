@@ -27,7 +27,7 @@ func BuildSQL(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"sql": sql,
+		"sql":      sql,
 		"elements": elements,
 	})
 }
@@ -79,7 +79,7 @@ func ValidateVisualQuery(c *gin.Context) {
 
 	errors := queryBuilder.ValidateQuery(elements)
 	c.JSON(http.StatusOK, gin.H{
-		"valid": len(errors) == 0,
+		"valid":  len(errors) == 0,
 		"errors": errors,
 	})
 }
@@ -114,8 +114,8 @@ func SaveQueryTemplate(c *gin.Context) {
 	}
 
 	var req struct {
-		Name        string                   `json:"name" binding:"required"`
-		Description string                   `json:"description"`
+		Name        string                  `json:"name" binding:"required"`
+		Description string                  `json:"description"`
 		Elements    []services.QueryElement `json:"elements" binding:"required"`
 	}
 
